@@ -35,11 +35,19 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
 
   // Handle Export Backup JSON
   const handleExportBackup = () => {
+    const cyclesV2 = JSON.parse(localStorage.getItem('test_genie_test_cycles_v2') || '[]');
+    const cyclesV1 = JSON.parse(localStorage.getItem('test_genie_test_cycles_v1') || '[]');
+    const cycles = cyclesV2.length > 0 ? cyclesV2 : cyclesV1;
+
+    const casesV2 = JSON.parse(localStorage.getItem('test_genie_custom_cases_v2') || '{}');
+    const casesV1 = JSON.parse(localStorage.getItem('test_genie_custom_cases_v1') || '{}');
+    const customCases = Object.keys(casesV2).length > 0 ? casesV2 : casesV1;
+
     const data = {
       timestamp: new Date().toISOString(),
       projects: JSON.parse(localStorage.getItem('test_genie_projects_v2') || '[]'),
-      customCases: JSON.parse(localStorage.getItem('test_genie_custom_cases_v2') || '{}'),
-      testCycles: JSON.parse(localStorage.getItem('test_genie_test_cycles_v2') || '[]'),
+      customCases,
+      testCycles: cycles,
       registeredUsers: JSON.parse(localStorage.getItem('registered_enterprise_users_v2') || '[]')
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -63,8 +71,14 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.projects) localStorage.setItem('test_genie_projects_v2', JSON.stringify(parsed.projects));
-        if (parsed.customCases) localStorage.setItem('test_genie_custom_cases_v2', JSON.stringify(parsed.customCases));
-        if (parsed.testCycles) localStorage.setItem('test_genie_test_cycles_v2', JSON.stringify(parsed.testCycles));
+        if (parsed.customCases) {
+          localStorage.setItem('test_genie_custom_cases_v2', JSON.stringify(parsed.customCases));
+          localStorage.setItem('test_genie_custom_cases_v1', JSON.stringify(parsed.customCases));
+        }
+        if (parsed.testCycles) {
+          localStorage.setItem('test_genie_test_cycles_v2', JSON.stringify(parsed.testCycles));
+          localStorage.setItem('test_genie_test_cycles_v1', JSON.stringify(parsed.testCycles));
+        }
         if (parsed.registeredUsers) localStorage.setItem('registered_enterprise_users_v2', JSON.stringify(parsed.registeredUsers));
 
         alert('System Backup successfully restored! Reloading platform...');
