@@ -280,9 +280,15 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             const passPercent = total > 0 ? Math.round((passed / total) * 100) : 0;
 
             // Check if there are newly uploaded cases in the repository NOT in this cycle
-            const moduleCasesForThisCycle = allModuleCasesMap[cycle.moduleName] || currentModuleCases;
-            const existingCycleKeys = new Set(cycle.items.map(i => i.testCase.key));
-            const newUnassignedCasesCount = moduleCasesForThisCycle.filter(c => !existingCycleKeys.has(c.key)).length;
+            const existingCycleKeys = new Set([
+              ...cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean),
+              ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
+            ]);
+
+            const newUnassignedCasesCount = currentModuleCases.filter(c => 
+              !existingCycleKeys.has(c.key?.trim().toUpperCase()) &&
+              !existingCycleKeys.has(c.name?.trim().toLowerCase())
+            ).length;
 
             return (
               <div

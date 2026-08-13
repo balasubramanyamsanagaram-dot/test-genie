@@ -16,10 +16,16 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
   onClose
 }) => {
   // Existing case keys in cycle
-  const existingKeys = new Set(cycle.items.map(i => i.testCase.key));
+  const existingKeys = new Set([
+    ...cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean),
+    ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
+  ]);
 
   // Cases that are NOT in the cycle yet
-  const unassignedCases = availableCases.filter(tc => !existingKeys.has(tc.key));
+  const unassignedCases = availableCases.filter(tc => 
+    !existingKeys.has(tc.key?.trim().toUpperCase()) &&
+    !existingKeys.has(tc.name?.trim().toLowerCase())
+  );
 
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
