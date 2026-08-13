@@ -1,4 +1,80 @@
-import { TestCase } from '../types';
+import { TestCase, TestCycle } from '../types';
+
+export const DEFAULT_PRELOADED_TEST_CYCLES: TestCycle[] = [
+  {
+    id: 'cycle-holidays-sprint24',
+    name: 'Sprint 24 — Holidays & Leave Execution Run',
+    version: 'v2.4.0',
+    environment: 'Staging',
+    moduleName: 'Holidays & Leave Management',
+    assignedTester: 'Suresh Kumar (Admin)',
+    createdBy: 'Suresh Kumar (Admin)',
+    createdAt: '2026-08-01',
+    projectId: 'proj-hrm-v2',
+    items: [
+      {
+        id: 'item-HOL-T01',
+        testCase: {
+          key: "HOL-T01",
+          folder: "/Holidays",
+          name: "Verify Next Holiday card countdown calculation and date display",
+          objective: "Verify Verify Next Holiday card countdown calculation and date display in Holidays module",
+          precondition: "User is logged into HR portal and on Holidays page.",
+          testSteps: "1. Log in to HR portal and navigate to Organization -> Holidays.\n2. Ensure active board year is set to 2026.\n3. Locate top 'Next Holiday' banner card.\n4. Verify banner displays holiday name 'Independence Day', date '15/08/2026', and countdown badge.",
+          testData: "Standard QA Payload",
+          expectedResult: "Verified successfully.",
+          status: "Approved",
+          priority: "Critical",
+          category: "Holidays & Leave Management",
+          type: "Positive",
+          sourceFile: "Holidays_Zephyr_Scale_Test_Cases.csv"
+        },
+        executionStatus: 'PASSED',
+        assignedTo: 'Suresh Kumar (Admin)'
+      },
+      {
+        id: 'item-HOL-T02',
+        testCase: {
+          key: "HOL-T02",
+          folder: "/Holidays",
+          name: "Verify Next Holiday banner behavior when holiday occurs today",
+          objective: "Verify Verify Next Holiday banner behavior when holiday occurs today in Holidays module",
+          precondition: "User is logged into HR portal and on Holidays page.",
+          testSteps: "1. Log in to HR portal on 15/08/2026 and navigate to Organization -> Holidays.\n2. Inspect top 'Next Holiday' banner card.\n3. Verify countdown badge reads 'Today' or '0 days remaining'.",
+          testData: "Standard QA Payload",
+          expectedResult: "Verified successfully.",
+          status: "Approved",
+          priority: "Critical",
+          category: "Holidays & Leave Management",
+          type: "Positive",
+          sourceFile: "Holidays_Zephyr_Scale_Test_Cases.csv"
+        },
+        executionStatus: 'PASSED',
+        assignedTo: 'Suresh Kumar (Admin)'
+      },
+      {
+        id: 'item-HOL-T17',
+        testCase: {
+          key: "HOL-T17",
+          folder: "/Holidays",
+          name: "Verify inline duplicate error banner when adding identical holiday name and date",
+          objective: "Verify inline duplicate error banner when adding identical holiday name and date",
+          precondition: "User is on Add Holiday modal.",
+          testSteps: "1. Log in and navigate to Holidays.\n2. Click + Add Holiday.\n3. Enter existing name 'Republic Day' and date '26/01/2026'.\n4. Click Save Holiday.",
+          testData: "Standard QA Payload",
+          expectedResult: "Inline red error banner displays 'Holiday with this name and date already exists'. Submission blocked.",
+          status: "Approved",
+          priority: "High",
+          category: "Holidays & Leave Management",
+          type: "Negative",
+          sourceFile: "Holidays_Zephyr_Scale_Test_Cases.csv"
+        },
+        executionStatus: 'FAILED',
+        assignedTo: 'Rahul Verma (QA Engineer)'
+      }
+    ]
+  }
+];
 
 export const DEFAULT_HOLIDAYS_TEST_CASES: TestCase[] = [
   {

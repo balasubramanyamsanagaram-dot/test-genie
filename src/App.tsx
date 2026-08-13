@@ -9,7 +9,7 @@ import { TestCaseImporter } from './components/TestCaseImporter';
 import { ModuleCardsGrid } from './components/ModuleCardsGrid';
 import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
-import { DEFAULT_HOLIDAYS_TEST_CASES } from './engine/default-data';
+import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
 import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2 } from 'lucide-react';
 
@@ -187,7 +187,7 @@ export const App: React.FC = () => {
         if (parsedV1.length > 0) return parsedV1;
       }
     } catch (e) {}
-    return [];
+    return DEFAULT_PRELOADED_TEST_CYCLES;
   });
 
   const [activeCycleId, setActiveCycleId] = useState<string>('');
