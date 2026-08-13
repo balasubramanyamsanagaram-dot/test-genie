@@ -1,0 +1,383 @@
+import React, { useState } from 'react';
+import { TestCase, UserProfile } from '../types';
+import { Upload, Plus, FileText, CheckCircle, AlertCircle, X, User, AlertTriangle, ShieldAlert } from 'lucide-react';
+import Papa from 'papaparse';
+
+interface TestCaseImporterProps {
+  moduleName: string;
+  currentUser: UserProfile;
+  onImportCases: (newCases: TestCase[]) => void;
+  onClose: () => void;
+}
+
+export interface FileValidationError {
+  title: string;
+  problem: string;
+  fileName?: string;
+  fileSize?: string;
+  suggestedFix: string;
+}
+
+export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
+  moduleName,
+  currentUser,
+  onImportCases,
+  onClose
+}) => {
+  const [activeMode, setActiveMode] = useState<'upload' | 'manual'>('upload');
+  
+  // User Attribution & Assignment Fields (Pre-filled with logged-in user name)
+  const [createdBy, setCreatedBy] = useState(currentUser.name);
+  const [assignedTo, setAssignedTo] = useState('');
+
+  // Diagnostic Error State
+  const [diagnosticError, setDiagnosticError] = useState<FileValidationError | null>(null);
+
+  // Manual Form Fields
+  const [key, setKey] = useState(`TC-${Date.now().toString().slice(-4)}`);
+  const [name, setName] = useState('');
+  const [objective, setObjective] = useState('');
+  const [precondition, setPrecondition] = useState('');
+  const [testSteps, setTestSteps] = useState('Step 1: Open page.\nStep 2: Enter test values.\nStep 3: Click Submit.\nStep 4: Inspect outcome.');
+  const [expectedResult, setExpectedResult] = useState('');
+  const [type, setType] = useState<'Positive' | 'Negative'>('Positive');
+
+  const canManageCases = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
+
+  // Handle Manual Case Submit
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canManageCases) {
+      alert(`Role Restriction: User role '${currentUser.role}' cannot add manual test cases. Only Admin or QA Lead roles can save test cases.`);
+      return;
+    }
+    if (!createdBy.trim() || !assignedTo.trim()) {
+      return alert('Validation Error: "Author / Added By" and "Assign Default Tester" are required fields.');
+    }
+    if (!name.trim() || !expectedResult.trim()) {
+      return alert('Validation Error: Please fill in Scenario Name and Expected Result.');
+    }
+
+    const newCase: TestCase = {
+      key: key.trim().toUpperCase(),
+      folder: `/${moduleName}`,
+      name: name.trim(),
+      objective: objective.trim() || `Verify ${name.trim()} behavior in ${moduleName}`,
+      precondition: precondition.trim() || 'User is logged into application portal.',
+      testSteps: testSteps.trim(),
+      testData: 'Standard QA Payload',
+      expectedResult: expectedResult.trim(),
+      status: 'Approved',
+      priority: 'High',
+      category: moduleName,
+      type,
+      sourceFile: 'Manual Entry',
+      createdBy: createdBy.trim(),
+      createdAt: new Date().toLocaleString(),
+      assignedTo: assignedTo.trim()
+    };
+
+    onImportCases([newCase]);
+    onClose();
+  };
+
+  // Handle File Upload Inspection
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDiagnosticError(null);
+    if (!canManageCases) {
+      alert(`Role Restriction: User role '${currentUser.role}' cannot upload test case reference files. Only Admin or QA Lead roles can upload test suites.`);
+      return;
+    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!createdBy.trim() || !assignedTo.trim()) {
+      alert('Validation Error: Please specify "Author / Added By" and "Assign Default Tester" before selecting a file.');
+      e.target.value = '';
+      return;
+    }
+
+    const fileName = file.name;
+    const fileSizeMB = file.size / (1024 * 1024);
+
+    // Rule 1: Reject unsupported file extensions (.pdf, .png, .docx, .zip)
+    const validExtensions = ['.csv', '.xlsx', '.json'];
+    const fileExt = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
+    if (!validExtensions.includes(fileExt)) {
+      setDiagnosticError({
+        title: 'Unsupported File Extension Detected',
+        problem: `Uploaded file '${fileName}' is an invalid ${fileExt.toUpperCase()} document. TestGenie only accepts structured QA spreadsheets (.csv, .xlsx) or JSON definitions.`,
+        fileName,
+        fileSize: `${fileSizeMB.toFixed(2)} MB`,
+        suggestedFix: 'Please convert your test suite document into a standard .csv or .xlsx spreadsheet file with columns: Scenario Title, Test Steps, Expected Result.'
+      });
+      e.target.value = '';
+      return;
+    }
+
+    // Rule 2: Reject files > 5MB
+    if (fileSizeMB > 5) {
+      setDiagnosticError({
+        title: 'File Size Exceeds 5MB Safety Limit',
+        problem: `File '${fileName}' size is ${fileSizeMB.toFixed(2)} MB, which exceeds the maximum allowable 5MB payload limit.`,
+        fileName,
+        fileSize: `${fileSizeMB.toFixed(2)} MB`,
+        suggestedFix: 'Please split your large test matrix file into smaller module-wise CSV/XLSX files under 5MB.'
+      });
+      e.target.value = '';
+      return;
+    }
+
+    // Parse CSV file content
+    if (fileExt === '.csv') {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.errors && results.errors.length > 0) {
+            setDiagnosticError({
+              title: 'CSV Parsing Error & Syntax Corruption',
+              problem: `Corrupted CSV syntax detected on line ${results.errors[0].row}: ${results.errors[0].message}`,
+              fileName,
+              fileSize: `${fileSizeMB.toFixed(2)} MB`,
+              suggestedFix: 'Open the CSV file in Excel or VS Code, verify quotes are closed properly, and save as UTF-8 CSV.'
+            });
+            return;
+          }
+
+          const parsedRows: any[] = results.data;
+          if (parsedRows.length === 0) {
+            setDiagnosticError({
+              title: 'Empty Test File (0 Rows Found)',
+              problem: `Uploaded CSV file '${fileName}' contains 0 data rows.`,
+              fileName,
+              fileSize: `${fileSizeMB.toFixed(2)} MB`,
+              suggestedFix: 'Ensure your CSV spreadsheet contains at least 1 test case scenario row below column headers.'
+            });
+            return;
+          }
+
+          const importedCases: TestCase[] = parsedRows.map((row, idx) => {
+            const scenarioTitle = row['Scenario Title'] || row['Scenario'] || row['Title'] || row['Name'] || row['Test Case Name'] || `Test Scenario ${idx + 1}`;
+            const steps = row['Test Steps (High Level)'] || row['Test Steps'] || row['Steps'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.';
+            const expected = row['Expected Result'] || row['Expected'] || 'Verified successfully.';
+            const scenarioType = (scenarioTitle.toLowerCase().includes('negative') || scenarioTitle.toLowerCase().includes('verify invalid') || scenarioTitle.toLowerCase().includes('reject')) ? 'Negative' : 'Positive';
+
+            return {
+              key: row['Scenario ID'] || row['Key'] || `TC-${moduleName.toUpperCase().slice(0, 3)}-${100 + idx}`,
+              folder: `/${moduleName}`,
+              name: scenarioTitle,
+              objective: row['Preconditions'] || row['Scenario Description'] || `Verify ${scenarioTitle} behavior`,
+              precondition: row['Preconditions'] || 'User logged into HR portal.',
+              testSteps: steps,
+              testData: 'Standard QA Payload',
+              expectedResult: expected,
+              status: 'Approved',
+              priority: 'High',
+              category: moduleName,
+              type: scenarioType,
+              sourceFile: fileName,
+              createdBy: createdBy.trim(),
+              createdAt: new Date().toLocaleString(),
+              assignedTo: assignedTo.trim()
+            };
+          });
+
+          onImportCases(importedCases);
+          onClose();
+        }
+      });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+        
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900">Add / Upload Test Cases — {moduleName}</h3>
+            <p className="text-xs text-slate-500">Upload CSV/XLSX reference files or add manual test cases.</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 font-bold">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Diagnostic Error Banner */}
+        {diagnosticError && (
+          <div className="p-4 bg-rose-50 border-b border-rose-200 space-y-2 text-xs">
+            <div className="flex items-center space-x-2 text-rose-900 font-extrabold">
+              <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
+              <span>{diagnosticError.title}</span>
+            </div>
+            <p className="text-rose-800 leading-relaxed font-medium pl-7">{diagnosticError.problem}</p>
+            <div className="bg-white/80 p-2.5 rounded-xl border border-rose-200 text-rose-900 font-mono text-[11px] ml-7">
+              💡 <strong>Suggested Fix:</strong> {diagnosticError.suggestedFix}
+            </div>
+          </div>
+        )}
+
+        {/* Mandatory User Attribution Fields */}
+        <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label className="font-bold text-slate-700 block mb-1">Author / Added By *</label>
+            <input
+              type="text"
+              value={createdBy}
+              onChange={e => setCreatedBy(e.target.value)}
+              placeholder="e.g. Suresh QA Lead"
+              required
+              className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+            />
+          </div>
+
+          <div>
+            <label className="font-bold text-slate-700 block mb-1">Assign Default Tester *</label>
+            <input
+              type="text"
+              value={assignedTo}
+              onChange={e => setAssignedTo(e.target.value)}
+              placeholder="e.g. Anand QA Engineer"
+              required
+              className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-slate-900 focus:outline-none focus:border-indigo-600"
+            />
+          </div>
+        </div>
+
+        {/* Mode Selector Tabs */}
+        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center space-x-2">
+          <button
+            onClick={() => setActiveMode('upload')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeMode === 'upload'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            📁 Upload Reference File (.csv, .xlsx)
+          </button>
+          <button
+            onClick={() => setActiveMode('manual')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeMode === 'manual'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            ✍️ Add Manual Test Case
+          </button>
+        </div>
+
+        {/* Content Body */}
+        {activeMode === 'upload' ? (
+          <div className="p-8 text-center space-y-4 flex-1 flex flex-col justify-center">
+            <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-3xl p-8 hover:border-indigo-400 transition-all cursor-pointer">
+              <Upload className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
+              <h4 className="text-base font-extrabold text-slate-900">Choose Reference File to Import</h4>
+              <p className="text-xs text-slate-500 mt-1 mb-4">
+                Supports .csv, .xlsx, or .json test suite files (Max 5MB payload limit).
+              </p>
+              
+              <label className="inline-flex items-center px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer transition-all active:scale-95">
+                Browse CSV/XLSX File
+                <input type="file" accept=".csv,.xlsx,.json" onChange={handleFileUpload} className="hidden" />
+              </label>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleManualSubmit} className="p-6 space-y-3 text-xs overflow-y-auto flex-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Scenario Key *</label>
+                <input
+                  type="text"
+                  value={key}
+                  onChange={e => setKey(e.target.value)}
+                  required
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Scenario Type</label>
+                <select
+                  value={type}
+                  onChange={e => setType(e.target.value as any)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+                >
+                  <option value="Positive">Positive Scenario</option>
+                  <option value="Negative">Negative / Validation Scenario</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Manual Test Scenario Title *</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Verify Contact Email format validation"
+                required
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Preconditions</label>
+              <input
+                type="text"
+                value={precondition}
+                onChange={e => setPrecondition(e.target.value)}
+                placeholder="e.g. User logged into portal and on Step 1 Branding"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Numbered 4-Step Instructions *</label>
+              <textarea
+                rows={4}
+                value={testSteps}
+                onChange={e => setTestSteps(e.target.value)}
+                required
+                className="w-full bg-slate-900 text-slate-100 rounded-xl px-3 py-2 font-mono text-[11px] leading-relaxed"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Expected Result *</label>
+              <input
+                type="text"
+                value={expectedResult}
+                onChange={e => setExpectedResult(e.target.value)}
+                placeholder="e.g. Displays inline validation error 'Invalid email'."
+                required
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md"
+              >
+                Save Manual Scenario
+              </button>
+            </div>
+          </form>
+        )}
+
+      </div>
+    </div>
+  );
+};
