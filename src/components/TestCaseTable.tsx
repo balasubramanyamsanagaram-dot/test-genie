@@ -27,6 +27,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   canManageCases = true
 }) => {
   const [internalSearch, setInternalSearch] = useState('');
+  const activeSearch = internalSearch;
   const [selectedType, setSelectedType] = useState<string>('ALL');
 
   // Checkbox Selection State
@@ -46,12 +47,19 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number | 'ALL'>(25);
+
+  // Reset pagination on filter or search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedType, activeSearch]);
+
   // Sync external search query to internal search state
   React.useEffect(() => {
     setInternalSearch(externalSearchQuery);
   }, [externalSearchQuery]);
-
-  const activeSearch = internalSearch;
 
   const handleInputChange = (val: string) => {
     setInternalSearch(val);
@@ -122,6 +130,18 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
       return (a.key || '').localeCompare(b.key || '');
     });
   }, [filteredCases]);
+
+  // Pagination calculations
+  const totalCasesCount = sortedCases.length;
+  const totalPages = pageSize === 'ALL' ? 1 : Math.ceil(totalCasesCount / pageSize);
+  
+  const startIndex = pageSize === 'ALL' ? 0 : (currentPage - 1) * pageSize;
+  const endIndex = pageSize === 'ALL' ? totalCasesCount : Math.min(startIndex + pageSize, totalCasesCount);
+  
+  const paginatedCases = React.useMemo(() => {
+    if (pageSize === 'ALL') return sortedCases;
+    return sortedCases.slice(startIndex, endIndex);
+  }, [sortedCases, startIndex, endIndex, pageSize]);
 
   // Checkbox Handlers
   const handleToggleCase = (key: string) => {
@@ -284,7 +304,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                 </td>
               </tr>
             ) : (
-              sortedCases.map(tc => {
+              paginatedCases.map(tc => {
                 const isSelected = selectedKeys.includes(tc.key);
                 const isNew = isNewCase(tc);
                 return (
@@ -388,9 +408,87 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
         </table>
       </div>
 
-      <div className="p-3 bg-slate-50 border-t border-slate-200 text-slate-500 text-[11px] flex justify-between font-mono">
-        <span>Showing {filteredCases.length} of {testCases.length} Scenarios</span>
-        <span>Zephyr Scale & Jira Ready</span>
+      {/* Premium Pagination Control Footer */}
+      <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-600">
+        
+        {/* Info */}
+        <div className="flex items-center space-x-2 font-mono text-[11px] text-slate-500">
+          <span>Showing {totalCasesCount > 0 ? startIndex + 1 : 0} to {endIndex} of {totalCasesCount} Scenarios</span>
+          {testCases.length > totalCasesCount && (
+            <span className="text-slate-400 font-sans">(filtered from {testCases.length} total)</span>
+          )}
+        </div>
+
+        {/* Page Selector Buttons */}
+        {totalPages > 1 && (
+          <div className="flex items-center space-x-1.5">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`p-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 transition-all ${
+                currentPage === 1 ? 'opacity-40 cursor-not-allowed' : 'active:scale-95'
+              }`}
+            >
+              &lt;
+            </button>
+
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => {
+              if (
+                page === 1 ||
+                page === totalPages ||
+                Math.abs(page - currentPage) <= 1
+              ) {
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 rounded-xl border transition-all text-xs font-extrabold ${
+                      currentPage === page
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                        : 'border-slate-300 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              }
+              if (page === 2 || page === totalPages - 1) {
+                return <span key={page} className="px-1 text-slate-400 font-mono">...</span>;
+              }
+              return null;
+            })}
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`p-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 transition-all ${
+                currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : 'active:scale-95'
+              }`}
+            >
+              &gt;
+            </button>
+          </div>
+        )}
+
+        {/* Page Size Dropdown */}
+        <div className="flex items-center space-x-2">
+          <span className="text-[11px] text-slate-500 font-medium">Show</span>
+          <select
+            value={pageSize}
+            onChange={e => {
+              const val = e.target.value;
+              setPageSize(val === 'ALL' ? 'ALL' : parseInt(val, 10));
+              setCurrentPage(1);
+            }}
+            className="bg-white text-slate-800 text-xs font-bold rounded-xl px-2.5 py-1.5 border border-slate-300 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
+          >
+            <option value={25}>25 Scenarios</option>
+            <option value={50}>50 Scenarios</option>
+            <option value={100}>100 Scenarios</option>
+            <option value="ALL">Show All</option>
+          </select>
+        </div>
+
       </div>
 
       {/* Edit Test Case Modal */}
