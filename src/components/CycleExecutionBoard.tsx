@@ -433,54 +433,81 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
             {/* Test Case Details */}
             <div className="space-y-4 text-xs">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div>
-                  <h4 className="text-sm font-extrabold text-slate-900 mb-1">{activeItem.testCase.name}</h4>
-                  <p className="text-slate-600 leading-relaxed">{activeItem.testCase.objective}</p>
+              
+              {/* Executive Scenario Header Card */}
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-3">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-1.5">
+                      <span className="font-mono text-xs font-extrabold text-indigo-700 bg-indigo-100/80 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                        {activeItem.testCase.key}
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                        activeItem.testCase.type === 'Positive' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'
+                      }`}>
+                        {activeItem.testCase.type}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-200/60 px-2.5 py-0.5 rounded-full">
+                        Priority: {activeItem.testCase.priority || 'High'}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-black text-slate-900 leading-snug">
+                      {activeItem.testCase.name}
+                    </h3>
+                  </div>
+
+                  {/* Top Action Toolbar */}
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                    {onViewCodeSpec && (
+                      <button
+                        onClick={() => onViewCodeSpec(activeItem.testCase)}
+                        className="px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-700 font-mono font-extrabold text-xs border border-emerald-300 shadow-2xs flex items-center transition-all active:scale-95 hover:border-emerald-400"
+                        title="View Playwright & Cypress Code Spec"
+                      >
+                        <Code2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                        &lt;/&gt; CODE SPEC
+                      </button>
+                    )}
+
+                    {onAutomateTestCase && (
+                      <button
+                        onClick={() => onAutomateTestCase(activeItem.testCase)}
+                        className="px-3.5 py-2 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 font-mono font-extrabold text-xs border border-indigo-300 shadow-2xs flex items-center transition-all active:scale-95 hover:border-indigo-400"
+                        title="Run No-Code Playwright Automation Trace"
+                      >
+                        <Play className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+                        ▷ AUTOMATE
+                      </button>
+                    )}
+
+                    {canExecuteTests && (
+                      <>
+                        <button
+                          onClick={() => setEditingTestCase(activeItem.testCase)}
+                          className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center transition-all active:scale-95"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                          Edit Case
+                        </button>
+                        <button
+                          onClick={() => setDeletingItemKey(activeItem.testCase.key)}
+                          className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center transition-all active:scale-95"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                          Delete Case
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                  {onViewCodeSpec && (
-                    <button
-                      onClick={() => onViewCodeSpec(activeItem.testCase)}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-mono font-extrabold text-xs border border-emerald-300 flex items-center transition-all active:scale-95 shadow-2xs"
-                      title="View Playwright & Cypress Code Spec"
-                    >
-                      <Code2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-                      &lt;/&gt; CODE SPEC
-                    </button>
-                  )}
-
-                  {onAutomateTestCase && (
-                    <button
-                      onClick={() => onAutomateTestCase(activeItem.testCase)}
-                      className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-mono font-extrabold text-xs border border-indigo-300 flex items-center transition-all active:scale-95 shadow-2xs"
-                      title="Run No-Code Playwright Automation Trace"
-                    >
-                      <Play className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
-                      ▷ AUTOMATE
-                    </button>
-                  )}
-
-                  {canExecuteTests && (
-                    <>
-                      <button
-                        onClick={() => setEditingTestCase(activeItem.testCase)}
-                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center transition-all active:scale-95"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                        Edit Case
-                      </button>
-                      <button
-                        onClick={() => setDeletingItemKey(activeItem.testCase.key)}
-                        className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center transition-all active:scale-95"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1 text-rose-600" />
-                        Delete Case
-                      </button>
-                    </>
-                  )}
-                </div>
+                {/* Scenario Objective Description */}
+                {activeItem.testCase.objective && (
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed bg-white/80 p-3 rounded-xl border border-slate-200/80">
+                    <strong className="text-slate-800">Objective: </strong>
+                    {activeItem.testCase.objective}
+                  </p>
+                )}
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
