@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TestCase, UserProfile } from '../types';
 import { Upload, Plus, FileText, CheckCircle, AlertCircle, X, User, AlertTriangle, ShieldAlert } from 'lucide-react';
 import Papa from 'papaparse';
+import { SearchableSelect } from './SearchableSelect';
 
 interface TestCaseImporterProps {
   moduleName: string;
@@ -302,14 +303,14 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Scenario Type</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Positive', label: 'Positive Scenario' },
+                    { value: 'Negative', label: 'Negative / Validation Scenario' }
+                  ]}
                   value={type}
-                  onChange={e => setType(e.target.value as any)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-                >
-                  <option value="Positive">Positive Scenario</option>
-                  <option value="Negative">Negative / Validation Scenario</option>
-                </select>
+                  onChange={val => setType(val as any)}
+                />
               </div>
             </div>
 

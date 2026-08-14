@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { TestCase, JiraBug } from '../types';
 import { Bug, AlertTriangle, CheckCircle, ExternalLink, X, ShieldAlert, User, RefreshCw, PlusCircle, Camera, Video, Trash2, StopCircle } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface JiraBugModalProps {
   testCase: TestCase;
@@ -255,17 +256,14 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
           <form onSubmit={handleReopenSubmit} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
             <div>
               <label className="font-bold text-slate-700 block mb-1">Select Defect to Re-open</label>
-              <select
+              <SearchableSelect
+                options={existingBugs.map(b => ({
+                  value: b.issueKey,
+                  label: `${b.issueKey} — ${b.summary} (${b.status})`
+                }))}
                 value={selectedBugToReopen}
-                onChange={e => setSelectedBugToReopen(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-              >
-                {existingBugs.map(b => (
-                  <option key={b.issueKey} value={b.issueKey}>
-                    {b.issueKey} — {b.summary} ({b.status})
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedBugToReopen}
+              />
             </div>
 
             <div>
@@ -397,16 +395,16 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Defect Severity</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Blocker', label: '🔴 Blocker (System Down)' },
+                    { value: 'Critical', label: '🟧 Critical (Feature Broken)' },
+                    { value: 'Major', label: '🟨 Major (Workaround Exists)' },
+                    { value: 'Minor', label: '🟦 Minor (Cosmetic / UI)' }
+                  ]}
                   value={severity}
-                  onChange={e => setSeverity(e.target.value as any)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-                >
-                  <option value="Blocker">🔴 Blocker (System Down)</option>
-                  <option value="Critical">🟧 Critical (Feature Broken)</option>
-                  <option value="Major">🟨 Major (Workaround Exists)</option>
-                  <option value="Minor">🟦 Minor (Cosmetic / UI)</option>
-                </select>
+                  onChange={val => setSeverity(val as any)}
+                />
               </div>
             </div>
 
