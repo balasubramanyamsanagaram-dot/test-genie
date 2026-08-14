@@ -84,6 +84,7 @@ export const App: React.FC = () => {
     deviceProfile: string;
     browser: string;
     isHeaded: boolean;
+    cycleId?: string;
   } | null>(null);
 
   const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
@@ -584,8 +585,11 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleAutomateTestCase = (tc: TestCase) => {
+  const [automateCycleId, setAutomateCycleId] = useState<string | undefined>(undefined);
+
+  const handleAutomateTestCase = (tc: TestCase, cycleId?: string) => {
     setSelectedAutomateCase(tc);
+    setAutomateCycleId(cycleId);
     setIsAutomationDrawerOpen(true);
   };
 
@@ -596,20 +600,22 @@ export const App: React.FC = () => {
       startingUrl,
       deviceProfile,
       browser,
-      isHeaded
+      isHeaded,
+      cycleId: automateCycleId
     });
   };
 
   const handleSaveAutomationResultToCycle = (
+    cycleId: string,
     status: 'PASSED' | 'FAILED',
     evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }
   ) => {
-    if (activeProjectCycles.length > 0 && selectedAutomateCase) {
-      const activeCycle = activeProjectCycles[0];
-      const itemToUpdate = activeCycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
+    const cycle = activeProjectCycles.find(c => c.id === cycleId) || activeProjectCycles[0];
+    if (cycle && selectedAutomateCase) {
+      const itemToUpdate = cycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
       if (itemToUpdate) {
         handleUpdateExecutionStatus(
-          activeCycle.id,
+          cycle.id,
           itemToUpdate.testCase.key,
           status,
           undefined,
@@ -617,7 +623,7 @@ export const App: React.FC = () => {
           undefined,
           evidence
         );
-        showToast(`Saved execution status (${status}) with media proof for test case ${selectedAutomateCase.key} inside cycle "${activeCycle.name}"!`);
+        showToast(`Automation execution (${status}): Stored evidence proof in cycle "${cycle.name}"!`, 'success');
       } else {
         const newItem: TestCycleItem = {
           id: `item-${Date.now().toString().slice(-4)}`,
@@ -639,29 +645,38 @@ export const App: React.FC = () => {
         };
         
         setTestCycles(prev => prev.map(c => {
-          if (c.id !== activeCycle.id) return c;
+          if (c.id !== cycle.id) return c;
           return {
             ...c,
             items: [newItem, ...c.items]
           };
         }));
         
-        showToast(`Added test case ${selectedAutomateCase.key} to cycle "${activeCycle.name}" (${status}) with media proof!`);
+        showToast(`Added test case ${selectedAutomateCase.key} to cycle "${cycle.name}" (${status}) with media proof!`, 'success');
       }
-    } else {
-      showToast("No active test cycle found. Please create a test cycle to save results.", "error");
     }
   };
 
-  const handleRaiseBugFromAutomation = (failedStep: string, screenshotUrl?: string) => {
-    if (activeProjectCycles.length > 0 && selectedAutomateCase) {
-      const activeCycle = activeProjectCycles[0];
-      setBugToEdit(undefined);
-      setIsBugCreateEditModalOpen(true);
-      showToast(`Automation failed at step: "${failedStep}". Opening Jira Bug creation drawer...`, "error");
-    } else {
-      setActiveTab('execution');
-      showToast(`Automation failed at step: "${failedStep}". Log this bug in Jira.`, "error");
+  const handleRaiseBugFromAutomation = (cycleId: string, failedStep: string, screenshotUrl?: string) => {
+    const cycle = activeProjectCycles.find(c => c.id === cycleId) || activeProjectCycles[0];
+    if (cycle && selectedAutomateCase) {
+      const item = cycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
+      const existingBugs = item ? (item.jiraBugs || (item.jiraBug ? [item.jiraBug] : [])) : [];
+      const activeBug = existingBugs.find(b => b.status === 'Open' || b.status === 'Re-opened');
+
+      if (activeBug) {
+        handleReopenJiraBug(
+          cycle.id,
+          selectedAutomateCase.key,
+          activeBug.issueKey,
+          `Automation re-test failed at step: ${failedStep}`,
+          screenshotUrl
+        );
+      } else {
+        setBugToEdit(undefined);
+        setIsBugCreateEditModalOpen(true);
+        showToast(`Automation failed at step: "${failedStep}". Opening Jira Bug creation drawer...`, "error");
+      }
     }
   };
 
@@ -1779,7 +1794,7 @@ export const App: React.FC = () => {
                     onDeleteCycleItem={handleDeleteCycleItem}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
                     onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
-                    onAutomateTestCase={handleAutomateTestCase}
+                    onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (
@@ -2080,16 +2095,25 @@ export const App: React.FC = () => {
         onStartAutomation={handleStartAutomationRun}
       />
 
-      {/* Live Automation Browser Trace Simulator Console (Standalone Test Case Simulation) */}
+      {/* Live Automation Browser Trace Simulator Console */}
       {automationParams?.isOpen && selectedAutomateCase && (
         <AutomationSimulator
           isOpen={automationParams.isOpen}
-          onClose={() => setAutomationParams(null)}
+          onClose={() => {
+            setAutomationParams(null);
+            setAutomateCycleId(undefined);
+          }}
           testCase={selectedAutomateCase}
           startingUrl={automationParams.startingUrl}
           deviceProfile={automationParams.deviceProfile}
           browser={automationParams.browser}
           isHeaded={automationParams.isHeaded}
+          onSaveToCycle={automationParams.cycleId ? (status, evidence) => {
+            handleSaveAutomationResultToCycle(automationParams.cycleId!, status, evidence);
+          } : undefined}
+          onRaiseBug={automationParams.cycleId ? (failedStep, screenshotUrl) => {
+            handleRaiseBugFromAutomation(automationParams.cycleId!, failedStep, screenshotUrl);
+          } : undefined}
         />
       )}
 
