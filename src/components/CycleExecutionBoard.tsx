@@ -21,6 +21,7 @@ interface CycleExecutionBoardProps {
   ) => void;
   onAddCasesToCycle?: (cycleId: string, newCases: TestCase[]) => void;
   onReopenBug?: (itemKey: string, bugKey: string, notes: string, screenshotUrl?: string, videoUrl?: string) => void;
+  onRequestPassEvidence?: (cycleId: string, itemKey: string, itemTitle: string) => void;
   onBackToCycles: () => void;
 }
 
@@ -31,6 +32,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onUpdateStatus,
   onAddCasesToCycle,
   onReopenBug,
+  onRequestPassEvidence,
   onBackToCycles
 }) => {
   const [selectedItemKey, setSelectedItemKey] = useState<string>(cycle.items[0]?.testCase.key || '');
@@ -62,6 +64,12 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     }
 
     if (!activeItem) return;
+
+    // Requirement 3: Mandatory Evidence Proof Upload on PASSED manual action!
+    if (status === 'PASSED' && onRequestPassEvidence) {
+      onRequestPassEvidence(cycle.id, activeItem.testCase.key, activeItem.testCase.name);
+      return;
+    }
 
     // Mandatory Bug Modal on FAILED
     if (status === 'FAILED') {

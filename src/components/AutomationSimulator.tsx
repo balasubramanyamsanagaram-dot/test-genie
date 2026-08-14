@@ -18,8 +18,8 @@ interface AutomationSimulatorProps {
   deviceProfile: string;
   browser: string;
   isHeaded: boolean;
-  onSaveToCycle?: (status: 'PASSED' | 'FAILED') => void;
-  onRaiseBug?: (failedStep: string) => void;
+  onSaveToCycle?: (status: 'PASSED' | 'FAILED', evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }) => void;
+  onRaiseBug?: (failedStep: string, screenshotUrl?: string) => void;
 }
 
 export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
@@ -116,8 +116,15 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
           setStatus('PASSED');
           setIsRunning(false);
           setLogs(prev => [...prev, `[SYSTEM] Automation completed successfully. Test Passed.`]);
-          // Default selection to first step
           setActiveStepIdx(0);
+
+          const proofScreenshot = mapped.find(s => s.screenshot)?.screenshot || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
+          if (onSaveToCycle) {
+            onSaveToCycle('PASSED', {
+              screenshotUrl: proofScreenshot,
+              evidenceName: `${testCase.key}_Automated_PASSED_Proof.png`
+            });
+          }
         } else {
           setStatus('FAILED');
           setIsRunning(false);
@@ -128,6 +135,17 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
           const failedIdx = mapped.findIndex(s => s.status === 'FAILED');
           if (failedIdx !== -1) {
             setActiveStepIdx(failedIdx);
+          }
+
+          const errorScreenshot = mapped.find(s => s.status === 'FAILED')?.screenshot || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80';
+          if (onSaveToCycle) {
+            onSaveToCycle('FAILED', {
+              screenshotUrl: errorScreenshot,
+              evidenceName: `${testCase.key}_Automated_FAILED_ErrorTrace.png`
+            });
+          }
+          if (onRaiseBug) {
+            onRaiseBug(data.error || 'Step validation checks failed.', errorScreenshot);
           }
         }
 

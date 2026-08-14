@@ -26,6 +26,7 @@ import { SpeedRunExecutionBoard } from './components/SpeedRunExecutionBoard';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
 import { VisualDiffModal } from './components/VisualDiffModal';
+import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
@@ -93,6 +94,14 @@ export const App: React.FC = () => {
     defaultValue: string;
     placeholder: string;
     onConfirm: (value: string) => void;
+  } | null>(null);
+
+  // Pass Evidence Upload Modal State
+  const [passEvidenceModalConfig, setPassEvidenceModalConfig] = useState<{
+    isOpen: boolean;
+    cycleId: string;
+    itemKey: string;
+    itemTitle: string;
   } | null>(null);
 
   // Synchronous-safe window.alert override for styled custom notifications
@@ -591,13 +600,24 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleSaveAutomationResultToCycle = (status: 'PASSED' | 'FAILED') => {
+  const handleSaveAutomationResultToCycle = (
+    status: 'PASSED' | 'FAILED',
+    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }
+  ) => {
     if (activeProjectCycles.length > 0 && selectedAutomateCase) {
       const activeCycle = activeProjectCycles[0];
       const itemToUpdate = activeCycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
       if (itemToUpdate) {
-        handleUpdateExecutionStatus(activeCycle.id, itemToUpdate.testCase.key, status);
-        showToast(`Saved execution status (${status}) for test case ${selectedAutomateCase.key} inside cycle "${activeCycle.name}"!`);
+        handleUpdateExecutionStatus(
+          activeCycle.id,
+          itemToUpdate.testCase.key,
+          status,
+          undefined,
+          undefined,
+          undefined,
+          evidence
+        );
+        showToast(`Saved execution status (${status}) with media proof for test case ${selectedAutomateCase.key} inside cycle "${activeCycle.name}"!`);
       } else {
         const newItem: TestCycleItem = {
           id: `item-${Date.now().toString().slice(-4)}`,
@@ -605,7 +625,17 @@ export const App: React.FC = () => {
           executionStatus: status,
           executedBy: currentUser?.name || 'QA Tester',
           executedAt: new Date().toISOString(),
-          executionType: 'Automated'
+          executionType: 'Automated',
+          evidenceScreenshotUrl: evidence?.screenshotUrl,
+          evidenceVideoUrl: evidence?.videoUrl,
+          evidenceName: evidence?.evidenceName || `${selectedAutomateCase.key}_Automated_Proof`,
+          attachments: (evidence?.screenshotUrl || evidence?.videoUrl) ? [{
+            id: `att-${Date.now()}`,
+            name: evidence?.evidenceName || `${selectedAutomateCase.key}_Proof`,
+            url: (evidence.screenshotUrl || evidence.videoUrl)!,
+            type: evidence.videoUrl ? 'video' : 'image',
+            uploadedAt: new Date().toLocaleTimeString()
+          }] : []
         };
         
         setTestCycles(prev => prev.map(c => {
@@ -616,16 +646,23 @@ export const App: React.FC = () => {
           };
         }));
         
-        showToast(`Added test case ${selectedAutomateCase.key} to cycle "${activeCycle.name}" (${status})!`);
+        showToast(`Added test case ${selectedAutomateCase.key} to cycle "${activeCycle.name}" (${status}) with media proof!`);
       }
     } else {
       showToast("No active test cycle found. Please create a test cycle to save results.", "error");
     }
   };
 
-  const handleRaiseBugFromAutomation = (failedStep: string) => {
-    setActiveTab('execution');
-    showToast(`Automation failed at step: "${failedStep}". Use the Live Board to log this bug in Jira.`, "error");
+  const handleRaiseBugFromAutomation = (failedStep: string, screenshotUrl?: string) => {
+    if (activeProjectCycles.length > 0 && selectedAutomateCase) {
+      const activeCycle = activeProjectCycles[0];
+      setBugToEdit(undefined);
+      setIsBugCreateEditModalOpen(true);
+      showToast(`Automation failed at step: "${failedStep}". Opening Jira Bug creation drawer...`, "error");
+    } else {
+      setActiveTab('execution');
+      showToast(`Automation failed at step: "${failedStep}". Log this bug in Jira.`, "error");
+    }
   };
 
   const handleAddAIDemoCase = () => {
@@ -959,7 +996,8 @@ export const App: React.FC = () => {
     status: TestExecutionStatus,
     jiraBug?: JiraBug,
     bugNotes?: string,
-    defectId?: string
+    defectId?: string,
+    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }
   ) => {
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
@@ -989,6 +1027,18 @@ export const App: React.FC = () => {
             primaryBug = { ...primaryBug, status: 'Resolved' };
           }
 
+          const existingAttachments = item.attachments || [];
+          let updatedAttachments = [...existingAttachments];
+          if (evidence?.screenshotUrl || evidence?.videoUrl) {
+            updatedAttachments.unshift({
+              id: `att-${Date.now()}`,
+              name: evidence.evidenceName || `${itemKey}_Proof`,
+              url: (evidence.screenshotUrl || evidence.videoUrl)!,
+              type: evidence.videoUrl ? 'video' : 'image',
+              uploadedAt: new Date().toLocaleTimeString()
+            });
+          }
+
           return {
             ...item,
             executionStatus: status,
@@ -996,6 +1046,10 @@ export const App: React.FC = () => {
             jiraBugs: existingBugs,
             bugNotes: bugNotes !== undefined ? bugNotes : item.bugNotes,
             defectId: primaryBug?.issueKey || item.defectId,
+            evidenceScreenshotUrl: evidence?.screenshotUrl || item.evidenceScreenshotUrl,
+            evidenceVideoUrl: evidence?.videoUrl || item.evidenceVideoUrl,
+            evidenceName: evidence?.evidenceName || item.evidenceName,
+            attachments: updatedAttachments,
             executedBy: currentUser?.name || 'QA Tester',
             executedAt: new Date().toLocaleString()
           };
@@ -1671,6 +1725,7 @@ export const App: React.FC = () => {
                     onReopenBug={(itemKey, bugKey, notes, screenshotUrl, videoUrl) => 
                       handleReopenJiraBug(activeCycle.id, itemKey, bugKey, notes, screenshotUrl, videoUrl)
                     }
+                    onRequestPassEvidence={(cycleId, itemKey, itemTitle) => setPassEvidenceModalConfig({ isOpen: true, cycleId, itemKey, itemTitle })}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (
@@ -2115,6 +2170,27 @@ export const App: React.FC = () => {
       {isVisualDiffOpen && (
         <VisualDiffModal
           onClose={() => setIsVisualDiffOpen(false)}
+        />
+      )}
+
+      {/* Mandatory Pass Evidence Upload Modal */}
+      {passEvidenceModalConfig?.isOpen && (
+        <PassEvidenceUploadModal
+          testCaseKey={passEvidenceModalConfig.itemKey}
+          testCaseName={passEvidenceModalConfig.itemTitle}
+          onConfirmPass={(evidence) => {
+            handleUpdateExecutionStatus(
+              passEvidenceModalConfig.cycleId,
+              passEvidenceModalConfig.itemKey,
+              'PASSED',
+              undefined,
+              undefined,
+              undefined,
+              evidence
+            );
+            setPassEvidenceModalConfig(null);
+          }}
+          onClose={() => setPassEvidenceModalConfig(null)}
         />
       )}
 

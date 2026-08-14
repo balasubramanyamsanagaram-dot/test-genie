@@ -187,11 +187,15 @@ export interface TestCycleItem {
   executedAt?: string;
   executionType?: 'Manual' | 'Automated';
   
-  // Defect Tracking
+  // Defect Tracking & Visual Evidence Attachments
   defectId?: string;
   bugNotes?: string;
   jiraBug?: JiraBug; // Primary bug
   jiraBugs?: JiraBug[]; // Multi-defect history array
+  evidenceScreenshotUrl?: string;
+  evidenceVideoUrl?: string;
+  evidenceName?: string;
+  attachments?: { id: string; name: string; url: string; type: 'image' | 'video'; uploadedAt: string }[];
 }
 
 export interface TestCycle {
