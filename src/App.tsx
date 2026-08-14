@@ -277,7 +277,7 @@ export const App: React.FC = () => {
     const failedCount = executedItems.filter(item => item.executionStatus === 'FAILED').length;
     const blockedCount = executedItems.filter(item => item.executionStatus === 'BLOCKED').length;
     
-    const passRate = totalExecuted > 0 ? Math.round((passedCount / totalExecuted) * 100) : 0;
+    const passRate = totalCases > 0 ? Math.round((passedCount / totalCases) * 100) : 0;
     const executionsToday = totalExecuted;
 
     // Defect priority distribution
