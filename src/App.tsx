@@ -1046,6 +1046,7 @@ export const App: React.FC = () => {
   }
 
   const canManageCases = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
+  const canImportExport = currentUser.role === 'Admin' || currentUser.role === 'QA Lead';
 
   const renderEmptyModuleState = () => (
     <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-sm text-center max-w-xl mx-auto my-12 animate-fadeIn">
@@ -1513,41 +1514,41 @@ export const App: React.FC = () => {
 
                     <div className="flex items-center space-x-2">
                       {canManageCases ? (
-                        <>
-                          <button
-                            onClick={handleAddAIDemoCase}
-                            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all"
-                          >
-                            <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
-                            Add AI Automation Demo
-                          </button>
-                          <button
-                            onClick={() => setIsImporterOpen(true)}
-                            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
-                          >
-                            <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
-                            Add / Import Test Cases
-                          </button>
-                        </>
+                        <button
+                          onClick={handleAddAIDemoCase}
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all"
+                        >
+                          <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
+                          Add AI Automation Demo
+                        </button>
                       ) : (
-                        <>
-                          <button
-                            disabled
-                            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center"
-                            title="Creating modules restricted for Developer/Auditor"
-                          >
-                            <Lock className="w-3.5 h-3.5 mr-1.5 inline" />
-                            Add AI Automation Demo
-                          </button>
-                          <button
-                            disabled
-                            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center"
-                            title="Creating modules restricted for Developer/Auditor"
-                          >
-                            <Lock className="w-3.5 h-3.5 mr-1.5 inline" />
-                            Add / Import Test Cases
-                          </button>
-                        </>
+                        <button
+                          disabled
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center"
+                          title="Creating modules restricted for Developer/Auditor"
+                        >
+                          <Lock className="w-3.5 h-3.5 mr-1.5 inline" />
+                          Add AI Automation Demo
+                        </button>
+                      )}
+
+                      {canImportExport ? (
+                        <button
+                          onClick={() => setIsImporterOpen(true)}
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
+                        >
+                          <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
+                          Add / Import Test Cases
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center"
+                          title="Importing system data restricted to Admin/QA Lead"
+                        >
+                          <Lock className="w-3.5 h-3.5 mr-1.5 inline text-slate-400" />
+                          Add / Import Test Cases
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1557,9 +1558,9 @@ export const App: React.FC = () => {
                       <Upload className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
                       <h4 className="text-base font-extrabold text-slate-900">No Test Cases Stored Yet for {activeModule.name}</h4>
                       <p className="text-xs text-slate-500 mt-1 mb-4">
-                        {canManageCases ? `Upload reference files (.csv, .xlsx, .json) or create manual test cases for ${activeModule.name}.` : `Only QA Engineer, QA Lead, or Admin roles can upload test cases.`}
+                        {canImportExport ? `Upload reference files (.csv, .xlsx, .json) or create manual test cases for ${activeModule.name}.` : `Only QA Lead or Admin roles can upload test cases.`}
                       </p>
-                      {canManageCases ? (
+                      {canImportExport ? (
                         <button
                           onClick={() => setIsImporterOpen(true)}
                           className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
@@ -1570,7 +1571,7 @@ export const App: React.FC = () => {
                         <button
                           disabled
                           className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center mx-auto"
-                          title="Creating modules restricted for Developer/Auditor"
+                          title="Importing system data restricted to Admin/QA Lead"
                         >
                           <Lock className="w-3.5 h-3.5 mr-2 text-slate-400" />
                           + Add / Upload Test Cases Now
@@ -1797,12 +1798,23 @@ export const App: React.FC = () => {
                     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                       <h3 className="text-sm font-extrabold text-slate-900 font-sans">Restore Factory Data</h3>
                       <p className="text-xs text-slate-500 font-medium">Reset default modules data to original factory specs.</p>
-                      <button
-                        onClick={handleRestoreDefaultModules}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all"
-                      >
-                        Restore Defaults
-                      </button>
+                      {currentUser.role === 'Admin' ? (
+                        <button
+                          onClick={handleRestoreDefaultModules}
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all"
+                        >
+                          Restore Defaults
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center"
+                          title="Restoring default data restricted to Admin role"
+                        >
+                          <Lock className="w-3.5 h-3.5 mr-1.5 inline text-slate-400" />
+                          Restore Defaults
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

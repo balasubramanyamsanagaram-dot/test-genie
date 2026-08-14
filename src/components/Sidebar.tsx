@@ -232,19 +232,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
-            activeTab === 'settings'
-              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
-              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
-          }`}
-        >
-          <span className="flex items-center">
-            <Settings className={`w-4 h-4 mr-2.5 ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`} />
-            Settings
-          </span>
-        </button>
+        {currentUser.role === 'Admin' ? (
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+              activeTab === 'settings'
+                ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+                : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
+            }`}
+          >
+            <span className="flex items-center">
+              <Settings className={`w-4 h-4 mr-2.5 ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`} />
+              Settings
+            </span>
+          </button>
+        ) : (
+          <button
+            disabled
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-slate-400 opacity-60 cursor-not-allowed border border-transparent"
+            title="Settings access restricted to Admin role"
+          >
+            <span className="flex items-center">
+              <Lock className="w-4 h-4 mr-2.5 text-slate-400" />
+              Settings
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Module Repositories Section */}
