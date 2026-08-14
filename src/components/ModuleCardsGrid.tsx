@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProjectModule, TestCase, UserProfile } from '../types';
 import { Folder, FileCheck2, Plus, ArrowRight, Layers, Sparkles, Upload, Lock, Edit2, Trash2 } from 'lucide-react';
+import { ConfirmModal, ConfirmType } from './ConfirmModal';
 
 interface ModuleCardsGridProps {
   modules: ProjectModule[];
@@ -28,6 +29,16 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
   onDeleteModule
 }) => {
   const canManageCases = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
+
+  // Custom confirmation modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ConfirmType;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const filteredModules = modules.filter(m => {
     const q = searchQuery.toLowerCase().trim();
@@ -62,9 +73,17 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
   const handleDeleteClick = (mod: ProjectModule, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!canManageCases) return;
-    if (confirm(`Are you sure you want to delete module repository "${mod.name}"? All associated test cases will be removed.`)) {
-      onDeleteModule(mod.id);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Module Repository',
+      message: `Are you sure you want to permanently delete module repository "${mod.name}"? All associated manual test cases will be permanently removed. This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Module',
+      onConfirm: () => {
+        onDeleteModule(mod.id);
+        setConfirmConfig(null);
+      }
+    });
   };
 
   return (
@@ -184,6 +203,20 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
           })}
         </div>
       )}
+
+      {/* Reusable Confirm Modal */}
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+          confirmText={confirmConfig.confirmText}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
     </div>
   );
 };

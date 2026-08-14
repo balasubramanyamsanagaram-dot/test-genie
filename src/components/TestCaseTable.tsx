@@ -3,6 +3,7 @@ import { TestCase } from '../types';
 import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers } from 'lucide-react';
 import { EditTestCaseModal } from './EditTestCaseModal';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
+import { ConfirmModal, ConfirmType } from './ConfirmModal';
 
 interface TestCaseTableProps {
   testCases: TestCase[];
@@ -30,6 +31,16 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
 
   // Checkbox Selection State
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  // Custom confirmation modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ConfirmType;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Modal States
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
@@ -81,19 +92,35 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   // Single Delete Handler
   const handleDeleteClick = (tc: TestCase) => {
     if (!canManageCases) return;
-    if (confirm(`Are you sure you want to delete test case "${tc.key}: ${tc.name}"?`)) {
-      if (onDeleteTestCase) onDeleteTestCase(tc.key);
-      setSelectedKeys(prev => prev.filter(k => k !== tc.key));
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Test Case',
+      message: `Are you sure you want to permanently delete test case "${tc.key}: ${tc.name}"? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Case',
+      onConfirm: () => {
+        if (onDeleteTestCase) onDeleteTestCase(tc.key);
+        setSelectedKeys(prev => prev.filter(k => k !== tc.key));
+        setConfirmConfig(null);
+      }
+    });
   };
 
   // Bulk Delete Handler
   const handleBulkDelete = () => {
     if (!canManageCases || selectedKeys.length === 0) return;
-    if (confirm(`Are you sure you want to delete ${selectedKeys.length} selected test cases?`)) {
-      if (onBulkDeleteTestCases) onBulkDeleteTestCases(selectedKeys);
-      setSelectedKeys([]);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Selected Test Cases',
+      message: `Are you sure you want to permanently delete all ${selectedKeys.length} selected test cases? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Selected',
+      onConfirm: () => {
+        if (onBulkDeleteTestCases) onBulkDeleteTestCases(selectedKeys);
+        setSelectedKeys([]);
+        setConfirmConfig(null);
+      }
+    });
   };
 
   // Bulk Edit Handler
@@ -320,6 +347,19 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
           selectedCount={selectedKeys.length}
           onApplyBulkEdit={handleApplyBulkEdit}
           onClose={() => setIsBulkEditOpen(false)}
+        />
+      )}
+
+      {/* Reusable Premium Confirm Modal */}
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+          confirmText={confirmConfig.confirmText}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(null)}
         />
       )}
 

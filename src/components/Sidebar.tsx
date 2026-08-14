@@ -19,6 +19,7 @@ import {
   Trash2,
   Check
 } from 'lucide-react';
+import { ConfirmModal, ConfirmType } from './ConfirmModal';
 
 interface SidebarProps {
   modules: ProjectModule[];
@@ -55,6 +56,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
+  // Custom confirmation modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ConfirmType;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // QA Engineers, QA Leads, and Admins can manage module repositories
   const canManageModule = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
 
@@ -89,9 +100,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleDeleteClick = (mod: ProjectModule, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!canManageModule) return;
-    if (confirm(`Are you sure you want to delete module repository "${mod.name}"? All associated test cases will be removed.`)) {
-      onDeleteModule(mod.id);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Module Repository',
+      message: `Are you sure you want to permanently delete module repository "${mod.name}"? All associated manual test cases will be permanently removed. This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Module',
+      onConfirm: () => {
+        onDeleteModule(mod.id);
+        setConfirmConfig(null);
+      }
+    });
   };
 
   return (
@@ -336,6 +355,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </span>
         <span className="font-mono">Build 2026.08</span>
       </div>
+
+      {/* Reusable Confirm Modal */}
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+          confirmText={confirmConfig.confirmText}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
 
     </aside>
   );

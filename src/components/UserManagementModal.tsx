@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile, UserRole } from '../types';
 import { Users, UserPlus, X, Shield, Key, Mail, Trash2, Edit2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ConfirmModal, ConfirmType } from './ConfirmModal';
 
 interface UserManagementModalProps {
   users: UserProfile[];
@@ -21,6 +22,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+
+  // Custom confirmation modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: ConfirmType;
+    confirmText: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -99,9 +110,17 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       alert('Action Blocked: You cannot delete your own active logged-in Admin account.');
       return;
     }
-    if (confirm(`Are you sure you want to delete user account "${user.name}" (${user.email})?`)) {
-      onDeleteUser(user.id);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete User Account',
+      message: `Are you sure you want to permanently delete the user account for "${user.name}" (${user.email})? They will lose all access to TestGenie. This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete User',
+      onConfirm: () => {
+        onDeleteUser(user.id);
+        setConfirmConfig(null);
+      }
+    });
   };
 
   return (
@@ -373,6 +392,20 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         </div>
 
       </div>
+
+      {/* Reusable Confirm Modal */}
+      {confirmConfig && (
+        <ConfirmModal
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          type={confirmConfig.type}
+          confirmText={confirmConfig.confirmText}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
     </div>
   );
 };
