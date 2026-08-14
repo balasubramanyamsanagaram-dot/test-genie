@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCase } from '../types';
-import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play } from 'lucide-react';
+import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play, Lock } from 'lucide-react';
 import { EditTestCaseModal } from './EditTestCaseModal';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
@@ -296,7 +296,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
               <th className="py-3.5 px-4 w-32">Type</th>
               <th className="py-3.5 px-4">Numbered 4-Step Instructions</th>
               <th className="py-3.5 px-4 max-w-xs">Expected Result</th>
-              {canManageCases && <th className="py-3.5 px-4 w-20 text-center">Actions</th>}
+              <th className="py-3.5 px-4 w-24 text-center">Actions</th>
             </tr>
           </thead>
 
@@ -396,7 +396,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                           <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Automate</span>
                         </button>
                       )}
-                      {canManageCases && (
+                      {canManageCases ? (
                         <>
                           <button
                             onClick={() => setEditingCase(tc)}
@@ -411,6 +411,23 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                             title="Delete Test Case"
                           >
                             <Trash2 className="w-3.5 h-3.5 inline" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            disabled
+                            className="p-1.5 rounded-lg text-slate-300 cursor-not-allowed opacity-55 transition-all inline"
+                            title="Editing test cases restricted for Developer/Auditor"
+                          >
+                            <Lock className="w-3.5 h-3.5 inline text-slate-400" />
+                          </button>
+                          <button
+                            disabled
+                            className="p-1.5 rounded-lg text-slate-300 cursor-not-allowed opacity-55 transition-all inline"
+                            title="Deleting test cases restricted for Developer/Auditor"
+                          >
+                            <Lock className="w-3.5 h-3.5 inline text-slate-400" />
                           </button>
                         </>
                       )}

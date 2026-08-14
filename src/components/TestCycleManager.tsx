@@ -240,12 +240,24 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md"
-            >
-              Start Execution Cycle Run
-            </button>
+            {canCreateCycle ? (
+              <button
+                type="submit"
+                className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md flex items-center"
+              >
+                Start Execution Cycle Run
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="px-6 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-xs font-extrabold cursor-not-allowed opacity-60 flex items-center"
+                title="Creating execution cycles restricted for Developer/Auditor"
+              >
+                <Lock className="w-3.5 h-3.5 mr-1.5 inline" />
+                Start Execution Cycle Run
+              </button>
+            )}
           </div>
 
         </form>

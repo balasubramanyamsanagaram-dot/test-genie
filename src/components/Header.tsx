@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile, EnterpriseProject } from '../types';
-import { Download, Search, X, Plus, FolderKanban, HelpCircle, Bell } from 'lucide-react';
+import { Download, Search, X, Plus, FolderKanban, HelpCircle, Bell, Lock } from 'lucide-react';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -57,13 +57,21 @@ export const Header: React.FC<HeaderProps> = ({
                 />
               </div>
 
-              {canManageProjects && (
+              {canManageProjects ? (
                 <button
                   onClick={onOpenNewProjectModal}
                   className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-white transition-all ml-1"
                   title="Create New Project"
                 >
                   <Plus className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="p-1.5 rounded-xl text-slate-350 cursor-not-allowed opacity-60 ml-1"
+                  title="Creating projects restricted for Developer/Auditor"
+                >
+                  <Lock className="w-4 h-4 text-slate-400" />
                 </button>
               )}
             </div>
