@@ -18,6 +18,9 @@ interface AutomationSimulatorProps {
   deviceProfile: string;
   browser: string;
   isHeaded: boolean;
+  readOnlyMode?: boolean;
+  initialStatus?: 'PASSED' | 'FAILED';
+  initialScreenshotUrl?: string;
   onSaveToCycle?: (status: 'PASSED' | 'FAILED', evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }) => void;
   onRaiseBug?: (failedStep: string, screenshotUrl?: string) => void;
 }
@@ -30,11 +33,14 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   deviceProfile,
   browser,
   isHeaded,
+  readOnlyMode = false,
+  initialStatus,
+  initialScreenshotUrl,
   onSaveToCycle,
   onRaiseBug
 }) => {
-  const [isRunning, setIsRunning] = useState(true);
-  const [status, setStatus] = useState<'PASSED' | 'FAILED' | 'RUNNING'>('RUNNING');
+  const [isRunning, setIsRunning] = useState(!readOnlyMode);
+  const [status, setStatus] = useState<'PASSED' | 'FAILED' | 'RUNNING'>(readOnlyMode ? (initialStatus || 'PASSED') : 'RUNNING');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   // State for parsed instructions
@@ -56,9 +62,28 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
     const initialSteps = testSteps.map((inst, idx) => ({
       stepNumber: idx + 1,
       instruction: inst,
-      status: 'PENDING' as const,
-      log: 'Waiting for queue execution.'
+      status: (readOnlyMode ? (initialStatus || 'PASSED') : 'PENDING') as any,
+      log: readOnlyMode ? `Verified step ${idx + 1}` : 'Waiting for queue execution.'
     }));
+
+    if (readOnlyMode) {
+      const mapped: AutomationStepRun[] = initialSteps.map((step, idx) => ({
+        stepNumber: step.stepNumber,
+        instruction: step.instruction,
+        status: (initialStatus || 'PASSED') as any,
+        screenshot: initialScreenshotUrl || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
+        log: `[READONLY TRACE] Verified step ${idx + 1}: ${step.instruction}`
+      }));
+      setSteps(mapped);
+      setStatus(initialStatus || 'PASSED');
+      setIsRunning(false);
+      setLogs([
+        `[SYSTEM] Loaded stored Playwright execution trace console for BrowserAutomationAgent@${testCase.key}.`,
+        `[SYSTEM] Execution Status: ${initialStatus || 'PASSED'}. Click any step on the left panel to inspect step screenshot captures.`
+      ]);
+      setActiveStepIdx(0);
+      return;
+    }
 
     setSteps(initialSteps);
     setIsRunning(true);

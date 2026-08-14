@@ -27,6 +27,7 @@ interface CycleExecutionBoardProps {
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
   onViewCodeSpec?: (testCase: TestCase) => void;
   onAutomateTestCase?: (testCase: TestCase) => void;
+  onOpenAgentConsoleTrace?: (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string) => void;
   onBackToCycles: () => void;
 }
 
@@ -43,6 +44,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onSyncEditedCasesToCycle,
   onViewCodeSpec,
   onAutomateTestCase,
+  onOpenAgentConsoleTrace,
   onBackToCycles
 }) => {
   const [selectedItemKey, setSelectedItemKey] = useState<string>(cycle.items[0]?.testCase.key || '');
@@ -602,15 +604,23 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                               </div>
                             </div>
 
-                            {/* Evidence Action Buttons */}
+                            {/* Evidence & Trace Console Action Buttons */}
                             <div className="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
+                              <button
+                                onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, run.executionStatus, run.screenshotUrl)}
+                                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                              >
+                                <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
+                                Inspect Agent Console Trace
+                              </button>
+
                               {run.screenshotUrl && (
                                 <button
                                   onClick={() => setActiveMediaUrl({ url: run.screenshotUrl!, type: 'image' })}
                                   className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
                                 >
                                   <Camera className="w-3.5 h-3.5 mr-1.5" />
-                                  Inspect Screenshot Proof
+                                  Screenshot Proof
                                 </button>
                               )}
                               {run.videoUrl && (
@@ -619,7 +629,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                   className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
                                 >
                                   <Video className="w-3.5 h-3.5 mr-1.5" />
-                                  Play Video Recording
+                                  Recording
                                 </button>
                               )}
                             </div>
@@ -642,6 +652,13 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                             {activeItem.executionStatus} execution trace saved for future audit reference.
                           </span>
                           <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, activeItem.executionStatus, activeItem.evidenceScreenshotUrl)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-extrabold text-xs shadow-xs flex items-center"
+                            >
+                              <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
+                              Inspect Agent Console Trace
+                            </button>
                             {activeItem.evidenceScreenshotUrl && (
                               <button
                                 onClick={() => setActiveMediaUrl({ url: activeItem.evidenceScreenshotUrl!, type: 'image' })}

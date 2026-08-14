@@ -85,6 +85,9 @@ export const App: React.FC = () => {
     browser: string;
     isHeaded: boolean;
     cycleId?: string;
+    readOnlyMode?: boolean;
+    initialStatus?: 'PASSED' | 'FAILED';
+    initialScreenshotUrl?: string;
   } | null>(null);
 
   const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
@@ -601,7 +604,22 @@ export const App: React.FC = () => {
       deviceProfile,
       browser,
       isHeaded,
-      cycleId: automateCycleId
+      cycleId: automateCycleId,
+      readOnlyMode: false
+    });
+  };
+
+  const handleOpenAgentConsoleTrace = (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string) => {
+    setSelectedAutomateCase(testCase);
+    setAutomationParams({
+      isOpen: true,
+      startingUrl: 'https://qa.hrmgenie.outstrive.co/login',
+      deviceProfile: 'Desktop',
+      browser: 'Google Chrome',
+      isHeaded: true,
+      readOnlyMode: true,
+      initialStatus: status === 'FAILED' ? 'FAILED' : 'PASSED',
+      initialScreenshotUrl: screenshotUrl
     });
   };
 
@@ -1820,6 +1838,7 @@ export const App: React.FC = () => {
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
                     onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
                     onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
+                    onOpenAgentConsoleTrace={handleOpenAgentConsoleTrace}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (
@@ -2133,10 +2152,13 @@ export const App: React.FC = () => {
           deviceProfile={automationParams.deviceProfile}
           browser={automationParams.browser}
           isHeaded={automationParams.isHeaded}
-          onSaveToCycle={automationParams.cycleId ? (status, evidence) => {
+          readOnlyMode={automationParams.readOnlyMode}
+          initialStatus={automationParams.initialStatus}
+          initialScreenshotUrl={automationParams.initialScreenshotUrl}
+          onSaveToCycle={(automationParams.cycleId && !automationParams.readOnlyMode) ? (status, evidence) => {
             handleSaveAutomationResultToCycle(automationParams.cycleId!, status, evidence);
           } : undefined}
-          onRaiseBug={automationParams.cycleId ? (failedStep, screenshotUrl) => {
+          onRaiseBug={(automationParams.cycleId && !automationParams.readOnlyMode) ? (failedStep, screenshotUrl) => {
             handleRaiseBugFromAutomation(automationParams.cycleId!, failedStep, screenshotUrl);
           } : undefined}
         />
