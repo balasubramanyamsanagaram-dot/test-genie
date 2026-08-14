@@ -267,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Module Repositories ({modules.length})
           </span>
 
-          {canManageModule ? (
+          {canManageModule && (
             <button
               onClick={() => setIsAddingModule(true)}
               className="p-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm"
@@ -275,10 +275,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
-          ) : (
-            <span title="Creating modules restricted for Developer/Auditor" className="p-1 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed">
-              <Lock className="w-3.5 h-3.5" />
-            </span>
           )}
         </div>
 

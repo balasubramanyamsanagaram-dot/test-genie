@@ -296,7 +296,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
               <th className="py-3.5 px-4 w-32">Type</th>
               <th className="py-3.5 px-4">Numbered 4-Step Instructions</th>
               <th className="py-3.5 px-4 max-w-xs">Expected Result</th>
-              <th className="py-3.5 px-4 w-24 text-center">Actions</th>
+              {canManageCases && <th className="py-3.5 px-4 w-20 text-center">Actions</th>}
             </tr>
           </thead>
 
@@ -385,53 +385,35 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                     </td>
 
                     {/* Actions Column (Automate, Edit & Delete) */}
-                    <td className="py-4 px-4 align-top text-center space-x-1 whitespace-nowrap">
-                      {onAutomateTestCase && (
+                    {/* Actions Column (Automate, Edit & Delete) */}
+                    {canManageCases && (
+                      <td className="py-4 px-4 align-top text-center space-x-1 whitespace-nowrap">
+                        {onAutomateTestCase && (
+                          <button
+                            onClick={() => onAutomateTestCase(tc)}
+                            className="p-1.5 px-2 rounded-lg text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition-all inline-flex items-center"
+                            title="Automate Test (Playwright)"
+                          >
+                            <Play className="w-3 h-3 mr-1" />
+                            <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Automate</span>
+                          </button>
+                        )}
                         <button
-                          onClick={() => onAutomateTestCase(tc)}
-                          className="p-1.5 px-2 rounded-lg text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition-all inline-flex items-center"
-                          title="Automate Test (Playwright)"
+                          onClick={() => setEditingCase(tc)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all inline"
+                          title="Edit Test Case"
                         >
-                          <Play className="w-3 h-3 mr-1" />
-                          <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Automate</span>
+                          <Edit3 className="w-3.5 h-3.5 inline" />
                         </button>
-                      )}
-                      {canManageCases ? (
-                        <>
-                          <button
-                            onClick={() => setEditingCase(tc)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all inline"
-                            title="Edit Test Case"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 inline" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(tc)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline"
-                            title="Delete Test Case"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            disabled
-                            className="p-1.5 rounded-lg text-slate-300 cursor-not-allowed opacity-55 transition-all inline"
-                            title="Editing test cases restricted for Developer/Auditor"
-                          >
-                            <Lock className="w-3.5 h-3.5 inline text-slate-400" />
-                          </button>
-                          <button
-                            disabled
-                            className="p-1.5 rounded-lg text-slate-300 cursor-not-allowed opacity-55 transition-all inline"
-                            title="Deleting test cases restricted for Developer/Auditor"
-                          >
-                            <Lock className="w-3.5 h-3.5 inline text-slate-400" />
-                          </button>
-                        </>
-                      )}
-                    </td>
+                        <button
+                          onClick={() => handleDeleteClick(tc)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline"
+                          title="Delete Test Case"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 inline" />
+                        </button>
+                      </td>
+                    )}
 
                   </tr>
                 );

@@ -57,21 +57,13 @@ export const Header: React.FC<HeaderProps> = ({
                 />
               </div>
 
-              {canManageProjects ? (
+              {canManageProjects && (
                 <button
                   onClick={onOpenNewProjectModal}
                   className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-white transition-all ml-1"
                   title="Create New Project"
                 >
                   <Plus className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="p-1.5 rounded-xl text-slate-350 cursor-not-allowed opacity-60 ml-1"
-                  title="Creating projects restricted for Developer/Auditor"
-                >
-                  <Lock className="w-4 h-4 text-slate-400" />
                 </button>
               )}
             </div>
@@ -101,21 +93,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center space-x-4">
             
             {/* Export Zephyr CSV / Audit Button */}
-            {currentUser.role === 'Admin' || currentUser.role === 'QA Lead' ? (
+            {(currentUser.role === 'Admin' || currentUser.role === 'QA Lead') && (
               <button
                 onClick={onExport}
                 className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all active:scale-95"
               >
                 <Download className="w-3.5 h-3.5 mr-1.5" />
-                Export
-              </button>
-            ) : (
-              <button
-                disabled
-                className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all"
-                title="Exporting system data restricted to Admin/QA Lead"
-              >
-                <Lock className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
                 Export
               </button>
             )}
