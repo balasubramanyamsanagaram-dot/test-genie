@@ -37,7 +37,21 @@ const STORAGE_KEY_USER = 'test_genie_authenticated_user_v1';
 const STORAGE_KEY_USERS = 'registered_enterprise_users_v2';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings'>(() => {
+    try {
+      const saved = localStorage.getItem('test_genie_active_tab');
+      if (saved && ['dashboard', 'matrix', 'repository', 'cycles', 'execution', 'bugs', 'settings'].includes(saved)) {
+        return saved as any;
+      }
+    } catch (e) {}
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('test_genie_active_tab', activeTab);
+    } catch (e) {}
+  }, [activeTab]);
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
 
   // Feature Flags Engine State & Stealth Modals
@@ -321,7 +335,22 @@ export const App: React.FC = () => {
   const [isBugCreateEditModalOpen, setIsBugCreateEditModalOpen] = useState(false);
   const [bugToEdit, setBugToEdit] = useState<(JiraBug & { cycleId?: string; itemKey?: string; cycleName?: string }) | undefined>(undefined);
 
-  const [activeCycleId, setActiveCycleId] = useState<string>('');
+  const [activeCycleId, setActiveCycleId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('test_genie_active_cycle_id');
+      if (saved) return saved;
+    } catch (e) {}
+    return '';
+  });
+
+  useEffect(() => {
+    try {
+      if (activeCycleId) {
+        localStorage.setItem('test_genie_active_cycle_id', activeCycleId);
+      }
+    } catch (e) {}
+  }, [activeCycleId]);
+
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
   const [importSuccessCount, setImportSuccessCount] = useState<number | null>(null);
@@ -348,11 +377,33 @@ export const App: React.FC = () => {
     } catch (e) {}
   }, [customModuleCases]);
 
-  // Sync Test Cycles to localStorage
+  // Sync Test Cycles to localStorage with quota-safe fallback
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_CYCLES, JSON.stringify(testCycles));
-    } catch (e) {}
+      const dataStr = JSON.stringify(testCycles);
+      localStorage.setItem(STORAGE_KEY_CYCLES, dataStr);
+    } catch (e) {
+      console.warn('LocalStorage quota limit reached. Pruning heavy base64 screenshots to preserve execution history...');
+      try {
+        const lightweightCycles = testCycles.map(c => ({
+          ...c,
+          items: c.items.map(item => ({
+            ...item,
+            executionHistory: (item.executionHistory || []).map((run, idx) => ({
+              ...run,
+              screenshotUrl: run.screenshotUrl?.startsWith('data:') && idx > 2 ? undefined : run.screenshotUrl,
+              stepRuns: run.stepRuns?.map(sr => ({
+                ...sr,
+                screenshot: sr.screenshot?.startsWith('data:') ? undefined : sr.screenshot
+              }))
+            }))
+          }))
+        }));
+        localStorage.setItem(STORAGE_KEY_CYCLES, JSON.stringify(lightweightCycles));
+      } catch (err) {
+        console.error('Failed to save test cycles to localStorage:', err);
+      }
+    }
   }, [testCycles]);
 
   // Sum up counts across all modules
