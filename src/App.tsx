@@ -15,6 +15,8 @@ import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
+import { AutomationDrawer } from './components/AutomationDrawer';
+import { AutomationSimulator } from './components/AutomationSimulator';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
@@ -27,6 +29,16 @@ const STORAGE_KEY_USERS = 'registered_enterprise_users_v2';
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings'>('dashboard');
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
+
+  const [selectedAutomateCase, setSelectedAutomateCase] = useState<TestCase | null>(null);
+  const [isAutomationDrawerOpen, setIsAutomationDrawerOpen] = useState(false);
+  const [automationParams, setAutomationParams] = useState<{
+    isOpen: boolean;
+    startingUrl: string;
+    deviceProfile: string;
+    browser: string;
+    isHeaded: boolean;
+  } | null>(null);
 
   const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
   const [promptConfig, setPromptConfig] = useState<{
@@ -434,6 +446,59 @@ export const App: React.FC = () => {
         }
       }
     });
+  };
+
+  const handleAutomateTestCase = (tc: TestCase) => {
+    setSelectedAutomateCase(tc);
+    setIsAutomationDrawerOpen(true);
+  };
+
+  const handleStartAutomationRun = (startingUrl: string, deviceProfile: string, browser: string, isHeaded: boolean) => {
+    setIsAutomationDrawerOpen(false);
+    setAutomationParams({
+      isOpen: true,
+      startingUrl,
+      deviceProfile,
+      browser,
+      isHeaded
+    });
+  };
+
+  const handleSaveAutomationResultToCycle = (status: 'PASSED' | 'FAILED') => {
+    if (activeProjectCycles.length > 0 && selectedAutomateCase) {
+      const activeCycle = activeProjectCycles[0];
+      const itemToUpdate = activeCycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
+      if (itemToUpdate) {
+        handleUpdateExecutionStatus(activeCycle.id, itemToUpdate.testCase.key, status);
+        alert(`Saved execution status (${status}) for test case ${selectedAutomateCase.key} inside test cycle "${activeCycle.name}"!`);
+      } else {
+        const newItem: TestCycleItem = {
+          id: `item-${Date.now().toString().slice(-4)}`,
+          testCase: selectedAutomateCase,
+          executionStatus: status,
+          executedBy: currentUser?.name || 'QA Tester',
+          executedAt: new Date().toISOString(),
+          executionType: 'Automated'
+        };
+        
+        setTestCycles(prev => prev.map(c => {
+          if (c.id !== activeCycle.id) return c;
+          return {
+            ...c,
+            items: [newItem, ...c.items]
+          };
+        }));
+        
+        alert(`Added test case ${selectedAutomateCase.key} to cycle "${activeCycle.name}" and saved execution status (${status})!`);
+      }
+    } else {
+      alert("No active test cycle found in this project. Please create a test cycle to save automation execution results.");
+    }
+  };
+
+  const handleRaiseBugFromAutomation = (failedStep: string) => {
+    setActiveTab('execution');
+    alert(`Automation failed at step: "${failedStep}". Navigate to the active test cycle execution board to log this defect in Jira.`);
   };
 
   // Edit (Rename) Module Repository
@@ -1232,6 +1297,7 @@ export const App: React.FC = () => {
                       onDeleteTestCase={handleDeleteTestCase}
                       onBulkEditTestCases={handleBulkEditTestCases}
                       onBulkDeleteTestCases={handleBulkDeleteTestCases}
+                      onAutomateTestCase={handleAutomateTestCase}
                       canManageCases={canManageCases}
                     />
                   )}
@@ -1480,6 +1546,29 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Playwright Browser Automation Drawer */}
+      <AutomationDrawer
+        isOpen={isAutomationDrawerOpen}
+        onClose={() => setIsAutomationDrawerOpen(false)}
+        testCase={selectedAutomateCase}
+        onStartAutomation={handleStartAutomationRun}
+      />
+
+      {/* Live Automation Browser Trace Simulator Console */}
+      {automationParams?.isOpen && selectedAutomateCase && (
+        <AutomationSimulator
+          isOpen={automationParams.isOpen}
+          onClose={() => setAutomationParams(null)}
+          testCase={selectedAutomateCase}
+          startingUrl={automationParams.startingUrl}
+          deviceProfile={automationParams.deviceProfile}
+          browser={automationParams.browser}
+          isHeaded={automationParams.isHeaded}
+          onSaveToCycle={handleSaveAutomationResultToCycle}
+          onRaiseBug={handleRaiseBugFromAutomation}
+        />
       )}
 
       {/* Global Custom Text Prompt Modal */}

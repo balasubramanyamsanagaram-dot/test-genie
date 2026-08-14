@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCase } from '../types';
-import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers } from 'lucide-react';
+import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play } from 'lucide-react';
 import { EditTestCaseModal } from './EditTestCaseModal';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
@@ -13,6 +13,7 @@ interface TestCaseTableProps {
   onDeleteTestCase?: (key: string) => void;
   onBulkEditTestCases?: (keys: string[], updates: { priority?: string; type?: string; status?: string }) => void;
   onBulkDeleteTestCases?: (keys: string[]) => void;
+  onAutomateTestCase?: (testCase: TestCase) => void;
   canManageCases?: boolean;
 }
 
@@ -24,6 +25,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   onDeleteTestCase,
   onBulkEditTestCases,
   onBulkDeleteTestCases,
+  onAutomateTestCase,
   canManageCases = true
 }) => {
   const [internalSearch, setInternalSearch] = useState('');
@@ -380,25 +382,37 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                       {tc.expectedResult}
                     </td>
 
-                    {/* Single Actions Column (Edit & Delete) */}
-                    {canManageCases && (
-                      <td className="py-4 px-4 align-top text-center space-x-1">
+                    {/* Actions Column (Automate, Edit & Delete) */}
+                    <td className="py-4 px-4 align-top text-center space-x-1 whitespace-nowrap">
+                      {onAutomateTestCase && (
                         <button
-                          onClick={() => setEditingCase(tc)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-                          title="Edit Test Case"
+                          onClick={() => onAutomateTestCase(tc)}
+                          className="p-1.5 px-2 rounded-lg text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition-all inline-flex items-center"
+                          title="Automate Test (Playwright)"
                         >
-                          <Edit3 className="w-3.5 h-3.5" />
+                          <Play className="w-3 h-3 mr-1" />
+                          <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Automate</span>
                         </button>
-                        <button
-                          onClick={() => handleDeleteClick(tc)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                          title="Delete Test Case"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    )}
+                      )}
+                      {canManageCases && (
+                        <>
+                          <button
+                            onClick={() => setEditingCase(tc)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all inline"
+                            title="Edit Test Case"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 inline" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(tc)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline"
+                            title="Delete Test Case"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 inline" />
+                          </button>
+                        </>
+                      )}
+                    </td>
 
                   </tr>
                 );
