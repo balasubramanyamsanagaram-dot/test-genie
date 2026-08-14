@@ -1,11 +1,11 @@
 import React from 'react';
 import { UserProfile, EnterpriseProject } from '../types';
-import { Download, Search, X, Plus, FolderKanban } from 'lucide-react';
+import { Download, Search, X, Plus, FolderKanban, HelpCircle, Bell } from 'lucide-react';
 import { UserProfileDropdown } from './UserProfileDropdown';
 
 interface HeaderProps {
-  activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution';
-  setActiveTab: (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution') => void;
+  activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings';
+  setActiveTab: (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings') => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onExport: () => void;
@@ -73,29 +73,29 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right: Global Search, Export & User Profile Popover Dropdown */}
-          <div className="flex items-center space-x-3">
-            
-            {/* Global Search Input */}
-            <div className="relative hidden sm:block">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => onSearchChange(e.target.value)}
-                placeholder="Search test cases, modules, or Jira bugs..."
-                className="w-64 bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-8 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-sans"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange('')}
-                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+          {/* Center: Global Search Input */}
+          <div className="flex-1 max-w-md mx-4 relative hidden md:block">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              placeholder="Search"
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-sans font-medium"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
+          {/* Right: Export, Help, Notification & Profile Dropdown */}
+          <div className="flex items-center space-x-4">
+            
             {/* Export Zephyr CSV / Audit Button */}
             <button
               onClick={onExport}
@@ -105,7 +105,20 @@ export const Header: React.FC<HeaderProps> = ({
               Export
             </button>
 
-            {/* User Profile Popover Dropdown (Matches User Screenshot Layout) */}
+            {/* Help Icon */}
+            <button className="text-slate-400 hover:text-slate-600 transition-colors p-1" title="Help & Documentation">
+              <HelpCircle className="w-5 h-5" />
+            </button>
+
+            {/* Notification Bell with alert badge */}
+            <button className="text-slate-400 hover:text-indigo-600 transition-colors p-1 relative" title="Notifications">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-rose-500 text-white font-mono text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                1
+              </span>
+            </button>
+
+            {/* User Profile Popover Dropdown */}
             <UserProfileDropdown
               currentUser={currentUser}
               onOpenUserManagementModal={onOpenUserManagementModal}

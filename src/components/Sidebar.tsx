@@ -17,7 +17,9 @@ import {
   Boxes,
   Edit2,
   Trash2,
-  Check
+  Check,
+  Bug,
+  Settings
 } from 'lucide-react';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
 
@@ -30,8 +32,8 @@ interface SidebarProps {
   onAddNewModule: (moduleName: string) => void;
   onEditModule: (moduleId: string, newName: string) => void;
   onDeleteModule: (moduleId: string) => void;
-  activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution';
-  setActiveTab: (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution') => void;
+  activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings';
+  setActiveTab: (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings') => void;
   testCasesCount: number;
 }
 
@@ -119,11 +121,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-200 flex items-center space-x-3 bg-white">
         <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-black text-sm">
-          TG
+          Q
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
-            <h1 className="text-sm font-black text-slate-900 tracking-tight font-sans">TestGenie QA</h1>
+            <h1 className="text-sm font-black text-slate-900 tracking-tight font-sans">QAHub</h1>
             <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded">
               v4.2
             </span>
@@ -140,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Boxes className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <div className="min-w-0">
             <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200 uppercase">
-              {activeProject.key}
+              Active Project
             </span>
             <span className="text-xs font-bold text-slate-900 truncate block mt-0.5">
               {activeProject.name}
@@ -157,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'dashboard'
               ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
               : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
@@ -165,24 +167,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <span className="flex items-center">
             <LayoutDashboard className={`w-4 h-4 mr-2.5 ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`} />
-            Overview &amp; Analytics
+            Dashboard
           </span>
         </button>
 
         <button
-          onClick={() => setActiveTab('matrix')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+          onClick={() => setActiveTab('matrix')} // Projects view defaults to Module Repositories Directory
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'matrix'
               ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
               : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <FileCheck2 className={`w-4 h-4 mr-2.5 ${activeTab === 'matrix' ? 'text-indigo-600' : 'text-slate-400'}`} />
-            Test Repositories
+            <FolderKanban className={`w-4 h-4 mr-2.5 ${activeTab === 'matrix' ? 'text-indigo-600' : 'text-slate-400'}`} />
+            Projects
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('repository')} // Test Cases lists the specific repository table
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+            activeTab === 'repository'
+              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
+          }`}
+        >
+          <span className="flex items-center">
+            <FileCheck2 className={`w-4 h-4 mr-2.5 ${activeTab === 'repository' ? 'text-indigo-600' : 'text-slate-400'}`} />
+            Test Cases
           </span>
           <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
-            activeTab === 'matrix' ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-600'
+            activeTab === 'repository' ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-600'
           }`}>
             {testCasesCount}
           </span>
@@ -190,29 +206,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setActiveTab('cycles')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
-            activeTab === 'cycles'
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+            activeTab === 'cycles' || activeTab === 'execution'
               ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
               : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <RotateCw className={`w-4 h-4 mr-2.5 ${activeTab === 'cycles' ? 'text-indigo-600' : 'text-slate-400'}`} />
-            Test Execution Cycles
+            <RotateCw className={`w-4 h-4 mr-2.5 ${activeTab === 'cycles' || activeTab === 'execution' ? 'text-indigo-600' : 'text-slate-400'}`} />
+            Executions
           </span>
         </button>
 
         <button
-          onClick={() => setActiveTab('execution')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
-            activeTab === 'execution'
+          onClick={() => setActiveTab('bugs')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+            activeTab === 'bugs'
               ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
               : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <PlaySquare className={`w-4 h-4 mr-2.5 ${activeTab === 'execution' ? 'text-indigo-600' : 'text-slate-400'}`} />
-            Live Execution Board
+            <Bug className={`w-4 h-4 mr-2.5 ${activeTab === 'bugs' ? 'text-indigo-600' : 'text-slate-400'}`} />
+            Bugs
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
+            activeTab === 'settings'
+              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
+          }`}
+        >
+          <span className="flex items-center">
+            <Settings className={`w-4 h-4 mr-2.5 ${activeTab === 'settings' ? 'text-indigo-600' : 'text-slate-400'}`} />
+            Settings
           </span>
         </button>
       </div>

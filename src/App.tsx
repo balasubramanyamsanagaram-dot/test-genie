@@ -11,7 +11,7 @@ import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2 } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -25,7 +25,7 @@ const STORAGE_KEY_USER = 'test_genie_authenticated_user_v1';
 const STORAGE_KEY_USERS = 'registered_enterprise_users_v2';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings'>('dashboard');
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
 
   // Registered Users list with LocalStorage persistence
@@ -294,7 +294,7 @@ export const App: React.FC = () => {
     setSelectedProjectId(newProject.id);
   };
 
-  const handleTabChange = (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution') => {
+  const handleTabChange = (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings') => {
     setActiveTab(tab);
     setGlobalSearchQuery('');
   };
@@ -730,95 +730,337 @@ export const App: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Tab 1: Dashboard Overview (Overview & Analytics) */}
+              {/* Tab 1: Dashboard Overview (Mockup Layout 1-to-1) */}
               {activeTab === 'dashboard' && (
-                <div className="space-y-8 animate-fadeIn">
+                <div className="space-y-6 animate-fadeIn font-sans">
                   
-                  {/* Clean Enterprise Light Theme Banner */}
-                  <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80">
-                    <div className="max-w-2xl relative z-10">
-                      <span className="text-[11px] font-mono font-bold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full border border-indigo-200 inline-flex items-center">
-                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
-                        Project [{activeProject.key}]: {activeProject.name} — Logged as {currentUser.name} ({currentUser.role})
-                      </span>
-                      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 tracking-tight">
-                        Overview &amp; Analytics
-                      </h1>
-                      <p className="text-xs text-slate-600 mt-2 leading-relaxed font-normal">
-                        Enterprise QA dashboard with live telemetry coverage metrics, status breakdowns, and cycle activity feeds.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Premium Metrics Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Module Repositories</span>
-                      <div className="flex items-baseline justify-between mt-2">
-                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.totalModules}</span>
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Active</span>
-                      </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Total Scenarios</span>
-                      <div className="flex items-baseline justify-between mt-2">
-                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.totalCases}</span>
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Zephyr</span>
-                      </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Average Coverage</span>
-                      <div className="flex items-baseline justify-between mt-2">
-                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.averageCoverage}%</span>
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">AST Scan</span>
-                      </div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Jira Defect Telemetry</span>
-                      <div className="flex items-baseline justify-between mt-2">
-                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.totalDefects}</span>
-                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">Bugs</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scenarios Type Distribution Grid */}
-                  <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-                    <h3 className="text-sm font-extrabold text-slate-900 mb-6 uppercase tracking-wider font-mono">Project-Wide Scenario Breakdown</h3>
+                  {/* Top Row: Page Title & Active Project Selector */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight font-sans">Dashboard</h2>
                     
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                          <span className="text-xs font-bold text-slate-600">Positive Scenarios</span>
-                        </div>
-                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalPositive}</span>
-                      </div>
+                    <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Active project:</span>
+                      <span className="text-xs font-extrabold text-slate-900">{activeProject.name} v2.1</span>
+                    </div>
+                  </div>
 
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                          <span className="text-xs font-bold text-slate-600">Negative Scenarios</span>
+                  {/* Key Metrics Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    
+                    {/* Metric 1 */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Total Test Cases</span>
+                          <h3 className="text-2xl font-black text-slate-900 mt-1">4,892</h3>
                         </div>
-                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalNegative}</span>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <Layers className="w-4 h-4" />
+                        </div>
                       </div>
-
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                          <span className="text-xs font-bold text-slate-600">Boundary Scenarios</span>
-                        </div>
-                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalBoundary}</span>
-                      </div>
-
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                          <span className="text-xs font-bold text-slate-600">Permission / RBAC</span>
-                        </div>
-                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalPermission}</span>
+                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mr-1.5 font-mono">▲ 5.2%</span>
+                        <span className="text-slate-400 font-medium">vs last month</span>
                       </div>
                     </div>
+
+                    {/* Metric 2 */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Executions Today</span>
+                          <h3 className="text-2xl font-black text-slate-900 mt-1">315</h3>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <PlaySquare className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mr-1.5 font-mono">▲ 12.4%</span>
+                        <span className="text-slate-400 font-medium">vs yesterday</span>
+                      </div>
+                    </div>
+
+                    {/* Metric 3 */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Passed Rate</span>
+                          <h3 className="text-2xl font-black text-slate-900 mt-1">94.1%</h3>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <FileCheck2 className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                        <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full mr-1.5 font-mono">▼ -0.2%</span>
+                        <span className="text-slate-400 font-medium">vs average</span>
+                      </div>
+                    </div>
+
+                    {/* Metric 4 */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Active Bugs</span>
+                          <h3 className="text-2xl font-black text-slate-900 mt-1">74</h3>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                          <Bug className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                        <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full mr-1.5 font-mono">▲ +3.1%</span>
+                        <span className="text-slate-400 font-medium">vs last cycle</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Middle Row: Line Chart + Doughnut Chart */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    {/* Line Chart Panel */}
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm lg:col-span-2 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900 font-sans">Test Execution Overview</h3>
+                        </div>
+                        
+                        <div className="flex items-center space-x-3 text-[10px] font-bold">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                            <span className="text-slate-500">Passed</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                            <span className="text-slate-500">Failed</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            <span className="text-slate-500">Blocked</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Line Chart Vector SVG */}
+                      <div className="h-48 w-full relative pt-2">
+                        <svg className="w-full h-full" viewBox="0 0 400 160" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="passGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.15" />
+                              <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.0" />
+                            </linearGradient>
+                          </defs>
+                          
+                          {/* Grid Lines */}
+                          <line x1="0" y1="40" x2="400" y2="40" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                          <line x1="0" y1="80" x2="400" y2="80" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                          <line x1="0" y1="120" x2="400" y2="120" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                          
+                          {/* Passed Curve */}
+                          <path d="M0,130 C40,90 70,110 130,70 C190,60 250,95 310,110 C370,60 400,50 400,50" fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" />
+                          <path d="M0,130 C40,90 70,110 130,70 C190,60 250,95 310,110 C370,60 400,50 400,50 L400,160 L0,160 Z" fill="url(#passGrad)" />
+                          
+                          {/* Failed Curve */}
+                          <path d="M0,140 C40,130 70,120 130,135 C190,140 250,115 310,130 C370,125 400,130 400,130" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+                          
+                          {/* Blocked Curve */}
+                          <path d="M0,150 C40,145 70,148 130,140 C190,146 250,142 310,147 C370,145 400,148 400,148" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        
+                        {/* X Axis Labels */}
+                        <div className="flex justify-between text-[9px] font-mono text-slate-400 mt-2">
+                          <span>1</span>
+                          <span>3</span>
+                          <span>5</span>
+                          <span>7</span>
+                          <span>9</span>
+                          <span>11</span>
+                          <span>13</span>
+                          <span>15</span>
+                          <span>17</span>
+                          <span>19</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Donut Chart Panel */}
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Bug Priority Distribution</h3>
+                      
+                      <div className="flex flex-col items-center justify-center py-2">
+                        <div className="relative w-32 h-32">
+                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            {/* Low - Green */}
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="0" />
+                            {/* Medium - Yellow */}
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="60" />
+                            {/* High - Orange */}
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f97316" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="130" />
+                            {/* Critical - Red */}
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="200" />
+                          </svg>
+                          
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span className="text-xl font-black text-slate-900 leading-none">74</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Active</span>
+                          </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="grid grid-cols-2 gap-3 mt-6 text-[10px] font-bold w-full px-2">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                            <span className="text-slate-600">Critical</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <span className="text-slate-600">High</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            <span className="text-slate-600">Medium</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span className="text-slate-600">Low</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Bottom Row: Bar Chart + Recent Test Runs Table */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    {/* Vertical Bar Chart Panel */}
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-extrabold text-slate-900 font-sans">Test Case Coverage</h3>
+                        <span className="text-[9px] font-mono text-slate-400">Class chart by modules</span>
+                      </div>
+
+                      <div className="flex items-end justify-between h-44 pt-4 px-2">
+                        {/* Bar 1 */}
+                        <div className="flex flex-col items-center space-y-2 flex-1">
+                          <div className="w-4 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-lg h-24"></div>
+                          <span className="text-[9px] font-mono text-slate-400 truncate w-10 text-center">Auth</span>
+                        </div>
+                        {/* Bar 2 */}
+                        <div className="flex flex-col items-center space-y-2 flex-1">
+                          <div className="w-4 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-lg h-32"></div>
+                          <span className="text-[9px] font-mono text-slate-400 truncate w-10 text-center">Paym</span>
+                        </div>
+                        {/* Bar 3 */}
+                        <div className="flex flex-col items-center space-y-2 flex-1">
+                          <div className="w-4 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-lg h-20"></div>
+                          <span className="text-[9px] font-mono text-slate-400 truncate w-10 text-center">Users</span>
+                        </div>
+                        {/* Bar 4 */}
+                        <div className="flex flex-col items-center space-y-2 flex-1">
+                          <div className="w-4 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-lg h-28"></div>
+                          <span className="text-[9px] font-mono text-slate-400 truncate w-10 text-center">API</span>
+                        </div>
+                        {/* Bar 5 */}
+                        <div className="flex flex-col items-center space-y-2 flex-1">
+                          <div className="w-4 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-lg h-36"></div>
+                          <span className="text-[9px] font-mono text-slate-400 truncate w-10 text-center">Analy</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Table Panel */}
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm lg:col-span-2 space-y-4">
+                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Recent Test Runs</h3>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-slate-700">
+                          <thead>
+                            <tr className="border-b border-slate-100 text-[10px] uppercase font-mono font-bold text-slate-400 pb-2">
+                              <th className="py-2 w-20">Run ID</th>
+                              <th className="py-2">Title</th>
+                              <th className="py-2 w-28">Status</th>
+                              <th className="py-2 w-24">Tester</th>
+                              <th className="py-2 w-28">Date/Time</th>
+                              <th className="py-2 w-16 text-center">Auto</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                            <tr>
+                              <td className="py-3 font-mono font-bold text-slate-500">131011</td>
+                              <td className="py-3 font-bold text-slate-950">Auth Test Run</td>
+                              <td className="py-3">
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-extrabold glow-passed inline-block">Pass</span>
+                              </td>
+                              <td className="py-3">
+                                <div className="flex items-center space-x-1.5">
+                                  <div className="w-5 h-5 rounded-full bg-rose-600 text-[9px] text-white flex items-center justify-center font-bold">SK</div>
+                                  <span className="text-slate-600 font-medium">Suresh</span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-slate-400 font-medium">28/03, 17:30</td>
+                              <td className="py-3 text-center">
+                                <input type="checkbox" checked readOnly className="rounded border-slate-300 text-indigo-600" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-3 font-mono font-bold text-slate-500">131002</td>
+                              <td className="py-3 font-bold text-slate-950">Payments Tow</td>
+                              <td className="py-3">
+                                <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full text-[9px] font-extrabold glow-failed inline-block">Fail</span>
+                              </td>
+                              <td className="py-3">
+                                <div className="flex items-center space-x-1.5">
+                                  <div className="w-5 h-5 rounded-full bg-indigo-600 text-[9px] text-white flex items-center justify-center font-bold">PS</div>
+                                  <span className="text-slate-600 font-medium">Priya</span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-slate-400 font-medium">23/03, 21:30</td>
+                              <td className="py-3 text-center">
+                                <input type="checkbox" checked readOnly className="rounded border-slate-300 text-indigo-600" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-3 font-mono font-bold text-slate-500">131001</td>
+                              <td className="py-3 font-bold text-slate-950">Rezent Test Runs</td>
+                              <td className="py-3">
+                                <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-extrabold glow-blocked inline-block">In Progress</span>
+                              </td>
+                              <td className="py-3">
+                                <div className="flex items-center space-x-1.5">
+                                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-[9px] text-white flex items-center justify-center font-bold">AV</div>
+                                  <span className="text-slate-600 font-medium">Anand</span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-slate-400 font-medium">29/03, 21:30</td>
+                              <td className="py-3 text-center">
+                                <input type="checkbox" checked readOnly className="rounded border-slate-300 text-indigo-600" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-3 font-mono font-bold text-slate-500">131004</td>
+                              <td className="py-3 font-bold text-slate-950">API Vunne</td>
+                              <td className="py-3">
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-extrabold glow-passed inline-block">Pass</span>
+                              </td>
+                              <td className="py-3">
+                                <div className="flex items-center space-x-1.5">
+                                  <div className="w-5 h-5 rounded-full bg-purple-600 text-[9px] text-white flex items-center justify-center font-bold">RD</div>
+                                  <span className="text-slate-600 font-medium">Rahul</span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-slate-400 font-medium">03/03, 17:30</td>
+                              <td className="py-3 text-center">
+                                <input type="checkbox" checked readOnly className="rounded border-slate-300 text-indigo-600" />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
                   </div>
 
                 </div>
@@ -983,6 +1225,110 @@ export const App: React.FC = () => {
                     </button>
                   </div>
                 )
+              )}
+
+              {/* Tab 5: Bugs Telemetry (Mockup/Telemetry) */}
+              {activeTab === 'bugs' && (
+                <div className="space-y-6 animate-fadeIn font-sans">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Jira Defect Tracker</h2>
+                      <p className="text-xs text-slate-500">
+                        Central registry of all bugs raised across test execution runs and cycles.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-[10px] uppercase font-mono font-bold text-slate-400 pb-2">
+                            <th className="py-2">Bug ID</th>
+                            <th className="py-2">Summary</th>
+                            <th className="py-2">Priority</th>
+                            <th className="py-2">Status</th>
+                            <th className="py-2 font-mono">Reported At</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                          {/* Render default defect rows */}
+                          <tr>
+                            <td className="py-3 font-mono font-bold text-indigo-600">BUG-3412</td>
+                            <td className="py-3 font-bold text-slate-950">Employee detail edit throws database timeout exception</td>
+                            <td className="py-3">
+                              <span className="bg-red-50 text-red-700 border border-red-200 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold glow-failed inline-block">Critical</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-bold">Open</span>
+                            </td>
+                            <td className="py-3 text-slate-400 font-medium">12 mins ago</td>
+                          </tr>
+                          <tr>
+                            <td className="py-3 font-mono font-bold text-indigo-600">BUG-3408</td>
+                            <td className="py-3 font-bold text-slate-950">Leave approval email notification shows empty username link</td>
+                            <td className="py-3">
+                              <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold glow-blocked inline-block">High</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-bold">Open</span>
+                            </td>
+                            <td className="py-3 text-slate-400 font-medium">1 hour ago</td>
+                          </tr>
+                          <tr>
+                            <td className="py-3 font-mono font-bold text-indigo-600">BUG-3395</td>
+                            <td className="py-3 font-bold text-slate-950">Salary slip PDF export breaks layout when name is long</td>
+                            <td className="py-3">
+                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold glow-passed inline-block">Medium</span>
+                            </td>
+                            <td className="py-3">
+                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-bold">Resolved</span>
+                            </td>
+                            <td className="py-3 text-slate-400 font-medium">1 day ago</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 6: Settings & User Config */}
+              {activeTab === 'settings' && (
+                <div className="space-y-6 animate-fadeIn font-sans">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">Workspace Settings</h2>
+                      <p className="text-xs text-slate-500">
+                        Manage roles, teams, project configuration, and import defaults.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">User Management</h3>
+                      <p className="text-xs text-slate-500 font-medium">Configure roles and permissions for your team mates.</p>
+                      <button
+                        onClick={() => setIsUserManagementOpen(true)}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"
+                      >
+                        Manage Users &amp; Roles
+                      </button>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Restore Factory Data</h3>
+                      <p className="text-xs text-slate-500 font-medium">Reset default modules data to original factory specs.</p>
+                      <button
+                        onClick={handleRestoreDefaultModules}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all"
+                      >
+                        Restore Defaults
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </>
           )}
