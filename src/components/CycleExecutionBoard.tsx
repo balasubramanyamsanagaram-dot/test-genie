@@ -24,6 +24,7 @@ interface CycleExecutionBoardProps {
   onRequestPassEvidence?: (cycleId: string, itemKey: string, itemTitle: string) => void;
   onSaveTestCase?: (updatedCase: TestCase) => void;
   onDeleteCycleItem?: (cycleId: string, itemKey: string) => void;
+  onSyncEditedCasesToCycle?: (cycleId: string) => void;
   onBackToCycles: () => void;
 }
 
@@ -37,6 +38,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onRequestPassEvidence,
   onSaveTestCase,
   onDeleteCycleItem,
+  onSyncEditedCasesToCycle,
   onBackToCycles
 }) => {
   const [selectedItemKey, setSelectedItemKey] = useState<string>(cycle.items[0]?.testCase.key || '');
@@ -49,6 +51,19 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
   // Lightbox Media Viewer State
   const [activeMediaUrl, setActiveMediaUrl] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+
+  const masterCaseMap = new Map(allAvailableCases.map(c => [c.key, c]));
+  const outdatedCasesCount = cycle.items.filter(item => {
+    const master = masterCaseMap.get(item.testCase.key);
+    if (!master) return false;
+    return (
+      master.name !== item.testCase.name ||
+      master.testSteps !== item.testCase.testSteps ||
+      master.expectedResult !== item.testCase.expectedResult ||
+      master.objective !== item.testCase.objective ||
+      master.precondition !== item.testCase.precondition
+    );
+  }).length;
 
   const report = calculateCycleReport(cycle);
   const activeItem = cycle.items.find(i => i.testCase.key === selectedItemKey) || cycle.items[0];
@@ -168,6 +183,16 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            {outdatedCasesCount > 0 && onSyncEditedCasesToCycle && canExecuteTests && (
+              <button
+                onClick={() => onSyncEditedCasesToCycle(cycle.id)}
+                className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition-all active:scale-95"
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin-slow" />
+                Sync {outdatedCasesCount} Edited Case{outdatedCasesCount > 1 ? 's' : ''}
+              </button>
+            )}
+
             {canExecuteTests && onAddCasesToCycle && (
               <button
                 onClick={() => setIsAddCasesModalOpen(true)}

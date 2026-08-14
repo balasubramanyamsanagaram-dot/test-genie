@@ -15,6 +15,7 @@ interface TestCycleManagerProps {
   onAddCasesToCycle: (cycleId: string, newCases: TestCase[]) => void;
   onSelectCycleToExecute: (cycleId: string) => void;
   onDeleteCycle?: (cycleId: string) => void;
+  onSyncEditedCasesToCycle?: (cycleId: string) => void;
 }
 
 export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
@@ -27,7 +28,8 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   onCreateCycle,
   onAddCasesToCycle,
   onSelectCycleToExecute,
-  onDeleteCycle
+  onDeleteCycle,
+  onSyncEditedCasesToCycle
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [targetCycleForAddModal, setTargetCycleForAddModal] = useState<TestCycle | null>(null);
@@ -293,6 +295,20 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
               !existingCycleKeys.has(c.name?.trim().toLowerCase())
             ).length;
 
+            // Check if any test cases in this cycle have been edited in the master repository
+            const masterCaseMap = new Map(currentModuleCases.map(c => [c.key, c]));
+            const outdatedCasesCount = cycle.items.filter(item => {
+              const master = masterCaseMap.get(item.testCase.key);
+              if (!master) return false;
+              return (
+                master.name !== item.testCase.name ||
+                master.testSteps !== item.testCase.testSteps ||
+                master.expectedResult !== item.testCase.expectedResult ||
+                master.objective !== item.testCase.objective ||
+                master.precondition !== item.testCase.precondition
+              );
+            }).length;
+
             return (
               <div
                 key={cycle.id}
@@ -328,6 +344,25 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                           className="px-2.5 py-1 rounded-xl bg-indigo-600 text-white font-extrabold text-[11px] shadow-sm hover:bg-indigo-700 transition-all"
                         >
                           + Sync to Cycle
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Edited Cases Available for Sync Alert */}
+                  {outdatedCasesCount > 0 && (
+                    <div className="bg-amber-50 p-2.5 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
+                      <span className="text-amber-900 font-bold flex items-center">
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-amber-600 animate-spin-slow" />
+                        {outdatedCasesCount} edited test case{outdatedCasesCount > 1 ? 's' : ''} ready to sync!
+                      </span>
+                      {canCreateCycle && onSyncEditedCasesToCycle && (
+                        <button
+                          onClick={() => onSyncEditedCasesToCycle(cycle.id)}
+                          className="px-2.5 py-1 rounded-xl bg-amber-600 text-white font-extrabold text-[11px] shadow-sm hover:bg-amber-700 transition-all flex items-center active:scale-95"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Sync Edited Cases
                         </button>
                       )}
                     </div>

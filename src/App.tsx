@@ -903,6 +903,42 @@ export const App: React.FC = () => {
     showToast(`Removed test case ${itemKey} from cycle!`);
   };
 
+  // Sync Edited Master Test Cases into Execution Cycle
+  const handleSyncEditedCasesToCycle = (cycleId: string) => {
+    const moduleCases = customModuleCases[selectedModuleId] || [];
+    const masterCaseMap = new Map(moduleCases.map(c => [c.key, c]));
+
+    let syncedCount = 0;
+    setTestCycles(prev => prev.map(cycle => {
+      if (cycle.id !== cycleId) return cycle;
+
+      const updatedItems = cycle.items.map(item => {
+        const master = masterCaseMap.get(item.testCase.key);
+        if (master && (
+          master.name !== item.testCase.name ||
+          master.testSteps !== item.testCase.testSteps ||
+          master.expectedResult !== item.testCase.expectedResult ||
+          master.objective !== item.testCase.objective ||
+          master.precondition !== item.testCase.precondition
+        )) {
+          syncedCount++;
+          return {
+            ...item,
+            testCase: { ...master }
+          };
+        }
+        return item;
+      });
+
+      return {
+        ...cycle,
+        items: updatedItems
+      };
+    }));
+
+    showToast(`Successfully synced edited test cases into execution cycle!`, 'success');
+  };
+
   // Bulk Edit Test Cases
   const handleBulkEditTestCases = (keys: string[], updates: { priority?: string; type?: string; status?: string }) => {
     const keySet = new Set(keys);
@@ -1719,6 +1755,7 @@ export const App: React.FC = () => {
                       handleTabChange('execution');
                     }}
                     onDeleteCycle={handleDeleteCycle}
+                    onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
                   />
                 )
               )}
@@ -1740,6 +1777,7 @@ export const App: React.FC = () => {
                     onRequestPassEvidence={(cycleId, itemKey, itemTitle) => setPassEvidenceModalConfig({ isOpen: true, cycleId, itemKey, itemTitle })}
                     onSaveTestCase={handleSaveTestCase}
                     onDeleteCycleItem={handleDeleteCycleItem}
+                    onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (
