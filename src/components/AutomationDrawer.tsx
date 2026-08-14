@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Play, Settings, Monitor, Laptop, Smartphone, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react';
 import { TestCase } from '../types';
+import { SearchableSelect } from './SearchableSelect';
 
 interface AutomationDrawerProps {
   isOpen: boolean;
@@ -96,34 +97,29 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({
               {/* Device Profile */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-wide">Device Profile</label>
-                <div className="relative">
-                  <select
-                    value={deviceProfile}
-                    onChange={e => setDeviceProfile(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-950 appearance-none focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="Desktop">Desktop</option>
-                    <option value="Tablet">Tablet</option>
-                    <option value="Mobile">Mobile</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                    {deviceProfile === 'Desktop' ? <Laptop className="w-3.5 h-3.5" /> : deviceProfile === 'Tablet' ? <Monitor className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
-                  </div>
-                </div>
+                <SearchableSelect
+                  options={[
+                    { value: 'Desktop', label: 'Desktop' },
+                    { value: 'Tablet', label: 'Tablet' },
+                    { value: 'Mobile', label: 'Mobile' }
+                  ]}
+                  value={deviceProfile}
+                  onChange={setDeviceProfile}
+                />
               </div>
 
               {/* Browser type */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-wide">Target Browser</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Google Chrome', label: 'Google Chrome' },
+                    { value: 'Firefox', label: 'Mozilla Firefox' },
+                    { value: 'Safari', label: 'Apple Safari' }
+                  ]}
                   value={browser}
-                  onChange={e => setBrowser(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-950 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="Google Chrome">Google Chrome</option>
-                  <option value="Firefox">Mozilla Firefox</option>
-                  <option value="Safari">Apple Safari</option>
-                </select>
+                  onChange={setBrowser}
+                />
               </div>
             </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, X, Save, CheckCircle2 } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface BulkEditCasesModalProps {
   selectedCount: number;
@@ -58,44 +59,44 @@ export const BulkEditCasesModal: React.FC<BulkEditCasesModalProps> = ({
           
           <div>
             <label className="font-bold text-slate-700 block mb-1">Bulk Update Scenario Type</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'NO_CHANGE', label: '-- Do Not Change --' },
+                { value: 'Positive', label: 'Positive Scenario' },
+                { value: 'Negative', label: 'Negative / Validation Scenario' }
+              ]}
               value={updateType}
-              onChange={e => setUpdateType(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-            >
-              <option value="NO_CHANGE">-- Do Not Change --</option>
-              <option value="Positive">Positive Scenario</option>
-              <option value="Negative">Negative / Validation Scenario</option>
-            </select>
+              onChange={setUpdateType}
+            />
           </div>
 
           <div>
             <label className="font-bold text-slate-700 block mb-1">Bulk Update Priority Level</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'NO_CHANGE', label: '-- Do Not Change --' },
+                { value: 'Critical', label: 'Critical (P0)' },
+                { value: 'High', label: 'High (P1)' },
+                { value: 'Medium', label: 'Medium (P2)' },
+                { value: 'Low', label: 'Low (P3)' }
+              ]}
               value={updatePriority}
-              onChange={e => setUpdatePriority(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-            >
-              <option value="NO_CHANGE">-- Do Not Change --</option>
-              <option value="Critical">Critical (P0)</option>
-              <option value="High">High (P1)</option>
-              <option value="Medium">Medium (P2)</option>
-              <option value="Low">Low (P3)</option>
-            </select>
+              onChange={setUpdatePriority}
+            />
           </div>
 
           <div>
             <label className="font-bold text-slate-700 block mb-1">Bulk Update Status</label>
-            <select
+            <SearchableSelect
+              options={[
+                { value: 'NO_CHANGE', label: '-- Do Not Change --' },
+                { value: 'Approved', label: 'Approved' },
+                { value: 'Ready for Review', label: 'Ready for Review' },
+                { value: 'Draft', label: 'Draft' }
+              ]}
               value={updateStatus}
-              onChange={e => setUpdateStatus(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-            >
-              <option value="NO_CHANGE">-- Do Not Change --</option>
-              <option value="Approved">Approved</option>
-              <option value="Ready for Review">Ready for Review</option>
-              <option value="Draft">Draft</option>
-            </select>
+              onChange={setUpdateStatus}
+            />
           </div>
 
           <div className="pt-3 border-t border-slate-200 flex justify-end space-x-2">

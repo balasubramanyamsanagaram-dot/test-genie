@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UserProfile, UserRole } from '../types';
 import { Users, UserPlus, X, Shield, Key, Mail, Trash2, Edit2, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
+import { SearchableSelect } from './SearchableSelect';
 
 interface UserManagementModalProps {
   users: UserProfile[];
@@ -218,17 +219,17 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Assigned RBAC Role *</label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Admin', label: 'Admin (Full Control)' },
+                    { value: 'QA Lead', label: 'QA Lead (Full Operations)' },
+                    { value: 'QA Engineer', label: 'QA Engineer (Full Operations)' },
+                    { value: 'Developer', label: 'Developer (Failure Inspection)' },
+                    { value: 'Auditor', label: 'Auditor (Read-Only)' }
+                  ]}
                   value={role}
-                  onChange={e => setRole(e.target.value as UserRole)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-slate-900 font-bold focus:outline-none focus:border-rose-500 cursor-pointer"
-                >
-                  <option value="Admin">Admin (Full Control)</option>
-                  <option value="QA Lead">QA Lead (Full Operations)</option>
-                  <option value="QA Engineer">QA Engineer (Full Operations)</option>
-                  <option value="Developer">Developer (Failure Inspection)</option>
-                  <option value="Auditor">Auditor (Read-Only)</option>
-                </select>
+                  onChange={val => setRole(val as UserRole)}
+                />
               </div>
             </div>
 
@@ -298,17 +299,17 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     </div>
                     <div>
                       <label className="font-bold text-slate-700 block mb-1">Role</label>
-                      <select
+                      <SearchableSelect
+                        options={[
+                          { value: 'Admin', label: 'Admin' },
+                          { value: 'QA Lead', label: 'QA Lead' },
+                          { value: 'QA Engineer', label: 'QA Engineer' },
+                          { value: 'Developer', label: 'Developer' },
+                          { value: 'Auditor', label: 'Auditor' }
+                        ]}
                         value={role}
-                        onChange={e => setRole(e.target.value as UserRole)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 font-bold text-slate-900"
-                      >
-                        <option value="Admin">Admin</option>
-                        <option value="QA Lead">QA Lead</option>
-                        <option value="QA Engineer">QA Engineer</option>
-                        <option value="Developer">Developer</option>
-                        <option value="Auditor">Auditor</option>
-                      </select>
+                        onChange={val => setRole(val as UserRole)}
+                      />
                     </div>
                   </div>
 

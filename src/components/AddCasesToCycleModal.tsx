@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TestCycle, TestCase, TestCycleItem } from '../types';
 import { X, Plus, CheckCircle2, Search, Filter, Layers, CheckSquare, Square } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface AddCasesToCycleModalProps {
   cycle: TestCycle;
@@ -109,16 +110,17 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-slate-800 font-bold focus:outline-none"
-            >
-              <option value="ALL">All Types</option>
-              <option value="Positive">Positive</option>
-              <option value="Negative">Negative</option>
-            </select>
+             <Filter className="w-3.5 h-3.5 text-slate-400" />
+             <SearchableSelect
+               options={[
+                 { value: 'ALL', label: 'All Types' },
+                 { value: 'Positive', label: 'Positive' },
+                 { value: 'Negative', label: 'Negative' }
+               ]}
+               value={typeFilter}
+               onChange={setTypeFilter}
+               className="w-32"
+             />
 
             <button
               onClick={handleSelectAllFiltered}
