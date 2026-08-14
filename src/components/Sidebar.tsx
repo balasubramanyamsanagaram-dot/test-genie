@@ -30,8 +30,8 @@ interface SidebarProps {
   onAddNewModule: (moduleName: string) => void;
   onEditModule: (moduleId: string, newName: string) => void;
   onDeleteModule: (moduleId: string) => void;
-  activeTab: 'dashboard' | 'matrix' | 'cycles' | 'execution';
-  setActiveTab: (tab: 'dashboard' | 'matrix' | 'cycles' | 'execution') => void;
+  activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution';
+  setActiveTab: (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution') => void;
   testCasesCount: number;
 }
 
@@ -280,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Scrollable Module List with Edit & Delete Actions */}
         <div className="flex-1 overflow-y-auto space-y-1 pr-1">
           {filteredModules.map(mod => {
-            const isSelected = mod.id === selectedModuleId;
+            const isSelected = activeTab === 'repository' && mod.id === selectedModuleId;
             const isEditing = editingModuleId === mod.id;
 
             if (isEditing) {

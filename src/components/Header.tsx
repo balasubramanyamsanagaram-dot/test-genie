@@ -4,8 +4,8 @@ import { Download, Search, X, Plus, FolderKanban } from 'lucide-react';
 import { UserProfileDropdown } from './UserProfileDropdown';
 
 interface HeaderProps {
-  activeTab: 'dashboard' | 'matrix' | 'cycles' | 'execution';
-  setActiveTab: (tab: 'dashboard' | 'matrix' | 'cycles' | 'execution') => void;
+  activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution';
+  setActiveTab: (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution') => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onExport: () => void;

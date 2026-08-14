@@ -25,7 +25,7 @@ const STORAGE_KEY_USER = 'test_genie_authenticated_user_v1';
 const STORAGE_KEY_USERS = 'registered_enterprise_users_v2';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'cycles' | 'execution'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution'>('dashboard');
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
 
   // Registered Users list with LocalStorage persistence
@@ -220,6 +220,69 @@ export const App: React.FC = () => {
     } catch (e) {}
   }, [testCycles]);
 
+  // Sum up counts across all modules
+  const dashboardStats = useMemo(() => {
+    const modules = activeProject.modules;
+    const totalModules = modules.length;
+    
+    let totalCases = 0;
+    let totalPositive = 0;
+    let totalNegative = 0;
+    let totalBoundary = 0;
+    let totalPermission = 0;
+    
+    modules.forEach(m => {
+      const cases = customModuleCases[m.id] || [];
+      totalCases += cases.length;
+      
+      cases.forEach(c => {
+        const text = `${c.name} ${c.objective} ${c.testSteps}`.toLowerCase();
+        if (c.type) {
+          const typeLower = c.type.toLowerCase();
+          if (typeLower.includes('pos')) totalPositive++;
+          else if (typeLower.includes('neg') || typeLower.includes('validation')) totalNegative++;
+          else if (typeLower.includes('bound') || typeLower.includes('limit')) totalBoundary++;
+          else if (typeLower.includes('perm') || typeLower.includes('rbac')) totalPermission++;
+          else totalPositive++;
+        } else {
+          if (text.includes('duplicate') || text.includes('error') || text.includes('invalid') || text.includes('fail') || text.includes('omit') || text.includes('missing') || text.includes('validation')) {
+            totalNegative++;
+          } else if (text.includes('boundary') || text.includes('limit') || text.includes('max') || text.includes('min')) {
+            totalBoundary++;
+          } else if (text.includes('permission') || text.includes('rbac') || text.includes('role') || text.includes('restrict')) {
+            totalPermission++;
+          } else {
+            totalPositive++;
+          }
+        }
+      });
+    });
+
+    const averageCoverage = totalModules > 0 
+      ? Math.round(modules.reduce((acc, m) => acc + (m.coveragePercentage || 100), 0) / totalModules)
+      : 100;
+
+    const projCycles = testCycles.filter(c => !c.projectId || c.projectId === activeProject.id);
+    const totalCycles = projCycles.length;
+
+    const totalDefects = projCycles.reduce((acc, c) => {
+      const cycleItems = c.items || [];
+      return acc + cycleItems.reduce((sum, item) => sum + (item.jiraBugs?.length || (item.defectId ? 1 : 0)), 0);
+    }, 0);
+
+    return {
+      totalModules,
+      totalCases,
+      totalPositive,
+      totalNegative,
+      totalBoundary,
+      totalPermission,
+      averageCoverage,
+      totalCycles,
+      totalDefects
+    };
+  }, [activeProject.modules, customModuleCases, testCycles, activeProject.id]);
+
   // Active module object
   const activeModule = useMemo(() => {
     return activeProject.modules.find(m => m.id === selectedModuleId) || activeProject.modules[0];
@@ -231,7 +294,7 @@ export const App: React.FC = () => {
     setSelectedProjectId(newProject.id);
   };
 
-  const handleTabChange = (tab: 'dashboard' | 'matrix' | 'cycles' | 'execution') => {
+  const handleTabChange = (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution') => {
     setActiveTab(tab);
     setGlobalSearchQuery('');
   };
@@ -239,7 +302,7 @@ export const App: React.FC = () => {
   // Requirement: Clicking any module ALWAYS opens the Test Case Repository tab immediately!
   const handleSelectModuleSmart = (id: string) => {
     setSelectedModuleId(id);
-    setActiveTab('matrix');
+    setActiveTab('repository');
     setGlobalSearchQuery('');
   };
 
@@ -607,7 +670,7 @@ export const App: React.FC = () => {
         onDeleteModule={handleDeleteModule}
         activeTab={activeTab}
         setActiveTab={handleTabChange}
-        testCasesCount={testCases.length}
+        testCasesCount={dashboardStats.totalCases}
       />
 
       {/* Main Workspace Area */}
@@ -667,9 +730,9 @@ export const App: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Tab 1: Dashboard Overview */}
+              {/* Tab 1: Dashboard Overview (Overview & Analytics) */}
               {activeTab === 'dashboard' && (
-                <div className="space-y-8">
+                <div className="space-y-8 animate-fadeIn">
                   
                   {/* Clean Enterprise Light Theme Banner */}
                   <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden bg-gradient-to-r from-indigo-50/80 via-white to-purple-50/80">
@@ -679,43 +742,118 @@ export const App: React.FC = () => {
                         Project [{activeProject.key}]: {activeProject.name} — Logged as {currentUser.name} ({currentUser.role})
                       </span>
                       <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 tracking-tight">
-                        Active Repository: <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">{activeModule.name}</span>
+                        Overview &amp; Analytics
                       </h1>
                       <p className="text-xs text-slate-600 mt-2 leading-relaxed font-normal">
-                        {activeProject.description}. Upload .csv / .xlsx reference files, execute live test cycles, and track Jira defect resolution telemetry.
+                        Enterprise QA dashboard with live telemetry coverage metrics, status breakdowns, and cycle activity feeds.
                       </p>
-                      
-                      <div className="flex flex-wrap items-center gap-3 mt-6">
-                        {canManageCases && (
-                          <button
-                            onClick={() => setIsImporterOpen(true)}
-                            className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-                          >
-                            <Upload className="w-3.5 h-3.5 mr-1.5" />
-                            Add / Upload Test Cases
-                          </button>
-                        )}
+                    </div>
+                  </div>
 
-                        <button
-                          onClick={() => handleTabChange('cycles')}
-                          className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all active:scale-95"
-                        >
-                          <RotateCw className="w-3.5 h-3.5 mr-1.5" />
-                          Test Execution Cycles
-                        </button>
-
-                        <button
-                          onClick={() => handleTabChange('execution')}
-                          className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95"
-                        >
-                          <PlaySquare className="w-3.5 h-3.5 mr-1.5" />
-                          Live Execution Board
-                        </button>
+                  {/* Premium Metrics Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Module Repositories</span>
+                      <div className="flex items-baseline justify-between mt-2">
+                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.totalModules}</span>
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Active</span>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Total Scenarios</span>
+                      <div className="flex items-baseline justify-between mt-2">
+                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.totalCases}</span>
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Zephyr</span>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Average Coverage</span>
+                      <div className="flex items-baseline justify-between mt-2">
+                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.averageCoverage}%</span>
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">AST Scan</span>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+                      <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Jira Defect Telemetry</span>
+                      <div className="flex items-baseline justify-between mt-2">
+                        <span className="text-3xl font-extrabold text-slate-900">{dashboardStats.totalDefects}</span>
+                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">Bugs</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Module Repositories Summary Cards Grid with Global Search Filter */}
+                  {/* Scenarios Type Distribution Grid */}
+                  <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+                    <h3 className="text-sm font-extrabold text-slate-900 mb-6 uppercase tracking-wider font-mono">Project-Wide Scenario Breakdown</h3>
+                    
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                          <span className="text-xs font-bold text-slate-600">Positive Scenarios</span>
+                        </div>
+                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalPositive}</span>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                          <span className="text-xs font-bold text-slate-600">Negative Scenarios</span>
+                        </div>
+                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalNegative}</span>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                          <span className="text-xs font-bold text-slate-600">Boundary Scenarios</span>
+                        </div>
+                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalBoundary}</span>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                          <span className="text-xs font-bold text-slate-600">Permission / RBAC</span>
+                        </div>
+                        <span className="text-2xl font-extrabold text-slate-900 mt-4">{dashboardStats.totalPermission}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Tab 2: Module Repositories Selector Landing Page (Test Repositories) */}
+              {activeTab === 'matrix' && (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">
+                        [{activeProject.key}] Module Repositories ({activeProject.modules.length})
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Create, delete, or browse individual module repositories below. Click any card to manage its test cases.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {canManageCases && (
+                        <button
+                          onClick={() => {
+                            const name = prompt('Enter new module repository name:');
+                            if (name) handleAddNewModule(name);
+                          }}
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
+                        >
+                          <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
+                          Create Module Repository
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Module Cards Grid with Navigation and Ingest Controls */}
                   <ModuleCardsGrid
                     modules={activeProject.modules}
                     customModuleCases={customModuleCases}
@@ -733,18 +871,17 @@ export const App: React.FC = () => {
                     }}
                     onNavigateToRepository={(modId) => {
                       setSelectedModuleId(modId);
-                      handleTabChange('matrix');
+                      handleTabChange('repository');
                     }}
                     onEditModule={handleEditModule}
                     onDeleteModule={handleDeleteModule}
                   />
-
                 </div>
               )}
 
-              {/* Tab 2: Test Repository & Importer with Global Search Sync */}
-              {activeTab === 'matrix' && (
-                <div className="space-y-4">
+              {/* Tab 2.5: Specific Module Repository Test Case Table (Active Repository View) */}
+              {activeTab === 'repository' && (
+                <div className="space-y-4 animate-fadeIn">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">
