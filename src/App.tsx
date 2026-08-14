@@ -845,6 +845,35 @@ export const App: React.FC = () => {
 
   const canManageCases = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
 
+  const renderEmptyModuleState = () => (
+    <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-sm text-center max-w-xl mx-auto my-12 animate-fadeIn">
+      <FolderPlus className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
+      <h2 className="text-2xl font-extrabold text-slate-900">No Module Repositories Found</h2>
+      <p className="text-xs text-slate-500 mt-2 mb-6 leading-relaxed">
+        Create a new module repository or restore default repositories for <strong>{activeProject.name}</strong>.
+      </p>
+      <div className="flex items-center justify-center space-x-3">
+        {canManageCases && (
+          <button
+            onClick={triggerCreateModulePrompt}
+            className="inline-flex items-center px-5 py-2.5 rounded-2xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create New Repository
+          </button>
+        )}
+
+        <button
+          onClick={handleRestoreDefaultModules}
+          className="inline-flex items-center px-5 py-2.5 rounded-2xl text-xs font-extrabold bg-slate-900 hover:bg-slate-800 text-white shadow-md active:scale-95 transition-all"
+        >
+          <RotateCw className="w-4 h-4 mr-2 text-indigo-400" />
+          Restore Default Modules
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex selection:bg-indigo-500 selection:text-white font-sans antialiased">
       
@@ -887,36 +916,7 @@ export const App: React.FC = () => {
         {/* Main Content Body */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           
-          {/* Global Empty State: No Modules Created Yet */}
-          {!activeModule ? (
-            <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-sm text-center max-w-xl mx-auto my-12">
-              <FolderPlus className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-extrabold text-slate-900">No Module Repositories Found</h2>
-              <p className="text-xs text-slate-500 mt-2 mb-6 leading-relaxed">
-                Create a new module repository or restore default repositories for <strong>{activeProject.name}</strong>.
-              </p>
-              <div className="flex items-center justify-center space-x-3">
-                {canManageCases && (
-                  <button
-                    onClick={triggerCreateModulePrompt}
-                    className="inline-flex items-center px-5 py-2.5 rounded-2xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Repository
-                  </button>
-                )}
-
-                <button
-                  onClick={handleRestoreDefaultModules}
-                  className="inline-flex items-center px-5 py-2.5 rounded-2xl text-xs font-extrabold bg-slate-900 hover:bg-slate-800 text-white shadow-md active:scale-95 transition-all"
-                >
-                  <RotateCw className="w-4 h-4 mr-2 text-indigo-400" />
-                  Restore Default Modules
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
+          <>
               {/* Tab 1: Dashboard Overview (Mockup Layout 1-to-1) */}
               {activeTab === 'dashboard' && (
                 <div className="space-y-6 animate-fadeIn font-sans">
@@ -1277,7 +1277,10 @@ export const App: React.FC = () => {
 
               {/* Tab 2.5: Specific Module Repository Test Case Table (Active Repository View) */}
               {activeTab === 'repository' && (
-                <div className="space-y-4 animate-fadeIn">
+                !activeModule ? (
+                  renderEmptyModuleState()
+                ) : (
+                  <div className="space-y-4 animate-fadeIn">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">
@@ -1340,29 +1343,36 @@ export const App: React.FC = () => {
                     />
                   )}
                 </div>
+                )
               )}
 
               {/* Tab 3: Test Cycle Manager */}
               {activeTab === 'cycles' && (
-                <TestCycleManager
-                  moduleName={activeModule.name}
-                  allModules={activeProject.modules}
-                  allModuleCasesMap={customModuleCases}
-                  currentModuleCases={testCases}
-                  testCycles={activeProjectCycles}
-                  currentUser={currentUser}
-                  onCreateCycle={handleCreateCycle}
-                  onAddCasesToCycle={handleAddCasesToCycle}
-                  onSelectCycleToExecute={(cycleId) => {
-                    setActiveCycleId(cycleId);
-                    handleTabChange('execution');
-                  }}
-                />
+                !activeModule ? (
+                  renderEmptyModuleState()
+                ) : (
+                  <TestCycleManager
+                    moduleName={activeModule.name}
+                    allModules={activeProject.modules}
+                    allModuleCasesMap={customModuleCases}
+                    currentModuleCases={testCases}
+                    testCycles={activeProjectCycles}
+                    currentUser={currentUser}
+                    onCreateCycle={handleCreateCycle}
+                    onAddCasesToCycle={handleAddCasesToCycle}
+                    onSelectCycleToExecute={(cycleId) => {
+                      setActiveCycleId(cycleId);
+                      handleTabChange('execution');
+                    }}
+                  />
+                )
               )}
 
               {/* Tab 4: Live Execution Board with Active User Role Guarding */}
               {activeTab === 'execution' && (
-                activeCycle ? (
+                !activeModule ? (
+                  renderEmptyModuleState()
+                ) : activeCycle ? (
                   <CycleExecutionBoard
                     cycle={activeCycle}
                     currentUser={currentUser}
@@ -1377,7 +1387,7 @@ export const App: React.FC = () => {
                 ) : (
                   <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                     <RotateCw className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <h4 className="text-base font-extrabold text-slate-900">No Active Test Cycles Found for {activeModule.name}</h4>
+                    <h4 className="text-base font-extrabold text-slate-900">No Active Test Cycles Found for {activeModule?.name || 'this module'}</h4>
                     <p className="text-xs text-slate-500 mt-1 mb-4">
                       Create a test cycle first to execute test cases on the live board.
                     </p>
@@ -1495,8 +1505,6 @@ export const App: React.FC = () => {
                 </div>
               )}
             </>
-          )}
-
         </main>
 
         {/* Create New Project Modal */}
