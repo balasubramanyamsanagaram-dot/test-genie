@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { JiraBug, TestCycle, TestCase, UserProfile } from '../types';
 import { X, Bug, Info, AlertTriangle } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface CreateEditBugModalProps {
   isOpen: boolean;
@@ -177,41 +178,25 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   1. Target Test Cycle *
                 </label>
-                <select
+                <SearchableSelect
+                  options={testCycles.map(c => ({ value: c.id, label: `${c.name} (${c.version})` }))}
                   value={selectedCycleId}
-                  onChange={(e) => setSelectedCycleId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-950 font-bold focus:outline-none focus:border-indigo-500"
-                  required
-                >
-                  {testCycles.length === 0 ? (
-                    <option value="">No Active Test Cycles Found</option>
-                  ) : (
-                    testCycles.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.version})</option>
-                    ))
-                  )}
-                </select>
+                  onChange={setSelectedCycleId}
+                  placeholder="Select Target Test Cycle"
+                />
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   2. Associated Test Case *
                 </label>
-                <select
+                <SearchableSelect
+                  options={cycleCases.map(c => ({ value: c.key, label: `[${c.key}] ${c.name}` }))}
                   value={selectedCaseKey}
-                  onChange={(e) => setSelectedCaseKey(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-950 font-bold focus:outline-none focus:border-indigo-500"
-                  required
+                  onChange={setSelectedCaseKey}
+                  placeholder={cycleCases.length === 0 ? "No cases in this cycle" : "Select Associated Test Case"}
                   disabled={!selectedCycleId || cycleCases.length === 0}
-                >
-                  {cycleCases.length === 0 ? (
-                    <option value="">No cases in this cycle</option>
-                  ) : (
-                    cycleCases.map(c => (
-                      <option key={c.key} value={c.key}>[{c.key}] {c.name}</option>
-                    ))
-                  )}
-                </select>
+                />
               </div>
             </div>
           ) : (
@@ -248,15 +233,15 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Ticket Status
                 </label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: 'Open', label: 'Open' },
+                    { value: 'Re-opened', label: 'Re-opened' },
+                    { value: 'Resolved', label: 'Resolved' }
+                  ]}
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-950 font-bold focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="Open">Open</option>
-                  <option value="Re-opened">Re-opened</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
+                  onChange={(val) => setStatus(val as any)}
+                />
               </div>
             )}
 
@@ -264,16 +249,16 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                 Defect Severity *
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'Blocker', label: 'Blocker (S1)' },
+                  { value: 'Critical', label: 'Critical (S2)' },
+                  { value: 'Major', label: 'Major (S3)' },
+                  { value: 'Minor', label: 'Minor (S4)' }
+                ]}
                 value={severity}
-                onChange={(e) => setSeverity(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-950 font-bold focus:outline-none focus:border-indigo-500"
-              >
-                <option value="Blocker">Blocker (S1)</option>
-                <option value="Critical">Critical (S2)</option>
-                <option value="Major">Major (S3)</option>
-                <option value="Minor">Minor (S4)</option>
-              </select>
+                onChange={(val) => setSeverity(val as any)}
+              />
             </div>
           </div>
 

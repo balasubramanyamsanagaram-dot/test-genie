@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TestCycle, TestCase, UserProfile, TestCycleItem, ProjectModule } from '../types';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
 import { RotateCw, Plus, PlaySquare, Calendar, Layers, ShieldCheck, CheckCircle2, User, FileSpreadsheet, Lock, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface TestCycleManagerProps {
   moduleName: string;
@@ -168,16 +169,16 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
 
             <div>
               <label className="font-bold text-slate-700 block mb-1">Target Environment</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'Staging', label: 'Staging (QA-Staging)' },
+                  { value: 'UAT', label: 'UAT (Client Sandbox)' },
+                  { value: 'QA-Dev', label: 'QA-Dev (Integration)' },
+                  { value: 'Production', label: 'Production (Sanity Check)' }
+                ]}
                 value={environment}
-                onChange={e => setEnvironment(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-              >
-                <option value="Staging">Staging (QA-Staging)</option>
-                <option value="UAT">UAT (Client Sandbox)</option>
-                <option value="QA-Dev">QA-Dev (Integration)</option>
-                <option value="Production">Production (Sanity Check)</option>
-              </select>
+                onChange={val => setEnvironment(val as any)}
+              />
             </div>
 
             <div>

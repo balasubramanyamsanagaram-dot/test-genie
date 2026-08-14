@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TestCase } from '../types';
 import { Edit3, X, CheckCircle2, AlertCircle, Save } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface EditTestCaseModalProps {
   testCase: TestCase;
@@ -71,28 +72,28 @@ export const EditTestCaseModal: React.FC<EditTestCaseModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="font-bold text-slate-700 block mb-1">Scenario Type</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'Positive', label: 'Positive Scenario' },
+                  { value: 'Negative', label: 'Negative / Validation Scenario' }
+                ]}
                 value={type}
-                onChange={e => setType(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-              >
-                <option value="Positive">Positive Scenario</option>
-                <option value="Negative">Negative / Validation Scenario</option>
-              </select>
+                onChange={val => setType(val as any)}
+              />
             </div>
 
             <div>
               <label className="font-bold text-slate-700 block mb-1">Priority Level</label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: 'Critical', label: 'Critical (P0)' },
+                  { value: 'High', label: 'High (P1)' },
+                  { value: 'Medium', label: 'Medium (P2)' },
+                  { value: 'Low', label: 'Low (P3)' }
+                ]}
                 value={priority}
-                onChange={e => setPriority(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
-              >
-                <option value="Critical">Critical (P0)</option>
-                <option value="High">High (P1)</option>
-                <option value="Medium">Medium (P2)</option>
-                <option value="Low">Low (P3)</option>
-              </select>
+                onChange={val => setPriority(val)}
+              />
             </div>
           </div>
 
