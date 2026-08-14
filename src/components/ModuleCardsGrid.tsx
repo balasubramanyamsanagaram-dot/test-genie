@@ -14,6 +14,7 @@ interface ModuleCardsGridProps {
   onNavigateToRepository: (moduleId: string) => void;
   onEditModule: (moduleId: string, newName: string) => void;
   onDeleteModule: (moduleId: string) => void;
+  onRenameModule?: (moduleId: string, currentName: string) => void;
 }
 
 export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
@@ -26,7 +27,8 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
   onOpenImporter,
   onNavigateToRepository,
   onEditModule,
-  onDeleteModule
+  onDeleteModule,
+  onRenameModule
 }) => {
   const canManageCases = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
 
@@ -64,9 +66,13 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
   const handleRenameClick = (mod: ProjectModule, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!canManageCases) return;
-    const newName = prompt('Enter new repository name:', mod.name);
-    if (newName && newName.trim()) {
-      onEditModule(mod.id, newName.trim());
+    if (onRenameModule) {
+      onRenameModule(mod.id, mod.name);
+    } else {
+      const newName = prompt('Enter new repository name:', mod.name);
+      if (newName && newName.trim()) {
+        onEditModule(mod.id, newName.trim());
+      }
     }
   };
 

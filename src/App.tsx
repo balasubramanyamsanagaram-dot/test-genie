@@ -28,6 +28,27 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings'>('dashboard');
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
 
+  const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
+  const [promptConfig, setPromptConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    defaultValue: string;
+    placeholder: string;
+    onConfirm: (value: string) => void;
+  } | null>(null);
+
+  // Synchronous-safe window.alert override for styled custom notifications
+  useEffect(() => {
+    const originalAlert = window.alert;
+    window.alert = (message: string) => {
+      setGlobalAlert({ isOpen: true, message: String(message) });
+    };
+    return () => {
+      window.alert = originalAlert;
+    };
+  }, []);
+
   // Registered Users list with LocalStorage persistence
   const [registeredUsers, setRegisteredUsers] = useState<UserProfile[]>(() => {
     try {
@@ -374,6 +395,45 @@ export const App: React.FC = () => {
     setSelectedModuleId(newId);
     handleTabChange('matrix');
     setIsImporterOpen(true);
+  };
+
+  // Custom Text Input Prompts to replace browser default prompt dialogs
+  const triggerCreateModulePrompt = () => {
+    if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'QA Lead' && currentUser.role !== 'QA Engineer')) {
+      alert(`Role Restriction: User role '${currentUser?.role}' cannot create module repositories.`);
+      return;
+    }
+    setPromptConfig({
+      isOpen: true,
+      title: 'Create Module Repository',
+      message: 'Enter a name for the new module repository (e.g. Payroll & Benefits Management):',
+      defaultValue: '',
+      placeholder: 'Module Name',
+      onConfirm: (val) => {
+        if (val.trim()) {
+          handleAddNewModule(val.trim());
+        }
+      }
+    });
+  };
+
+  const triggerRenameModulePrompt = (modId: string, currentName: string) => {
+    if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'QA Lead' && currentUser.role !== 'QA Engineer')) {
+      alert(`Role Restriction: User role '${currentUser?.role}' cannot rename module repositories.`);
+      return;
+    }
+    setPromptConfig({
+      isOpen: true,
+      title: 'Rename Module Repository',
+      message: `Enter new name for module repository "${currentName}":`,
+      defaultValue: currentName,
+      placeholder: 'New Module Name',
+      onConfirm: (val) => {
+        if (val.trim()) {
+          handleEditModule(modId, val.trim());
+        }
+      }
+    });
   };
 
   // Edit (Rename) Module Repository
@@ -744,10 +804,7 @@ export const App: React.FC = () => {
               <div className="flex items-center justify-center space-x-3">
                 {canManageCases && (
                   <button
-                    onClick={() => {
-                      const name = prompt('Enter module name (e.g. Holidays & Leave Management):');
-                      if (name) handleAddNewModule(name);
-                    }}
+                    onClick={triggerCreateModulePrompt}
                     className="inline-flex items-center px-5 py-2.5 rounded-2xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -1087,10 +1144,7 @@ export const App: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       {canManageCases && (
                         <button
-                          onClick={() => {
-                            const name = prompt('Enter new module repository name:');
-                            if (name) handleAddNewModule(name);
-                          }}
+                          onClick={triggerCreateModulePrompt}
                           className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
                         >
                           <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
@@ -1122,6 +1176,7 @@ export const App: React.FC = () => {
                     }}
                     onEditModule={handleEditModule}
                     onDeleteModule={handleDeleteModule}
+                    onRenameModule={triggerRenameModulePrompt}
                   />
                 </div>
               )}
@@ -1398,6 +1453,78 @@ export const App: React.FC = () => {
           onConfirm={() => setImportSuccessCount(null)}
           onCancel={() => setImportSuccessCount(null)}
         />
+      )}
+
+      {/* Global Custom Alert Modal Interceptor */}
+      {globalAlert?.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn" onClick={() => setGlobalAlert(null)}>
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 border border-slate-200/80 shadow-xl space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="text-sm font-extrabold text-slate-900">System Notification</h3>
+            </div>
+            
+            <p className="text-xs text-slate-600 leading-relaxed font-normal">
+              {globalAlert.message}
+            </p>
+            
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setGlobalAlert(null)}
+                className="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Custom Text Prompt Modal */}
+      {promptConfig?.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn" onClick={() => setPromptConfig(null)}>
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200/80 shadow-xl space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-extrabold text-slate-900">{promptConfig.title}</h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-normal">{promptConfig.message}</p>
+            
+            <input
+              type="text"
+              defaultValue={promptConfig.defaultValue}
+              placeholder={promptConfig.placeholder}
+              id="custom-prompt-input"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-950 focus:outline-none focus:border-indigo-500 font-sans"
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const val = (document.getElementById('custom-prompt-input') as HTMLInputElement)?.value || '';
+                  promptConfig.onConfirm(val);
+                  setPromptConfig(null);
+                }
+              }}
+            />
+            
+            <div className="flex items-center justify-end space-x-2 pt-2">
+              <button
+                onClick={() => setPromptConfig(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const val = (document.getElementById('custom-prompt-input') as HTMLInputElement)?.value || '';
+                  promptConfig.onConfirm(val);
+                  setPromptConfig(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       </div>
