@@ -4,6 +4,7 @@ import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, 
 import { EditTestCaseModal } from './EditTestCaseModal';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
+import { SearchableSelect } from './SearchableSelect';
 
 interface TestCaseTableProps {
   testCases: TestCase[];
@@ -226,17 +227,18 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
 
         <div className="flex items-center space-x-2">
           <Filter className="w-3.5 h-3.5 text-slate-500" />
-          <select
+          <SearchableSelect
+            options={[
+              { value: 'ALL', label: 'All Scenarios (Positive + Negative)' },
+              { value: 'Positive', label: 'Positive Scenarios' },
+              { value: 'Negative', label: 'Negative / Validation Scenarios' },
+              { value: 'Boundary', label: 'Boundary Scenarios' },
+              { value: 'Permission', label: 'RBAC Permission Scenarios' }
+            ]}
             value={selectedType}
-            onChange={e => setSelectedType(e.target.value)}
-            className="bg-white text-slate-800 text-xs font-medium rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
-          >
-            <option value="ALL">All Scenarios (Positive + Negative)</option>
-            <option value="Positive">Positive Scenarios</option>
-            <option value="Negative">Negative / Validation Scenarios</option>
-            <option value="Boundary">Boundary Scenarios</option>
-            <option value="Permission">RBAC Permission Scenarios</option>
-          </select>
+            onChange={setSelectedType}
+            className="w-64"
+          />
         </div>
 
       </div>
@@ -487,20 +489,20 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
         {/* Page Size Dropdown */}
         <div className="flex items-center space-x-2">
           <span className="text-[11px] text-slate-500 font-medium">Show</span>
-          <select
-            value={pageSize}
-            onChange={e => {
-              const val = e.target.value;
+          <SearchableSelect
+            options={[
+              { value: '25', label: '25 Scenarios' },
+              { value: '50', label: '50 Scenarios' },
+              { value: '100', label: '100 Scenarios' },
+              { value: 'ALL', label: 'Show All' }
+            ]}
+            value={pageSize.toString()}
+            onChange={val => {
               setPageSize(val === 'ALL' ? 'ALL' : parseInt(val, 10));
               setCurrentPage(1);
             }}
-            className="bg-white text-slate-800 text-xs font-bold rounded-xl px-2.5 py-1.5 border border-slate-300 focus:outline-none focus:border-indigo-500 shadow-sm cursor-pointer"
-          >
-            <option value={25}>25 Scenarios</option>
-            <option value={50}>50 Scenarios</option>
-            <option value={100}>100 Scenarios</option>
-            <option value="ALL">Show All</option>
-          </select>
+            className="w-32"
+          />
         </div>
 
       </div>

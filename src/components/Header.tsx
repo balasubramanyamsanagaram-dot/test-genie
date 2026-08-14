@@ -2,6 +2,7 @@ import React from 'react';
 import { UserProfile, EnterpriseProject } from '../types';
 import { Download, Search, X, Plus, FolderKanban, HelpCircle, Bell } from 'lucide-react';
 import { UserProfileDropdown } from './UserProfileDropdown';
+import { SearchableSelect } from './SearchableSelect';
 
 interface HeaderProps {
   activeTab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings';
@@ -46,19 +47,14 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Left: Project Switcher Dropdown */}
           <div className="flex items-center space-x-2">
             <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
-              <div className="flex items-center space-x-2 px-3 py-1.5 bg-white rounded-xl shadow-xs border border-slate-200">
-                <FolderKanban className="w-4 h-4 text-indigo-600" />
-                <select
+              <div className="flex items-center space-x-2 px-2 py-1 bg-white rounded-xl shadow-xs border border-slate-200">
+                <FolderKanban className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                <SearchableSelect
+                  options={projects.map(p => ({ value: p.id, label: `[${p.key}] ${p.name}` }))}
                   value={selectedProjectId}
-                  onChange={e => onSelectProject(e.target.value)}
-                  className="bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none cursor-pointer pr-1"
-                >
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>
-                      [{p.key}] {p.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={onSelectProject}
+                  className="w-48 text-xs"
+                />
               </div>
 
               {canManageProjects && (
