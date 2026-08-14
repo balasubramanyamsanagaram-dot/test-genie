@@ -55,21 +55,51 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
     }
   };
 
-  const filteredCases = testCases.filter(tc => {
-    const query = activeSearch.toLowerCase().trim();
-    const matchesSearch =
-      !query ||
-      tc.key.toLowerCase().includes(query) ||
-      tc.name.toLowerCase().includes(query) ||
-      tc.objective.toLowerCase().includes(query) ||
-      tc.testSteps.toLowerCase().includes(query) ||
-      tc.expectedResult.toLowerCase().includes(query) ||
-      (tc.createdBy && tc.createdBy.toLowerCase().includes(query));
+  const isNewCase = (tc: TestCase) => {
+    if (!tc.createdAt) return false;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const todayLocale = new Date().toLocaleDateString();
+    return tc.createdAt.includes(todayISO) || tc.createdAt.includes(todayLocale);
+  };
 
-    const matchesType = selectedType === 'ALL' || tc.type === selectedType;
+  const filteredCases = testCases.filter(tc => {
+    const query = (queryText: string) => queryText.toLowerCase().trim();
+    const q = query(activeSearch);
+    
+    const matchesSearch =
+      !q ||
+      tc.key.toLowerCase().includes(q) ||
+      tc.name.toLowerCase().includes(q) ||
+      tc.objective.toLowerCase().includes(q) ||
+      tc.testSteps.toLowerCase().includes(q) ||
+      tc.expectedResult.toLowerCase().includes(q) ||
+      (tc.createdBy && tc.createdBy.toLowerCase().includes(q));
+
+    const matchesType =
+      selectedType === 'ALL' ||
+      (tc.type && tc.type.toLowerCase().includes(selectedType.toLowerCase())) ||
+      (selectedType === 'Negative' && tc.type && tc.type.toLowerCase().includes('validation')) ||
+      (selectedType === 'Boundary' && tc.type && tc.type.toLowerCase().includes('boundary')) ||
+      (selectedType === 'Permission' && tc.type && tc.type.toLowerCase().includes('rbac'));
 
     return matchesSearch && matchesType;
   });
+
+  // Sort numerically by key index (e.g. HOL-T01, HOL-T100, HOL-T12)
+  const sortedCases = React.useMemo(() => {
+    return [...filteredCases].sort((a, b) => {
+      const regex = /^([A-Z]+)-T?(\d+)$/i;
+      const matchA = a.key?.match(regex);
+      const matchB = b.key?.match(regex);
+      if (matchA && matchB) {
+        const prefixA = matchA[1];
+        const prefixB = matchB[1];
+        if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+        return parseInt(matchA[2], 10) - parseInt(matchB[2], 10);
+      }
+      return (a.key || '').localeCompare(b.key || '');
+    });
+  }, [filteredCases]);
 
   // Checkbox Handlers
   const handleToggleCase = (key: string) => {
@@ -225,19 +255,24 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
           </thead>
 
           <tbody className="divide-y divide-slate-200 font-sans">
-            {filteredCases.length === 0 ? (
+            {sortedCases.length === 0 ? (
               <tr>
                 <td colSpan={canManageCases ? 7 : 5} className="py-12 text-center text-slate-400">
                   No matching test cases found for "{activeSearch}".
                 </td>
               </tr>
             ) : (
-              filteredCases.map(tc => {
+              sortedCases.map(tc => {
                 const isSelected = selectedKeys.includes(tc.key);
+                const isNew = isNewCase(tc);
                 return (
                   <tr
                     key={tc.key}
-                    className={`transition-colors ${isSelected ? 'bg-indigo-50/60' : 'hover:bg-slate-50/80'}`}
+                    className={`transition-colors border-l-4 ${
+                      isNew 
+                        ? 'border-l-emerald-500 bg-emerald-50/10 hover:bg-emerald-50/20' 
+                        : 'border-l-transparent'
+                    } ${isSelected ? 'bg-indigo-50/60' : 'hover:bg-slate-50/80'}`}
                   >
                     
                     {/* Checkbox Column */}
@@ -253,8 +288,15 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                     )}
 
                     {/* Key */}
-                    <td className="py-4 px-4 font-mono font-bold text-indigo-700 align-top">
-                      {tc.key}
+                    <td className="py-4 px-4 font-mono font-bold text-indigo-700 align-top space-y-1">
+                      <div className="flex flex-col space-y-1.5">
+                        <span>{tc.key}</span>
+                        {isNew && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 w-fit animate-pulse">
+                            ✨ New
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Scenario Name & Objective */}

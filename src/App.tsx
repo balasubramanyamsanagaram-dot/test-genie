@@ -14,9 +14,11 @@ import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStat
 import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2 } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
+import { ConfirmModal } from './components/ConfirmModal';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
+const STORAGE_KEY_SEL_MODULE = 'test_genie_selected_module_v2';
 const STORAGE_KEY_CASES = 'test_genie_custom_cases_v2';
 const STORAGE_KEY_CYCLES = 'test_genie_test_cycles_v2';
 const STORAGE_KEY_USER = 'test_genie_authenticated_user_v1';
@@ -134,6 +136,12 @@ export const App: React.FC = () => {
 
   // Selected Module ID within Active Project
   const [selectedModuleId, setSelectedModuleId] = useState<string>(() => {
+    try {
+      const savedModuleId = localStorage.getItem(STORAGE_KEY_SEL_MODULE);
+      if (savedModuleId && activeProject.modules.some(m => m.id === savedModuleId)) {
+        return savedModuleId;
+      }
+    } catch (e) {}
     const activeMod = activeProject.modules[0];
     return activeMod ? activeMod.id : '';
   });
@@ -144,9 +152,12 @@ export const App: React.FC = () => {
       const exists = activeProject.modules.some(m => m.id === selectedModuleId);
       if (!exists) {
         setSelectedModuleId(activeProject.modules[0].id);
+      } else {
+        localStorage.setItem(STORAGE_KEY_SEL_MODULE, selectedModuleId);
       }
     } else {
       setSelectedModuleId('');
+      localStorage.removeItem(STORAGE_KEY_SEL_MODULE);
     }
   }, [activeProject, selectedModuleId]);
 
@@ -193,6 +204,7 @@ export const App: React.FC = () => {
   const [activeCycleId, setActiveCycleId] = useState<string>('');
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
+  const [importSuccessCount, setImportSuccessCount] = useState<number | null>(null);
 
   // Sync Custom Cases to localStorage
   useEffect(() => {
@@ -311,6 +323,7 @@ export const App: React.FC = () => {
       };
       return updated;
     });
+    setImportSuccessCount(newCases.length);
   };
 
   // Handle Creating new Test Cycle
@@ -879,6 +892,19 @@ export const App: React.FC = () => {
             isZeroGapCertified: true
           }}
         />
+
+      {/* Import Success Confirm Modal */}
+      {importSuccessCount !== null && (
+        <ConfirmModal
+          isOpen={true}
+          title="Import Successful"
+          message={`Successfully imported ${importSuccessCount} manual test cases into the repository!`}
+          type="success"
+          confirmText="Dismiss"
+          onConfirm={() => setImportSuccessCount(null)}
+          onCancel={() => setImportSuccessCount(null)}
+        />
+      )}
 
       </div>
 
