@@ -197,20 +197,23 @@ export const App: React.FC = () => {
   // Load Persisted Custom Test Cases per module from localStorage (Pre-loading 100 Holidays Master Cases)
   const [customModuleCases, setCustomModuleCases] = useState<Record<string, TestCase[]>>(() => {
     let casesMap: Record<string, TestCase[]> = {};
+    let hasSavedData = false;
     try {
       const savedV2 = localStorage.getItem(STORAGE_KEY_CASES);
       if (savedV2) {
         casesMap = JSON.parse(savedV2);
+        hasSavedData = true;
       } else {
         const savedV1 = localStorage.getItem('test_genie_custom_cases_v1');
         if (savedV1) {
           casesMap = JSON.parse(savedV1);
+          hasSavedData = true;
         }
       }
     } catch (e) {}
 
-    // Guarantee Holidays module always has master 100 test cases if empty
-    if (!casesMap['mod-holidays'] || casesMap['mod-holidays'].length === 0) {
+    // First time initializing (no localStorage key set at all)
+    if (!hasSavedData) {
       casesMap['mod-holidays'] = DEFAULT_HOLIDAYS_TEST_CASES;
     }
 
