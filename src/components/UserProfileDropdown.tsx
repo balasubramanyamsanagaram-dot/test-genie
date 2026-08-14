@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
-import { Users, Database, Upload, RotateCw, LogOut, ChevronDown, Shield, CheckCircle2 } from 'lucide-react';
+import { Users, Database, Upload, RotateCw, LogOut, ChevronDown, Shield, CheckCircle2, Lock } from 'lucide-react';
 
 interface UserProfileDropdownProps {
   currentUser: UserProfile;
@@ -149,22 +149,44 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
             )}
 
             {/* Export System Backup */}
-            <button
-              onClick={handleExportBackup}
-              className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center transition-colors"
-            >
-              <Database className="w-4 h-4 mr-2.5 text-indigo-600" />
-              Export System Data Backup
-            </button>
+            {canManage ? (
+              <button
+                onClick={handleExportBackup}
+                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center transition-colors"
+              >
+                <Database className="w-4 h-4 mr-2.5 text-indigo-600" />
+                Export System Data Backup
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full text-left px-3 py-2.5 rounded-xl text-slate-400 font-medium flex items-center cursor-not-allowed opacity-60 transition-colors"
+                title="Exporting system backup restricted to Admin/QA Lead"
+              >
+                <Lock className="w-4 h-4 mr-2.5 text-slate-400" />
+                Export System Data Backup
+              </button>
+            )}
 
             {/* Restore System Backup */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center transition-colors"
-            >
-              <Upload className="w-4 h-4 mr-2.5 text-emerald-600" />
-              Restore System Data Backup
-            </button>
+            {isAdmin ? (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center transition-colors"
+              >
+                <Upload className="w-4 h-4 mr-2.5 text-emerald-600" />
+                Restore System Data Backup
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full text-left px-3 py-2.5 rounded-xl text-slate-400 font-medium flex items-center cursor-not-allowed opacity-60 transition-colors"
+                title="Restoring system backup restricted to Admin"
+              >
+                <Lock className="w-4 h-4 mr-2.5 text-slate-400" />
+                Restore System Data Backup
+              </button>
+            )}
             <input
               type="file"
               ref={fileInputRef}
@@ -174,7 +196,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
             />
 
             {/* Restore Default Repositories */}
-            {canManage && (
+            {isAdmin ? (
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -183,6 +205,15 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
                 className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium flex items-center transition-colors"
               >
                 <RotateCw className="w-4 h-4 mr-2.5 text-amber-600" />
+                Restore Default Modules (100 Cases)
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full text-left px-3 py-2.5 rounded-xl text-slate-400 font-medium flex items-center cursor-not-allowed opacity-60 transition-colors"
+                title="Restoring default modules restricted to Admin"
+              >
+                <Lock className="w-4 h-4 mr-2.5 text-slate-400" />
                 Restore Default Modules (100 Cases)
               </button>
             )}
