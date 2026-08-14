@@ -1133,15 +1133,8 @@ export const App: React.FC = () => {
           }
 
           const existingHistory = item.executionHistory || [];
-          const lastRun = existingHistory[0];
-
-          // Deduplicate: if last run was created less than 3 seconds ago with same status, update last run instead of appending duplicate
-          const lastRunTimestamp = lastRun ? parseInt(lastRun.id.split('-')[1] || '0', 10) : 0;
-          const isDuplicateRun = lastRun && lastRun.executionStatus === status && 
-            (Date.now() - lastRunTimestamp < 3000);
-
           const newExecutionRun: AgentExecutionRun = {
-            id: isDuplicateRun ? lastRun.id : `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             agentName: `BrowserAutomationAgent@${itemKey}`,
             testCaseKey: itemKey,
             executionStatus: status,
@@ -1155,12 +1148,8 @@ export const App: React.FC = () => {
               ? `Automated Playwright browser assertion check passed. UI state verified with zero console errors.`
               : (bugNotes || `Step assertion check failed during DOM element evaluation. ${primaryBug ? `Linked Defect: ${primaryBug.issueKey}` : ''}`),
             jiraBugKey: primaryBug?.issueKey,
-            stepRuns: stepRuns || item.stepRuns
+            stepRuns: stepRuns ? JSON.parse(JSON.stringify(stepRuns)) : item.stepRuns
           };
-
-          const updatedHistory = isDuplicateRun
-            ? [newExecutionRun, ...existingHistory.slice(1)]
-            : [newExecutionRun, ...existingHistory];
 
           return {
             ...item,
@@ -1173,8 +1162,8 @@ export const App: React.FC = () => {
             evidenceVideoUrl: evidence?.videoUrl || item.evidenceVideoUrl,
             evidenceName: evidence?.evidenceName || item.evidenceName,
             attachments: updatedAttachments,
-            executionHistory: updatedHistory,
-            stepRuns: stepRuns || item.stepRuns,
+            executionHistory: [newExecutionRun, ...existingHistory],
+            stepRuns: stepRuns ? JSON.parse(JSON.stringify(stepRuns)) : item.stepRuns,
             executedBy: currentUser?.name || 'QA Tester',
             executedAt: new Date().toLocaleString()
           };
