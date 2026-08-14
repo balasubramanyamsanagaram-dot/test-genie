@@ -114,12 +114,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-72 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 shadow-sm z-30 flex-shrink-0 select-none text-slate-800">
+    <aside className="w-72 bg-slate-50/50 border-r border-slate-200 flex flex-col h-screen sticky top-0 shadow-sm z-30 flex-shrink-0 select-none text-slate-800 backdrop-blur-md">
       
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-200 flex items-center space-x-3 bg-slate-50/80">
-        <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-bold">
-          <ShieldCheck className="w-5 h-5 text-white" />
+      <div className="p-5 border-b border-slate-200 flex items-center space-x-3 bg-white">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-black text-sm">
+          TG
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
@@ -135,11 +135,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Active Project Banner */}
-      <div className="px-4 py-3 bg-indigo-50/60 border-b border-indigo-100 flex items-center justify-between">
+      <div className="px-4 py-3 bg-white/80 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center space-x-2 min-w-0">
-          <Boxes className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+          <Boxes className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <div className="min-w-0">
-            <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.2 rounded border border-indigo-200 uppercase">
+            <span className="text-[9px] font-mono font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200 uppercase">
               {activeProject.key}
             </span>
             <span className="text-xs font-bold text-slate-900 truncate block mt-0.5">
@@ -150,39 +150,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Primary Navigation Section */}
-      <div className="p-3 border-b border-slate-200 space-y-1">
+      <div className="p-3 border-b border-slate-200 space-y-1 bg-white/40">
         <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider px-3 block mb-1">
           Core Workspaces
         </span>
 
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'dashboard'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
+              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <LayoutDashboard className={`w-4 h-4 mr-2.5 ${activeTab === 'dashboard' ? 'text-white' : 'text-indigo-600'}`} />
+            <LayoutDashboard className={`w-4 h-4 mr-2.5 ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`} />
             Overview &amp; Analytics
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('matrix')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'matrix'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
+              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <FileCheck2 className={`w-4 h-4 mr-2.5 ${activeTab === 'matrix' ? 'text-white' : 'text-indigo-600'}`} />
+            <FileCheck2 className={`w-4 h-4 mr-2.5 ${activeTab === 'matrix' ? 'text-indigo-600' : 'text-slate-400'}`} />
             Test Repositories
           </span>
           <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
-            activeTab === 'matrix' ? 'bg-indigo-700/60 text-white' : 'bg-slate-100 text-slate-600'
+            activeTab === 'matrix' ? 'bg-indigo-600 text-white' : 'bg-slate-200/60 text-slate-600'
           }`}>
             {testCasesCount}
           </span>
@@ -190,28 +190,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setActiveTab('cycles')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'cycles'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
+              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <RotateCw className={`w-4 h-4 mr-2.5 ${activeTab === 'cycles' ? 'text-white' : 'text-indigo-600'}`} />
+            <RotateCw className={`w-4 h-4 mr-2.5 ${activeTab === 'cycles' ? 'text-indigo-600' : 'text-slate-400'}`} />
             Test Execution Cycles
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('execution')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'execution'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
+              ? 'bg-slate-200/50 text-slate-900 border border-slate-200/60 shadow-xs'
+              : 'text-slate-600 hover:bg-slate-200/20 hover:text-slate-900 border border-transparent'
           }`}
         >
           <span className="flex items-center">
-            <PlaySquare className={`w-4 h-4 mr-2.5 ${activeTab === 'execution' ? 'text-white' : 'text-indigo-600'}`} />
+            <PlaySquare className={`w-4 h-4 mr-2.5 ${activeTab === 'execution' ? 'text-indigo-600' : 'text-slate-400'}`} />
             Live Execution Board
           </span>
         </button>
