@@ -231,10 +231,16 @@ export const App: React.FC = () => {
     setSelectedProjectId(newProject.id);
   };
 
+  const handleTabChange = (tab: 'dashboard' | 'matrix' | 'cycles' | 'execution') => {
+    setActiveTab(tab);
+    setGlobalSearchQuery('');
+  };
+
   // Requirement: Clicking any module ALWAYS opens the Test Case Repository tab immediately!
   const handleSelectModuleSmart = (id: string) => {
     setSelectedModuleId(id);
     setActiveTab('matrix');
+    setGlobalSearchQuery('');
   };
 
   // Add custom new module repository to active project
@@ -267,7 +273,7 @@ export const App: React.FC = () => {
     }));
     
     setSelectedModuleId(newId);
-    setActiveTab('matrix');
+    handleTabChange('matrix');
     setIsImporterOpen(true);
   };
 
@@ -331,7 +337,7 @@ export const App: React.FC = () => {
     const cycleWithProj = { ...newCycle, projectId: activeProject.id };
     setTestCycles(prev => [cycleWithProj, ...prev]);
     setActiveCycleId(newCycle.id);
-    setActiveTab('execution');
+    handleTabChange('execution');
   };
 
   // Single Test Case Edit / Save
@@ -600,7 +606,7 @@ export const App: React.FC = () => {
         onEditModule={handleEditModule}
         onDeleteModule={handleDeleteModule}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         testCasesCount={testCases.length}
       />
 
@@ -610,7 +616,7 @@ export const App: React.FC = () => {
         {/* Top Header with Multi-Project Dropdown, Session Info & Logout */}
         <Header
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleTabChange}
           searchQuery={globalSearchQuery}
           onSearchChange={setGlobalSearchQuery}
           onExport={() => setIsExportModalOpen(true)}
@@ -691,7 +697,7 @@ export const App: React.FC = () => {
                         )}
 
                         <button
-                          onClick={() => setActiveTab('cycles')}
+                          onClick={() => handleTabChange('cycles')}
                           className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all active:scale-95"
                         >
                           <RotateCw className="w-3.5 h-3.5 mr-1.5" />
@@ -699,7 +705,7 @@ export const App: React.FC = () => {
                         </button>
 
                         <button
-                          onClick={() => setActiveTab('execution')}
+                          onClick={() => handleTabChange('execution')}
                           className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95"
                         >
                           <PlaySquare className="w-3.5 h-3.5 mr-1.5" />
@@ -727,7 +733,7 @@ export const App: React.FC = () => {
                     }}
                     onNavigateToRepository={(modId) => {
                       setSelectedModuleId(modId);
-                      setActiveTab('matrix');
+                      handleTabChange('matrix');
                     }}
                     onEditModule={handleEditModule}
                     onDeleteModule={handleDeleteModule}
@@ -806,7 +812,7 @@ export const App: React.FC = () => {
                   onAddCasesToCycle={handleAddCasesToCycle}
                   onSelectCycleToExecute={(cycleId) => {
                     setActiveCycleId(cycleId);
-                    setActiveTab('execution');
+                    handleTabChange('execution');
                   }}
                 />
               )}
@@ -823,7 +829,7 @@ export const App: React.FC = () => {
                     onReopenBug={(itemKey, bugKey, notes, screenshotUrl, videoUrl) => 
                       handleReopenJiraBug(activeCycle.id, itemKey, bugKey, notes, screenshotUrl, videoUrl)
                     }
-                    onBackToCycles={() => setActiveTab('cycles')}
+                    onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (
                   <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
@@ -833,7 +839,7 @@ export const App: React.FC = () => {
                       Create a test cycle first to execute test cases on the live board.
                     </p>
                     <button
-                      onClick={() => setActiveTab('cycles')}
+                      onClick={() => handleTabChange('cycles')}
                       className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 text-white shadow-md"
                     >
                       Go to Test Cycles

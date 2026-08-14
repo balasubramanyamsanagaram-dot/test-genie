@@ -46,7 +46,12 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
 
-  const activeSearch = externalSearchQuery || internalSearch;
+  // Sync external search query to internal search state
+  React.useEffect(() => {
+    setInternalSearch(externalSearchQuery);
+  }, [externalSearchQuery]);
+
+  const activeSearch = internalSearch;
 
   const handleInputChange = (val: string) => {
     setInternalSearch(val);
