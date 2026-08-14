@@ -97,7 +97,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
           stepNumber: step.stepNumber,
           instruction: step.instruction,
           status: (savedStep?.status || initialStatus || 'PASSED') as any,
-          screenshot: savedStep?.screenshot || initialScreenshotUrl,
+          screenshot: savedStep?.screenshot,
           log: savedStep?.log || `[READONLY TRACE] Verified step ${idx + 1}: ${step.instruction}`
         };
       });
@@ -340,16 +340,16 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
                     </p>
                   </div>
                 </div>
-              ) : (currentActiveStep?.screenshot || initialScreenshotUrl) ? (
+              ) : currentActiveStep?.screenshot ? (
                 <div className="relative border border-slate-200/80 rounded-2xl shadow-lg bg-slate-900 overflow-hidden w-full h-full min-h-[350px] flex items-center justify-center animate-fadeIn p-3">
                   <img
-                    src={currentActiveStep?.screenshot || initialScreenshotUrl}
-                    alt={`Actual execution screenshot capture for step ${currentActiveStep?.stepNumber || 1}`}
+                    src={currentActiveStep.screenshot}
+                    alt={`Actual execution screenshot capture for step ${currentActiveStep.stepNumber}`}
                     className="object-contain max-h-[46vh] w-auto h-auto rounded-xl shadow-2xl border border-slate-800"
                   />
                   <div className="absolute bottom-4 right-4 bg-slate-950/90 backdrop-blur-xs text-[9px] font-mono text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 shadow-xl border border-slate-800 z-10">
                     <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Actual Execution Capture • Step {currentActiveStep?.stepNumber || 1} of {steps.length}</span>
+                    <span>Actual Execution Capture • Step {currentActiveStep.stepNumber} of {steps.length}</span>
                   </div>
                 </div>
               ) : currentActiveStep ? (

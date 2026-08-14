@@ -377,32 +377,13 @@ export const App: React.FC = () => {
     } catch (e) {}
   }, [customModuleCases]);
 
-  // Sync Test Cycles to localStorage with quota-safe fallback
+  // Sync Test Cycles to localStorage
   useEffect(() => {
     try {
       const dataStr = JSON.stringify(testCycles);
       localStorage.setItem(STORAGE_KEY_CYCLES, dataStr);
     } catch (e) {
-      console.warn('LocalStorage quota limit reached. Pruning heavy base64 screenshots to preserve execution history...');
-      try {
-        const lightweightCycles = testCycles.map(c => ({
-          ...c,
-          items: c.items.map(item => ({
-            ...item,
-            executionHistory: (item.executionHistory || []).map((run, idx) => ({
-              ...run,
-              screenshotUrl: run.screenshotUrl?.startsWith('data:') && idx > 2 ? undefined : run.screenshotUrl,
-              stepRuns: run.stepRuns?.map(sr => ({
-                ...sr,
-                screenshot: sr.screenshot?.startsWith('data:') ? undefined : sr.screenshot
-              }))
-            }))
-          }))
-        }));
-        localStorage.setItem(STORAGE_KEY_CYCLES, JSON.stringify(lightweightCycles));
-      } catch (err) {
-        console.error('Failed to save test cycles to localStorage:', err);
-      }
+      console.warn('LocalStorage save warning:', e);
     }
   }, [testCycles]);
 
