@@ -12,12 +12,20 @@ import { NewProjectModal } from './components/NewProjectModal';
 import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { AutomationDrawer } from './components/AutomationDrawer';
 import { AutomationSimulator } from './components/AutomationSimulator';
+
+import { getFeatureFlags, FeatureFlags, isFeatureActive } from './engine/feature-flags';
+import { LabsControlModal } from './components/LabsControlModal';
+import { CommandPalette } from './components/CommandPalette';
+import { SpeedRunExecutionBoard } from './components/SpeedRunExecutionBoard';
+import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
+import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
+import { VisualDiffModal } from './components/VisualDiffModal';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
@@ -30,6 +38,42 @@ const STORAGE_KEY_USERS = 'registered_enterprise_users_v2';
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings'>('dashboard');
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
+
+  // Feature Flags Engine State & Stealth Modals
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(getFeatureFlags());
+  const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isSpeedRunOpen, setIsSpeedRunOpen] = useState(false);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
+  const [isVisualDiffOpen, setIsVisualDiffOpen] = useState(false);
+
+  // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L) and Command Palette (Cmd+K)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        setIsLabsModalOpen(prev => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        if (isFeatureActive(featureFlags, 'command_palette')) {
+          e.preventDefault();
+          setIsCommandPaletteOpen(prev => !prev);
+        }
+      }
+    };
+
+    const handleFlagsUpdated = (e: any) => {
+      if (e.detail) setFeatureFlags(e.detail);
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('genie_feature_flags_updated', handleFlagsUpdated);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('genie_feature_flags_updated', handleFlagsUpdated);
+    };
+  }, [featureFlags]);
 
   const [selectedAutomateCase, setSelectedAutomateCase] = useState<TestCase | null>(null);
   const [isAutomationDrawerOpen, setIsAutomationDrawerOpen] = useState(false);
@@ -1503,7 +1547,37 @@ export const App: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center space-x-2">
+                      {isFeatureActive(featureFlags, 'ai_story_generator') && (
+                        <button
+                          onClick={() => setIsStoryModalOpen(true)}
+                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                          AI Story Importer
+                        </button>
+                      )}
+
+                      {isFeatureActive(featureFlags, 'speedrun_mode') && activeProjectCycles.length > 0 && (
+                        <button
+                          onClick={() => setIsSpeedRunOpen(true)}
+                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-md transition-all active:scale-95 flex items-center"
+                        >
+                          <Zap className="w-3.5 h-3.5 mr-1.5" />
+                          SpeedRun Mode
+                        </button>
+                      )}
+
+                      {isFeatureActive(featureFlags, 'visual_regression') && (
+                        <button
+                          onClick={() => setIsVisualDiffOpen(true)}
+                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-sky-600 hover:bg-sky-700 text-white shadow-md transition-all active:scale-95 flex items-center"
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1.5" />
+                          Visual Diff
+                        </button>
+                      )}
+
                       {canManageCases && (
                         <button
                           onClick={handleAddAIDemoCase}
@@ -1552,6 +1626,7 @@ export const App: React.FC = () => {
                       onBulkEditTestCases={handleBulkEditTestCases}
                       onBulkDeleteTestCases={handleBulkDeleteTestCases}
                       onAutomateTestCase={handleAutomateTestCase}
+                      onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
                       canManageCases={canManageCases}
                     />
                   )}
@@ -1976,6 +2051,71 @@ export const App: React.FC = () => {
           {toast.type === 'info' && <RefreshCw className="w-5 h-5 text-indigo-600 flex-shrink-0 animate-spin-slow" />}
           <span className="text-xs font-bold font-sans">{toast.message}</span>
         </div>
+      )}
+
+      {/* Genie Labs Controls Modal (Cmd + Shift + L) */}
+      {isLabsModalOpen && (
+        <LabsControlModal
+          flags={featureFlags}
+          onFlagsUpdated={setFeatureFlags}
+          onClose={() => setIsLabsModalOpen(false)}
+        />
+      )}
+
+      {/* Universal Command Palette (Cmd + K) */}
+      {isCommandPaletteOpen && (
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          modules={activeProject.modules}
+          projects={DEFAULT_ENTERPRISE_PROJECTS}
+          testCases={testCases}
+          onSelectTab={handleTabChange}
+          onSelectModule={handleSelectModuleSmart}
+          onSelectProject={(projId) => setSelectedProjectId(projId)}
+          onTriggerImport={() => setIsImporterOpen(true)}
+          onTriggerExport={() => setIsExportModalOpen(true)}
+        />
+      )}
+
+      {/* SpeedRun Keyboard Execution Mode */}
+      {isSpeedRunOpen && activeProjectCycles.length > 0 && (
+        <SpeedRunExecutionBoard
+          cycle={activeProjectCycles[0]}
+          currentUser={currentUser}
+          onUpdateStatus={handleUpdateExecutionStatus}
+          onClose={() => setIsSpeedRunOpen(false)}
+        />
+      )}
+
+      {/* AI Story to Test Case Modal */}
+      {isStoryModalOpen && activeModule && (
+        <StoryToTestCaseModal
+          moduleName={activeModule.name}
+          onAddTestCases={(newCases) => {
+            setCustomModuleCases(prev => ({
+              ...prev,
+              [selectedModuleId]: [...(prev[selectedModuleId] || []), ...newCases]
+            }));
+            showToast(`Added ${newCases.length} AI generated test cases to ${activeModule.name}!`, 'success');
+          }}
+          onClose={() => setIsStoryModalOpen(false)}
+        />
+      )}
+
+      {/* Playwright & Cypress Code Spec Exporter Drawer */}
+      {selectedCodeCase && (
+        <PlaywrightCodeDrawer
+          testCase={selectedCodeCase}
+          onClose={() => setSelectedCodeCase(null)}
+        />
+      )}
+
+      {/* Visual Snapshot Diff Engine */}
+      {isVisualDiffOpen && (
+        <VisualDiffModal
+          onClose={() => setIsVisualDiffOpen(false)}
+        />
       )}
 
       </div>

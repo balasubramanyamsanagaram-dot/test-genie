@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCase } from '../types';
-import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play, Lock } from 'lucide-react';
+import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play, Lock, Code2 } from 'lucide-react';
 import { EditTestCaseModal } from './EditTestCaseModal';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
@@ -15,6 +15,7 @@ interface TestCaseTableProps {
   onBulkEditTestCases?: (keys: string[], updates: { priority?: string; type?: string; status?: string }) => void;
   onBulkDeleteTestCases?: (keys: string[]) => void;
   onAutomateTestCase?: (testCase: TestCase) => void;
+  onViewCodeSpec?: (testCase: TestCase) => void;
   canManageCases?: boolean;
 }
 
@@ -27,6 +28,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   onBulkEditTestCases,
   onBulkDeleteTestCases,
   onAutomateTestCase,
+  onViewCodeSpec,
   canManageCases = true
 }) => {
   const [internalSearch, setInternalSearch] = useState('');
@@ -388,6 +390,16 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                     {/* Actions Column (Automate, Edit & Delete) */}
                     {canManageCases && (
                       <td className="py-4 px-4 align-top text-center space-x-1 whitespace-nowrap">
+                        {onViewCodeSpec && (
+                          <button
+                            onClick={() => onViewCodeSpec(tc)}
+                            className="p-1.5 px-2 rounded-lg text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 transition-all inline-flex items-center"
+                            title="View Playwright TypeScript Spec Code"
+                          >
+                            <Code2 className="w-3 h-3 mr-1" />
+                            <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Code Spec</span>
+                          </button>
+                        )}
                         {onAutomateTestCase && (
                           <button
                             onClick={() => onAutomateTestCase(tc)}
