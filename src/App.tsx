@@ -27,6 +27,7 @@ import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
 import { VisualDiffModal } from './components/VisualDiffModal';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
+import { getIDBItem, setIDBItem } from './utils/idbStorage';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
@@ -326,7 +327,35 @@ export const App: React.FC = () => {
     ];
   });
 
+  // Asynchronously hydrate state from IndexedDB on startup (survives browser refresh & large base64 screenshot payloads)
   useEffect(() => {
+    let isMounted = true;
+    async function hydrateFromIndexedDB() {
+      try {
+        const savedCycles = await getIDBItem<TestCycle[]>(STORAGE_KEY_CYCLES);
+        if (savedCycles && savedCycles.length > 0 && isMounted) {
+          setTestCycles(savedCycles);
+        }
+
+        const savedCases = await getIDBItem<Record<string, TestCase[]>>(STORAGE_KEY_CASES);
+        if (savedCases && isMounted) {
+          setCustomModuleCases(savedCases);
+        }
+
+        const savedBugs = await getIDBItem<JiraBug[]>('test_genie_defect_registry_v1');
+        if (savedBugs && isMounted) {
+          setDefectRegistry(savedBugs);
+        }
+      } catch (e) {
+        console.warn('[IndexedDB] Hydration failed:', e);
+      }
+    }
+    hydrateFromIndexedDB();
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    setIDBItem('test_genie_defect_registry_v1', defectRegistry);
     try {
       localStorage.setItem('test_genie_defect_registry_v1', JSON.stringify(defectRegistry));
     } catch (e) {}
@@ -370,20 +399,22 @@ export const App: React.FC = () => {
     }
   }, [toast]);
 
-  // Sync Custom Cases to localStorage
+  // Sync Custom Cases to IndexedDB + localStorage
   useEffect(() => {
+    setIDBItem(STORAGE_KEY_CASES, customModuleCases);
     try {
       localStorage.setItem(STORAGE_KEY_CASES, JSON.stringify(customModuleCases));
     } catch (e) {}
   }, [customModuleCases]);
 
-  // Sync Test Cycles to localStorage
+  // Sync Test Cycles to IndexedDB + localStorage
   useEffect(() => {
+    setIDBItem(STORAGE_KEY_CYCLES, testCycles);
     try {
       const dataStr = JSON.stringify(testCycles);
       localStorage.setItem(STORAGE_KEY_CYCLES, dataStr);
     } catch (e) {
-      console.warn('LocalStorage save warning:', e);
+      console.warn('[LocalStorage] Quota warning (data safely preserved in IndexedDB):', e);
     }
   }, [testCycles]);
 
