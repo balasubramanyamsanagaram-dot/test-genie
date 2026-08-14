@@ -45,6 +45,9 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   const [status, setStatus] = useState<'PASSED' | 'FAILED' | 'RUNNING'>(readOnlyMode ? (initialStatus || 'PASSED') : 'RUNNING');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
+  // Single-execution save guard
+  const hasSavedRef = useRef<boolean>(false);
+
   // State for parsed instructions
   const [steps, setSteps] = useState<AutomationStepRun[]>([]);
   const [activeStepIdx, setActiveStepIdx] = useState<number>(0);
@@ -53,8 +56,27 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   const [logs, setLogs] = useState<string[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
 
+  const saveResultOnce = (
+    runStatus: 'PASSED' | 'FAILED',
+    overrideEvidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string },
+    stepData?: AutomationStepRun[]
+  ) => {
+    if (readOnlyMode || hasSavedRef.current || !onSaveToCycle) return;
+    hasSavedRef.current = true;
+    
+    const stepsToSave = stepData || steps;
+    const proofScreenshot = stepsToSave.find(s => s.screenshot)?.screenshot || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
+    const evidenceData = overrideEvidence || {
+      screenshotUrl: proofScreenshot,
+      evidenceName: `${testCase?.key || 'TestCase'}_Automated_${runStatus}_Proof.png`
+    };
+
+    onSaveToCycle(runStatus, evidenceData, stepsToSave);
+  };
+
   useEffect(() => {
     if (!isOpen || !testCase) return;
+    hasSavedRef.current = false;
 
     const testSteps = testCase.testSteps
       ? testCase.testSteps.split(/\n+/).filter(line => line.trim().length > 0)
@@ -149,12 +171,10 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
           setActiveStepIdx(0);
 
           const proofScreenshot = mapped.find(s => s.screenshot)?.screenshot || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
-          if (onSaveToCycle) {
-            onSaveToCycle('PASSED', {
-              screenshotUrl: proofScreenshot,
-              evidenceName: `${testCase.key}_Automated_PASSED_Proof.png`
-            }, mapped);
-          }
+          saveResultOnce('PASSED', {
+            screenshotUrl: proofScreenshot,
+            evidenceName: `${testCase.key}_Automated_PASSED_Proof.png`
+          }, mapped);
         } else {
           setStatus('FAILED');
           setIsRunning(false);
@@ -168,12 +188,10 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
           }
 
           const errorScreenshot = mapped.find(s => s.status === 'FAILED')?.screenshot || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80';
-          if (onSaveToCycle) {
-            onSaveToCycle('FAILED', {
-              screenshotUrl: errorScreenshot,
-              evidenceName: `${testCase.key}_Automated_FAILED_ErrorTrace.png`
-            }, mapped);
-          }
+          saveResultOnce('FAILED', {
+            screenshotUrl: errorScreenshot,
+            evidenceName: `${testCase.key}_Automated_FAILED_ErrorTrace.png`
+          }, mapped);
           if (onRaiseBug) {
             onRaiseBug(data.error || 'Step validation checks failed.', errorScreenshot);
           }
@@ -407,7 +425,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
             {status === 'PASSED' && onSaveToCycle && (
               <button
                 onClick={() => {
-                  onSaveToCycle('PASSED');
+                  saveResultOnce('PASSED');
                   onClose();
                 }}
                 className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-all"
@@ -421,7 +439,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
                 {onSaveToCycle && (
                   <button
                     onClick={() => {
-                      onSaveToCycle('FAILED');
+                      saveResultOnce('FAILED');
                       onClose();
                     }}
                     className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-slate-900 hover:bg-slate-800 text-white shadow-md active:scale-95 transition-all"
