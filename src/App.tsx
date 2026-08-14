@@ -2026,7 +2026,7 @@ export const App: React.FC = () => {
         onStartAutomation={handleStartAutomationRun}
       />
 
-      {/* Live Automation Browser Trace Simulator Console */}
+      {/* Live Automation Browser Trace Simulator Console (Standalone Test Case Simulation) */}
       {automationParams?.isOpen && selectedAutomateCase && (
         <AutomationSimulator
           isOpen={automationParams.isOpen}
@@ -2036,8 +2036,6 @@ export const App: React.FC = () => {
           deviceProfile={automationParams.deviceProfile}
           browser={automationParams.browser}
           isHeaded={automationParams.isHeaded}
-          onSaveToCycle={handleSaveAutomationResultToCycle}
-          onRaiseBug={handleRaiseBugFromAutomation}
         />
       )}
 
