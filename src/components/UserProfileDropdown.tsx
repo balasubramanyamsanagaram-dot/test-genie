@@ -84,7 +84,8 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
         alert('System Backup successfully restored! Reloading platform...');
         window.location.reload();
       } catch (err) {
-        alert('Restoration Failed: Invalid JSON backup file format.');
+        console.error('[TestGenie Restoration Error]', err);
+        alert(`Restoration Failed: Invalid JSON backup file format. Details: ${err instanceof Error ? err.message : String(err)}`);
       }
     };
     reader.readAsText(file);
