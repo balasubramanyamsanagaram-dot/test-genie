@@ -317,6 +317,18 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
                     </p>
                   </div>
                 </div>
+              ) : (currentActiveStep?.screenshot || initialScreenshotUrl) ? (
+                <div className="relative border border-slate-200/80 rounded-2xl shadow-lg bg-slate-900 overflow-hidden w-full h-full min-h-[350px] flex items-center justify-center animate-fadeIn p-3">
+                  <img
+                    src={currentActiveStep?.screenshot || initialScreenshotUrl}
+                    alt={`Actual execution screenshot capture for step ${currentActiveStep?.stepNumber || 1}`}
+                    className="object-contain max-h-[46vh] w-auto h-auto rounded-xl shadow-2xl border border-slate-800"
+                  />
+                  <div className="absolute bottom-4 right-4 bg-slate-950/90 backdrop-blur-xs text-[9px] font-mono text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 shadow-xl border border-slate-800 z-10">
+                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Actual Execution Capture • Step {currentActiveStep?.stepNumber || 1} of {steps.length}</span>
+                  </div>
+                </div>
               ) : currentActiveStep ? (
                 <div className="relative border border-slate-200/80 rounded-2xl shadow-lg bg-white overflow-hidden w-full h-full min-h-[350px] flex items-center justify-center animate-fadeIn p-2">
                   <StepVisualFrame
