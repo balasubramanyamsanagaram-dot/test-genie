@@ -891,6 +891,18 @@ export const App: React.FC = () => {
     })));
   };
 
+  const handleDeleteCycleItem = (cycleId: string, itemKey: string) => {
+    setTestCycles(prev => prev.map(c => {
+      if (c.id !== cycleId) return c;
+      return {
+        ...c,
+        items: c.items.filter(i => i.testCase.key !== itemKey)
+      };
+    }));
+    handleDeleteTestCase(itemKey);
+    showToast(`Removed test case ${itemKey} from cycle!`);
+  };
+
   // Bulk Edit Test Cases
   const handleBulkEditTestCases = (keys: string[], updates: { priority?: string; type?: string; status?: string }) => {
     const keySet = new Set(keys);
@@ -1726,6 +1738,8 @@ export const App: React.FC = () => {
                       handleReopenJiraBug(activeCycle.id, itemKey, bugKey, notes, screenshotUrl, videoUrl)
                     }
                     onRequestPassEvidence={(cycleId, itemKey, itemTitle) => setPassEvidenceModalConfig({ isOpen: true, cycleId, itemKey, itemTitle })}
+                    onSaveTestCase={handleSaveTestCase}
+                    onDeleteCycleItem={handleDeleteCycleItem}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (

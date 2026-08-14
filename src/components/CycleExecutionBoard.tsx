@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { TestCycle, TestExecutionStatus, JiraBug, UserProfile } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus } from 'lucide-react';
+import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase } from '../types';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2 } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
-
-import { TestCase } from '../types';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
+import { EditTestCaseModal } from './EditTestCaseModal';
+import { ConfirmModal } from './ConfirmModal';
 
 interface CycleExecutionBoardProps {
   cycle: TestCycle;
@@ -22,6 +22,8 @@ interface CycleExecutionBoardProps {
   onAddCasesToCycle?: (cycleId: string, newCases: TestCase[]) => void;
   onReopenBug?: (itemKey: string, bugKey: string, notes: string, screenshotUrl?: string, videoUrl?: string) => void;
   onRequestPassEvidence?: (cycleId: string, itemKey: string, itemTitle: string) => void;
+  onSaveTestCase?: (updatedCase: TestCase) => void;
+  onDeleteCycleItem?: (cycleId: string, itemKey: string) => void;
   onBackToCycles: () => void;
 }
 
@@ -33,11 +35,17 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onAddCasesToCycle,
   onReopenBug,
   onRequestPassEvidence,
+  onSaveTestCase,
+  onDeleteCycleItem,
   onBackToCycles
 }) => {
   const [selectedItemKey, setSelectedItemKey] = useState<string>(cycle.items[0]?.testCase.key || '');
   const [isBugModalOpen, setIsBugModalOpen] = useState<boolean>(false);
   const [isAddCasesModalOpen, setIsAddCasesModalOpen] = useState<boolean>(false);
+
+  // Edit & Delete In-App Modal States
+  const [editingTestCase, setEditingTestCase] = useState<TestCase | null>(null);
+  const [deletingItemKey, setDeletingItemKey] = useState<string | null>(null);
 
   // Lightbox Media Viewer State
   const [activeMediaUrl, setActiveMediaUrl] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
@@ -242,9 +250,35 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-xs font-bold text-indigo-700">
-                      {item.testCase.key}
-                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span className="font-mono text-xs font-bold text-indigo-700">
+                        {item.testCase.key}
+                      </span>
+                      {canExecuteTests && (
+                        <div className="inline-flex items-center space-x-0.5 ml-1">
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingTestCase(item.testCase);
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer"
+                            title="Edit Test Case"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </span>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingItemKey(item.testCase.key);
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            title="Delete Test Case from Cycle"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
                      <span
                       className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all ${
@@ -370,9 +404,30 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
             {/* Test Case Details */}
             <div className="space-y-4 text-xs">
-              <div>
-                <h4 className="text-sm font-bold text-slate-900 mb-1">{activeItem.testCase.name}</h4>
-                <p className="text-slate-600 leading-relaxed">{activeItem.testCase.objective}</p>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 mb-1">{activeItem.testCase.name}</h4>
+                  <p className="text-slate-600 leading-relaxed">{activeItem.testCase.objective}</p>
+                </div>
+
+                {canExecuteTests && (
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <button
+                      onClick={() => setEditingTestCase(activeItem.testCase)}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center transition-all active:scale-95"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                      Edit Case
+                    </button>
+                    <button
+                      onClick={() => setDeletingItemKey(activeItem.testCase.key)}
+                      className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center transition-all active:scale-95"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                      Delete Case
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -542,6 +597,35 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
             setIsAddCasesModalOpen(false);
           }}
           onClose={() => setIsAddCasesModalOpen(false)}
+        />
+      )}
+
+      {/* Edit Test Case In-App Modal */}
+      {editingTestCase && (
+        <EditTestCaseModal
+          testCase={editingTestCase}
+          onSaveTestCase={(updated) => {
+            if (onSaveTestCase) onSaveTestCase(updated);
+            setEditingTestCase(null);
+          }}
+          onClose={() => setEditingTestCase(null)}
+        />
+      )}
+
+      {/* Delete Test Case In-App Confirm Modal */}
+      {deletingItemKey && (
+        <ConfirmModal
+          isOpen={true}
+          title="Delete Test Case from Execution Cycle"
+          message={`Are you sure you want to remove test case ${deletingItemKey} from this execution cycle?`}
+          type="danger"
+          confirmText="Yes, Delete Case"
+          cancelText="Cancel"
+          onConfirm={() => {
+            if (onDeleteCycleItem) onDeleteCycleItem(cycle.id, deletingItemKey);
+            setDeletingItemKey(null);
+          }}
+          onCancel={() => setDeletingItemKey(null)}
         />
       )}
 
