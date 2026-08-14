@@ -327,6 +327,9 @@ export const App: React.FC = () => {
     ];
   });
 
+  // Hydration status guard to prevent initial fallback state from overwriting IndexedDB on page refresh
+  const isHydratedRef = React.useRef(false);
+
   // Asynchronously hydrate state from IndexedDB on startup (survives browser refresh & large base64 screenshot payloads)
   useEffect(() => {
     let isMounted = true;
@@ -348,6 +351,10 @@ export const App: React.FC = () => {
         }
       } catch (e) {
         console.warn('[IndexedDB] Hydration failed:', e);
+      } finally {
+        if (isMounted) {
+          isHydratedRef.current = true;
+        }
       }
     }
     hydrateFromIndexedDB();
@@ -355,6 +362,7 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!isHydratedRef.current) return;
     setIDBItem('test_genie_defect_registry_v1', defectRegistry);
     try {
       localStorage.setItem('test_genie_defect_registry_v1', JSON.stringify(defectRegistry));
@@ -401,6 +409,7 @@ export const App: React.FC = () => {
 
   // Sync Custom Cases to IndexedDB + localStorage
   useEffect(() => {
+    if (!isHydratedRef.current) return;
     setIDBItem(STORAGE_KEY_CASES, customModuleCases);
     try {
       localStorage.setItem(STORAGE_KEY_CASES, JSON.stringify(customModuleCases));
@@ -409,6 +418,7 @@ export const App: React.FC = () => {
 
   // Sync Test Cycles to IndexedDB + localStorage
   useEffect(() => {
+    if (!isHydratedRef.current) return;
     setIDBItem(STORAGE_KEY_CYCLES, testCycles);
     try {
       const dataStr = JSON.stringify(testCycles);
