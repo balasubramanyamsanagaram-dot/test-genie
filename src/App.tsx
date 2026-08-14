@@ -11,7 +11,7 @@ import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2 } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -237,6 +237,39 @@ export const App: React.FC = () => {
     return DEFAULT_PRELOADED_TEST_CYCLES;
   });
 
+  const [defectRegistry, setDefectRegistry] = useState<JiraBug[]>(() => {
+    try {
+      const saved = localStorage.getItem('test_genie_defect_registry_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        issueKey: 'BUG-3412',
+        summary: 'Employee detail edit throws database timeout exception',
+        severity: 'Critical',
+        status: 'Open'
+      },
+      {
+        issueKey: 'BUG-3408',
+        summary: 'Leave approval email notification shows empty username link',
+        severity: 'Major',
+        status: 'Open'
+      },
+      {
+        issueKey: 'BUG-3395',
+        summary: 'Salary slip PDF export breaks layout when name is long',
+        severity: 'Medium' as any,
+        status: 'Resolved'
+      }
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('test_genie_defect_registry_v1', JSON.stringify(defectRegistry));
+    } catch (e) {}
+  }, [defectRegistry]);
+
   const [activeCycleId, setActiveCycleId] = useState<string>('');
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
@@ -301,11 +334,6 @@ export const App: React.FC = () => {
     const projCycles = testCycles.filter(c => !c.projectId || c.projectId === activeProject.id);
     const totalCycles = projCycles.length;
 
-    const totalDefects = projCycles.reduce((acc, c) => {
-      const cycleItems = c.items || [];
-      return acc + cycleItems.reduce((sum, item) => sum + (item.jiraBugs?.length || (item.defectId ? 1 : 0)), 0);
-    }, 0);
-
     // Compute dynamic executions and pass rates
     const executedItems = projCycles.flatMap(c => c.items || []);
     const totalExecuted = executedItems.filter(item => item.executionStatus !== 'UNEXECUTED').length;
@@ -316,8 +344,13 @@ export const App: React.FC = () => {
     const passRate = totalCases > 0 ? Math.round((passedCount / totalCases) * 100) : 0;
     const executionsToday = totalExecuted;
 
-    // Defect priority distribution
-    const allBugs = executedItems.flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []));
+    // Defect priority distribution (Mock bugs + dynamic cycle bugs)
+    const dynamicBugs = executedItems.flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []));
+    const regKeys = new Set(defectRegistry.map(b => b.issueKey));
+    const filteredDynamics = dynamicBugs.filter(b => !regKeys.has(b.issueKey));
+    const allBugs = [...defectRegistry, ...filteredDynamics];
+    const totalDefects = allBugs.length;
+
     const critical = allBugs.filter(b => b.severity === 'Blocker' || b.severity === 'Critical').length;
     const high = allBugs.filter(b => b.severity === 'Major').length;
     const medium = allBugs.filter(b => b.severity !== 'Blocker' && b.severity !== 'Critical' && b.severity !== 'Major' && b.severity !== 'Minor').length;
@@ -596,6 +629,38 @@ export const App: React.FC = () => {
     handleTabChange('execution');
   };
 
+  const handleDeleteCycle = (cycleId: string) => {
+    setTestCycles(prev => prev.filter(c => c.id !== cycleId));
+  };
+
+  const handleDeleteBug = (bugKey: string) => {
+    if (confirm(`Are you sure you want to delete defect ticket "${bugKey}"?`)) {
+      setDefectRegistry(prev => prev.filter(b => b.issueKey !== bugKey));
+      
+      setTestCycles(prev => prev.map(cycle => ({
+        ...cycle,
+        items: cycle.items.map(item => {
+          let updatedBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
+          updatedBugs = updatedBugs.filter(b => b.issueKey !== bugKey);
+          
+          let primaryBug = item.jiraBug;
+          if (primaryBug?.issueKey === bugKey) {
+            primaryBug = updatedBugs[0] || undefined;
+          }
+          
+          return {
+            ...item,
+            jiraBug: primaryBug,
+            jiraBugs: updatedBugs,
+            defectId: primaryBug?.issueKey || undefined,
+            executionStatus: updatedBugs.length > 0 ? 'FAILED' : (item.executionStatus === 'FAILED' ? 'UNEXECUTED' : item.executionStatus)
+          };
+        })
+      })));
+      alert(`Defect ticket "${bugKey}" deleted successfully!`);
+    }
+  };
+
   // Single Test Case Edit / Save
   const handleSaveTestCase = (updatedCase: TestCase) => {
     // 1. Update in customModuleCases
@@ -716,6 +781,15 @@ export const App: React.FC = () => {
   const activeProjectCycles = useMemo(() => {
     return testCycles.filter(c => !c.projectId || c.projectId === activeProject.id);
   }, [testCycles, activeProject.id]);
+
+  const allBugsCombined = useMemo(() => {
+    const dynamicBugs = activeProjectCycles.flatMap(c => 
+      (c.items || []).flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []))
+    );
+    const regKeys = new Set(defectRegistry.map(b => b.issueKey));
+    const filteredDynamics = dynamicBugs.filter(b => !regKeys.has(b.issueKey));
+    return [...defectRegistry, ...filteredDynamics];
+  }, [defectRegistry, activeProjectCycles]);
 
   // Handle Live Status Update
   const handleUpdateExecutionStatus = (
@@ -1367,6 +1441,7 @@ export const App: React.FC = () => {
                       setActiveCycleId(cycleId);
                       handleTabChange('execution');
                     }}
+                    onDeleteCycle={handleDeleteCycle}
                   />
                 )
               )}
@@ -1426,43 +1501,60 @@ export const App: React.FC = () => {
                             <th className="py-2">Priority</th>
                             <th className="py-2">Status</th>
                             <th className="py-2 font-mono">Reported At</th>
+                            <th className="py-2 text-center">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 font-sans text-xs">
-                          {/* Render default defect rows */}
-                          <tr>
-                            <td className="py-3 font-mono font-bold text-indigo-600">BUG-3412</td>
-                            <td className="py-3 font-bold text-slate-950">Employee detail edit throws database timeout exception</td>
-                            <td className="py-3">
-                              <span className="bg-red-50 text-red-700 border border-red-200 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold glow-failed inline-block">Critical</span>
-                            </td>
-                            <td className="py-3">
-                              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-bold">Open</span>
-                            </td>
-                            <td className="py-3 text-slate-400 font-medium">12 mins ago</td>
-                          </tr>
-                          <tr>
-                            <td className="py-3 font-mono font-bold text-indigo-600">BUG-3408</td>
-                            <td className="py-3 font-bold text-slate-950">Leave approval email notification shows empty username link</td>
-                            <td className="py-3">
-                              <span className="bg-orange-50 text-orange-700 border border-orange-200 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold glow-blocked inline-block">High</span>
-                            </td>
-                            <td className="py-3">
-                              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[9px] font-bold">Open</span>
-                            </td>
-                            <td className="py-3 text-slate-400 font-medium">1 hour ago</td>
-                          </tr>
-                          <tr>
-                            <td className="py-3 font-mono font-bold text-indigo-600">BUG-3395</td>
-                            <td className="py-3 font-bold text-slate-950">Salary slip PDF export breaks layout when name is long</td>
-                            <td className="py-3">
-                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold glow-passed inline-block">Medium</span>
-                            </td>
-                            <td className="py-3">
-                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[9px] font-bold">Resolved</span>
-                            </td>
-                            <td className="py-3 text-slate-400 font-medium">1 day ago</td>
-                          </tr>
+                          {allBugsCombined.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-8 text-center text-slate-400 font-medium font-sans">
+                                No defect tickets logged in Jira.
+                              </td>
+                            </tr>
+                          ) : (
+                            allBugsCombined.map(bug => {
+                              let badgeColor = 'bg-slate-50 text-slate-700 border-slate-200';
+                              const sev = bug.severity.toLowerCase();
+                              if (sev.includes('critical') || sev.includes('blocker')) {
+                                badgeColor = 'bg-red-50 text-red-700 border-red-200';
+                              } else if (sev.includes('major') || sev.includes('high')) {
+                                badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
+                              } else if (sev.includes('minor') || sev.includes('low')) {
+                                badgeColor = 'bg-slate-100 text-slate-750 border-slate-200';
+                              } else {
+                                badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                              }
+
+                              return (
+                                <tr key={bug.issueKey}>
+                                  <td className="py-3 font-mono font-bold text-indigo-600">{bug.issueKey}</td>
+                                  <td className="py-3 font-bold text-slate-950">{bug.summary}</td>
+                                  <td className="py-3">
+                                    <span className={`${badgeColor} border px-2.5 py-0.5 rounded-full text-[9px] font-extrabold inline-block`}>
+                                      {bug.severity}
+                                    </span>
+                                  </td>
+                                  <td className="py-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                      bug.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    }`}>
+                                      {bug.status}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 text-slate-400 font-medium">Just now</td>
+                                  <td className="py-3 text-center">
+                                    <button
+                                      onClick={() => handleDeleteBug(bug.issueKey)}
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline-block"
+                                      title="Delete Defect Ticket"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
                         </tbody>
                       </table>
                     </div>
