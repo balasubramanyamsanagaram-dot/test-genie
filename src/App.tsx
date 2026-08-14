@@ -9,6 +9,7 @@ import { TestCaseImporter } from './components/TestCaseImporter';
 import { ModuleCardsGrid } from './components/ModuleCardsGrid';
 import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
+import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
 import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw } from 'lucide-react';
@@ -258,6 +259,9 @@ export const App: React.FC = () => {
       localStorage.setItem('test_genie_defect_registry_v1', JSON.stringify(defectRegistry));
     } catch (e) {}
   }, [defectRegistry]);
+
+  const [isBugCreateEditModalOpen, setIsBugCreateEditModalOpen] = useState(false);
+  const [bugToEdit, setBugToEdit] = useState<(JiraBug & { cycleId?: string; itemKey?: string; cycleName?: string }) | undefined>(undefined);
 
   const [activeCycleId, setActiveCycleId] = useState<string>('');
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
@@ -664,6 +668,74 @@ export const App: React.FC = () => {
         })
       })));
       showToast(`Defect ticket "${bugKey}" deleted successfully!`);
+    }
+  };
+
+  const handleCreateOrUpdateBugRegistry = (
+    bug: JiraBug,
+    options: { cycleId?: string; itemKey?: string; isEdit: boolean }
+  ) => {
+    if (options.isEdit) {
+      // 1. Update in static defectRegistry
+      setDefectRegistry(prev => prev.map(b => b.issueKey === bug.issueKey ? bug : b));
+      
+      // 2. Update inside cycles execution items
+      setTestCycles(prev => prev.map(cycle => ({
+        ...cycle,
+        items: cycle.items.map(item => {
+          let updatedBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
+          const exists = updatedBugs.some(b => b.issueKey === bug.issueKey);
+          if (exists) {
+            updatedBugs = updatedBugs.map(b => b.issueKey === bug.issueKey ? bug : b);
+            let primaryBug = item.jiraBug;
+            if (primaryBug?.issueKey === bug.issueKey) {
+              primaryBug = bug;
+            }
+            return {
+              ...item,
+              jiraBug: primaryBug,
+              jiraBugs: updatedBugs,
+              defectId: primaryBug?.issueKey || item.defectId
+            };
+          }
+          return item;
+        })
+      })));
+      showToast(`Jira defect ticket ${bug.issueKey} updated successfully!`);
+    } else {
+      // Create Flow
+      // 1. Add to defectRegistry
+      setDefectRegistry(prev => [bug, ...prev]);
+
+      // 2. If cycleId and itemKey are provided, link it and fail the case in that cycle
+      if (options.cycleId && options.itemKey) {
+        setTestCycles(prev => prev.map(cycle => {
+          if (cycle.id !== options.cycleId) return cycle;
+          return {
+            ...cycle,
+            items: cycle.items.map(item => {
+              if (item.testCase.key !== options.itemKey) return item;
+
+              let existingBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
+              const exists = existingBugs.some(b => b.issueKey === bug.issueKey);
+              if (!exists) {
+                existingBugs = [bug, ...existingBugs];
+              }
+
+              return {
+                ...item,
+                executionStatus: 'FAILED',
+                jiraBug: bug,
+                jiraBugs: existingBugs,
+                defectId: bug.issueKey,
+                executedBy: currentUser?.name || 'QA Tester',
+                executedAt: new Date().toLocaleString()
+              };
+            })
+          };
+        }));
+      }
+      showToast(`Jira defect ticket ${bug.issueKey} created successfully!`);
     }
   };
 
@@ -1503,6 +1575,18 @@ export const App: React.FC = () => {
                         Central registry of all bugs raised across test execution runs and cycles.
                       </p>
                     </div>
+                    {canManageCases && (
+                      <button
+                        onClick={() => {
+                          setBugToEdit(undefined);
+                          setIsBugCreateEditModalOpen(true);
+                        }}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20 transition-all flex items-center"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
+                        Log Defect / Create Bug
+                      </button>
+                    )}
                   </div>
 
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -1556,7 +1640,32 @@ export const App: React.FC = () => {
                                     </span>
                                   </td>
                                   <td className="py-3 text-slate-400 font-medium">Just now</td>
-                                  <td className="py-3 text-center">
+                                  <td className="py-3 text-center space-x-1">
+                                    <button
+                                      onClick={() => {
+                                        let cycleId = '';
+                                        let itemKey = '';
+                                        let cycleName = '';
+                                        for (const cycle of activeProjectCycles) {
+                                          const found = cycle.items.find(i => 
+                                            (i.jiraBugs || (i.jiraBug ? [i.jiraBug] : [])).some(b => b.issueKey === bug.issueKey)
+                                          );
+                                          if (found) {
+                                            cycleId = cycle.id;
+                                            cycleName = cycle.name;
+                                            itemKey = found.testCase.key;
+                                            break;
+                                          }
+                                        }
+
+                                        setBugToEdit({ ...bug, cycleId, itemKey, cycleName });
+                                        setIsBugCreateEditModalOpen(true);
+                                      }}
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all inline-block"
+                                      title="Edit Defect Ticket"
+                                    >
+                                      <Settings className="w-3.5 h-3.5" />
+                                    </button>
                                     <button
                                       onClick={() => handleDeleteBug(bug.issueKey)}
                                       className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline-block"
@@ -1662,6 +1771,21 @@ export const App: React.FC = () => {
             isZeroGapCertified: true
           }}
         />
+
+        {/* Create / Edit Defect Ticket Modal */}
+        {isBugCreateEditModalOpen && (
+          <CreateEditBugModal
+            isOpen={isBugCreateEditModalOpen}
+            onClose={() => {
+              setIsBugCreateEditModalOpen(false);
+              setBugToEdit(undefined);
+            }}
+            bugToEdit={bugToEdit}
+            testCycles={activeProjectCycles}
+            currentUser={currentUser}
+            onSaveBug={handleCreateOrUpdateBugRegistry}
+          />
+        )}
 
       {/* Import Success Confirm Modal */}
       {importSuccessCount !== null && (
