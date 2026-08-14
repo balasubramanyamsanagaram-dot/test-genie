@@ -63,16 +63,16 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   };
 
   const filteredCases = testCases.filter(tc => {
-    const query = (queryText: string) => queryText.toLowerCase().trim();
-    const q = query(activeSearch);
+    const query = (queryText: string) => (queryText || '').toLowerCase().trim();
+    const q = query(activeSearch || '');
     
     const matchesSearch =
       !q ||
-      tc.key.toLowerCase().includes(q) ||
-      tc.name.toLowerCase().includes(q) ||
-      tc.objective.toLowerCase().includes(q) ||
-      tc.testSteps.toLowerCase().includes(q) ||
-      tc.expectedResult.toLowerCase().includes(q) ||
+      (tc.key && tc.key.toLowerCase().includes(q)) ||
+      (tc.name && tc.name.toLowerCase().includes(q)) ||
+      (tc.objective && tc.objective.toLowerCase().includes(q)) ||
+      (tc.testSteps && tc.testSteps.toLowerCase().includes(q)) ||
+      (tc.expectedResult && tc.expectedResult.toLowerCase().includes(q)) ||
       (tc.createdBy && tc.createdBy.toLowerCase().includes(q));
 
     const matchesType =
