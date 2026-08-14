@@ -11,7 +11,7 @@ import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2 } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -264,6 +264,21 @@ export const App: React.FC = () => {
   const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
   const [importSuccessCount, setImportSuccessCount] = useState<number | null>(null);
 
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type, visible: true });
+  };
+
+  useEffect(() => {
+    if (toast?.visible) {
+      const timer = setTimeout(() => {
+        setToast(prev => prev ? { ...prev, visible: false } : null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   // Sync Custom Cases to localStorage
   useEffect(() => {
     try {
@@ -495,7 +510,7 @@ export const App: React.FC = () => {
       const itemToUpdate = activeCycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
       if (itemToUpdate) {
         handleUpdateExecutionStatus(activeCycle.id, itemToUpdate.testCase.key, status);
-        alert(`Saved execution status (${status}) for test case ${selectedAutomateCase.key} inside test cycle "${activeCycle.name}"!`);
+        showToast(`Saved execution status (${status}) for test case ${selectedAutomateCase.key} inside cycle "${activeCycle.name}"!`);
       } else {
         const newItem: TestCycleItem = {
           id: `item-${Date.now().toString().slice(-4)}`,
@@ -514,16 +529,16 @@ export const App: React.FC = () => {
           };
         }));
         
-        alert(`Added test case ${selectedAutomateCase.key} to cycle "${activeCycle.name}" and saved execution status (${status})!`);
+        showToast(`Added test case ${selectedAutomateCase.key} to cycle "${activeCycle.name}" (${status})!`);
       }
     } else {
-      alert("No active test cycle found in this project. Please create a test cycle to save automation execution results.");
+      showToast("No active test cycle found. Please create a test cycle to save results.", "error");
     }
   };
 
   const handleRaiseBugFromAutomation = (failedStep: string) => {
     setActiveTab('execution');
-    alert(`Automation failed at step: "${failedStep}". Navigate to the active test cycle execution board to log this defect in Jira.`);
+    showToast(`Automation failed at step: "${failedStep}". Use the Live Board to log this bug in Jira.`, "error");
   };
 
   const handleAddAIDemoCase = () => {
@@ -552,7 +567,7 @@ export const App: React.FC = () => {
       return nextMap;
     });
 
-    alert("AI Playwright Login Demo test case added successfully! Click 'Automate' on this test case to run it.");
+    showToast("AI Playwright Login Demo test case added successfully! Click 'Automate' to run it.");
   };
 
   // Edit (Rename) Module Repository
@@ -616,10 +631,12 @@ export const App: React.FC = () => {
     setTestCycles(prev => [cycleWithProj, ...prev]);
     setActiveCycleId(newCycle.id);
     handleTabChange('execution');
+    showToast(`Test cycle "${newCycle.name}" started successfully!`);
   };
 
   const handleDeleteCycle = (cycleId: string) => {
     setTestCycles(prev => prev.filter(c => c.id !== cycleId));
+    showToast("Test cycle deleted successfully!");
   };
 
   const handleDeleteBug = (bugKey: string) => {
@@ -646,7 +663,7 @@ export const App: React.FC = () => {
           };
         })
       })));
-      alert(`Defect ticket "${bugKey}" deleted successfully!`);
+      showToast(`Defect ticket "${bugKey}" deleted successfully!`);
     }
   };
 
@@ -830,6 +847,12 @@ export const App: React.FC = () => {
         })
       };
     }));
+
+    if (jiraBug && status === 'FAILED') {
+      showToast(`Jira defect ticket ${jiraBug.issueKey} logged successfully!`);
+    } else {
+      showToast(`Execution status updated to ${status} for ${itemKey}!`);
+    }
   };
 
   // Handle Re-opening an Existing Bug on FAILED Re-test
@@ -880,6 +903,8 @@ export const App: React.FC = () => {
         })
       };
     }));
+
+    showToast(`Jira defect ticket ${bugKey} re-opened successfully!`);
   };
 
   // Active Cycle object for execution board
@@ -1743,6 +1768,28 @@ export const App: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Premium Toast Notification System */}
+      {toast && (
+        <div 
+          className={`fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-4 py-3.5 rounded-2xl border shadow-xl transition-all duration-300 transform ${
+            toast.visible 
+              ? 'translate-y-0 opacity-100 scale-100' 
+              : 'translate-y-4 opacity-0 scale-95 pointer-events-none'
+          } ${
+            toast.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+              : toast.type === 'error'
+                ? 'bg-rose-50 border-rose-200 text-rose-800'
+                : 'bg-indigo-50 border-indigo-200 text-indigo-800'
+          }`}
+        >
+          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+          {toast.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
+          {toast.type === 'info' && <RefreshCw className="w-5 h-5 text-indigo-600 flex-shrink-0 animate-spin-slow" />}
+          <span className="text-xs font-bold font-sans">{toast.message}</span>
         </div>
       )}
 
