@@ -614,15 +614,6 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                 Inspect Agent Console Trace
                               </button>
 
-                              {run.screenshotUrl && (
-                                <button
-                                  onClick={() => setActiveMediaUrl({ url: run.screenshotUrl!, type: 'image' })}
-                                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
-                                >
-                                  <Camera className="w-3.5 h-3.5 mr-1.5" />
-                                  Screenshot Proof
-                                </button>
-                              )}
                               {run.videoUrl && (
                                 <button
                                   onClick={() => setActiveMediaUrl({ url: run.videoUrl!, type: 'video' })}
@@ -659,14 +650,6 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                               <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
                               Inspect Agent Console Trace
                             </button>
-                            {activeItem.evidenceScreenshotUrl && (
-                              <button
-                                onClick={() => setActiveMediaUrl({ url: activeItem.evidenceScreenshotUrl!, type: 'image' })}
-                                className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-extrabold text-xs shadow-xs"
-                              >
-                                Inspect Proof
-                              </button>
-                            )}
                             {activeItem.evidenceVideoUrl && (
                               <button
                                 onClick={() => setActiveMediaUrl({ url: activeItem.evidenceVideoUrl!, type: 'video' })}
