@@ -116,23 +116,14 @@ export const App: React.FC = () => {
     localStorage.removeItem(STORAGE_KEY_USER);
   };
 
-  // Load Persisted Projects from localStorage (Auto-restoring default modules if deleted)
+  // Load Persisted Projects from localStorage
   const [projects, setProjects] = useState<EnterpriseProject[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PROJECTS);
       if (saved) {
         let parsed: EnterpriseProject[] = JSON.parse(saved);
         parsed = parsed.filter(p => p.id !== 'proj-mobile' && p.id !== 'proj-fintech');
-        
-        // Auto-restore default modules for HRM project if empty
-        parsed = parsed.map(p => {
-          if (p.id === 'proj-hrm' && (!p.modules || p.modules.length === 0)) {
-            return { ...p, modules: DEFAULT_ENTERPRISE_PROJECTS[0].modules };
-          }
-          return p;
-        });
-
-        if (parsed.length > 0) return parsed;
+        return parsed;
       }
     } catch (e) {}
     return DEFAULT_ENTERPRISE_PROJECTS;
@@ -225,13 +216,11 @@ export const App: React.FC = () => {
     try {
       const savedV2 = localStorage.getItem(STORAGE_KEY_CYCLES);
       if (savedV2) {
-        const parsed = JSON.parse(savedV2);
-        if (parsed.length > 0) return parsed;
+        return JSON.parse(savedV2);
       }
       const savedV1 = localStorage.getItem('test_genie_test_cycles_v1');
       if (savedV1) {
-        const parsedV1 = JSON.parse(savedV1);
-        if (parsedV1.length > 0) return parsedV1;
+        return JSON.parse(savedV1);
       }
     } catch (e) {}
     return DEFAULT_PRELOADED_TEST_CYCLES;
