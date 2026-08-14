@@ -501,6 +501,35 @@ export const App: React.FC = () => {
     alert(`Automation failed at step: "${failedStep}". Navigate to the active test cycle execution board to log this defect in Jira.`);
   };
 
+  const handleAddAIDemoCase = () => {
+    if (!activeModule) return;
+    const demoCase: TestCase = {
+      key: `AUT-${Date.now().toString().slice(-4)}`,
+      folder: "/AutomationDemo",
+      name: "[DEMO] AI Playwright Login Verification",
+      objective: "Verify successful user login using automated no-code Playwright browser trace compiler.",
+      precondition: "Valid user credentials exist in the HRM Genie portal.",
+      testSteps: "1. Navigate to https://qa.hrmgenie.outstrive.co/login\n2. Type 'hr@out-strive.com' in email field\n3. Type 'HR@dmin06' in password field\n4. Click Login\n5. Verify Organization is displayed",
+      testData: "Email: hr@out-strive.com | Password: HR@dmin06",
+      expectedResult: "Browser automatically enters credentials, logs in, and loads dashboard page.",
+      status: "Approved",
+      priority: "Critical",
+      category: activeModule.name,
+      type: "Positive",
+      sourceFile: "AI_Demo_Case.csv"
+    };
+
+    setCustomModuleCases(prev => {
+      const currentList = prev[activeModule.id] || [];
+      const updated = [demoCase, ...currentList];
+      const nextMap = { ...prev, [activeModule.id]: updated };
+      localStorage.setItem(STORAGE_KEY_CASES, JSON.stringify(nextMap));
+      return nextMap;
+    });
+
+    alert("AI Playwright Login Demo test case added successfully! Click 'Automate' on this test case to run it.");
+  };
+
   // Edit (Rename) Module Repository
   const handleEditModule = (moduleId: string, newName: string) => {
     setProjects(prev => prev.map(p => {
@@ -1261,13 +1290,22 @@ export const App: React.FC = () => {
 
                     <div className="flex items-center space-x-2">
                       {canManageCases && (
-                        <button
-                          onClick={() => setIsImporterOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
-                        >
-                          <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
-                          Add / Import Test Cases
-                        </button>
+                        <>
+                          <button
+                            onClick={handleAddAIDemoCase}
+                            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all"
+                          >
+                            <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
+                            Add AI Automation Demo
+                          </button>
+                          <button
+                            onClick={() => setIsImporterOpen(true)}
+                            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
+                          >
+                            <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
+                            Add / Import Test Cases
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
