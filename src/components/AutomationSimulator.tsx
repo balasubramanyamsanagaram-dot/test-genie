@@ -72,7 +72,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
       try {
         setLogs(prev => [...prev, `[INFO] Requesting Playwright browser run session...`]);
 
-        const response = await fetch('http://localhost:3001/api/automation/run', {
+        const response = await fetch('http://localhost:4600/api/v1/automation/run', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
