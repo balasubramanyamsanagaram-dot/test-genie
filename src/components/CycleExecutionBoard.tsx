@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play } from 'lucide-react';
+import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase, AgentExecutionRun } from '../types';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
@@ -533,83 +533,135 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                 </div>
               </div>
 
-              {/* Stored Execution Screenshots & Video Recordings Gallery (Historical Audit Proof) */}
-              {((activeItem.attachments && activeItem.attachments.length > 0) || activeItem.evidenceScreenshotUrl || activeItem.evidenceVideoUrl) && (
-                <div className="space-y-3 pt-3 border-t border-slate-200">
-                  <h4 className="font-extrabold text-slate-900 flex items-center text-xs">
-                    <Camera className="w-4 h-4 text-indigo-600 mr-1.5" />
-                    Stored Execution Proof & Media Attachments Gallery ({ (activeItem.attachments || []).length || 1 } Files)
-                  </h4>
+              {/* BrowserAutomationAgent Execution Run Audit History (With Date, Time, Screenshots & Logs) */}
+              {((activeItem.executionHistory && activeItem.executionHistory.length > 0) || activeItem.evidenceScreenshotUrl || activeItem.evidenceVideoUrl || (activeItem.attachments && activeItem.attachments.length > 0)) && (
+                <div className="space-y-4 pt-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-slate-900 flex items-center text-xs">
+                      <Bot className="w-4 h-4 text-indigo-600 mr-1.5" />
+                      BrowserAutomationAgent Execution Audit & Evidence History ({ activeItem.executionHistory?.length || (activeItem.attachments || []).length || 1 } Runs)
+                    </h4>
+                    <span className="font-mono text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      BrowserAutomationAgent@{activeItem.testCase.key}
+                    </span>
+                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Render primary evidenceScreenshotUrl if available */}
-                    {activeItem.evidenceScreenshotUrl && (
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between shadow-2xs">
-                        <div className="flex items-center space-x-2.5 overflow-hidden">
-                          <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <Camera className="w-4 h-4 text-indigo-700" />
+                  <div className="space-y-3">
+                    {(activeItem.executionHistory && activeItem.executionHistory.length > 0) ? (
+                      activeItem.executionHistory.map((run, rIdx) => (
+                        <div
+                          key={run.id}
+                          className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                            run.executionStatus === 'PASSED'
+                              ? 'bg-emerald-50/50 border-emerald-200/80 hover:bg-emerald-50'
+                              : run.executionStatus === 'FAILED'
+                              ? 'bg-rose-50/50 border-rose-200/80 hover:bg-rose-50'
+                              : 'bg-amber-50/50 border-amber-200/80 hover:bg-amber-50'
+                          }`}
+                        >
+                          {/* Top Run Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono font-extrabold text-xs text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
+                                {run.agentName || `BrowserAutomationAgent@${activeItem.testCase.key}`}
+                              </span>
+
+                              <span className={`text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                run.executionStatus === 'PASSED'
+                                  ? 'bg-emerald-600 text-white border-emerald-700'
+                                  : run.executionStatus === 'FAILED'
+                                  ? 'bg-rose-600 text-white border-rose-700'
+                                  : 'bg-amber-600 text-white border-amber-700'
+                              }`}>
+                                {run.executionStatus === 'PASSED' ? 'PASSED ✅' : run.executionStatus === 'FAILED' ? 'FAILED 🛑' : 'BLOCKED ⚠️'}
+                              </span>
+
+                              <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                {run.executionType === 'Automated' ? '⚡ Playwright Engine' : '👤 Manual Run'}
+                              </span>
+                            </div>
+
+                            <div className="text-[11px] font-mono text-slate-500">
+                              <span>📅 {run.executedAt || new Date().toLocaleString()}</span>
+                            </div>
                           </div>
-                          <div className="truncate">
-                            <span className="font-bold text-xs text-slate-800 block truncate">
-                              {activeItem.evidenceName || `${activeItem.testCase.key}_Proof.png`}
-                            </span>
-                            <span className="text-[10px] text-slate-500 font-mono">
-                              Status: <strong className={activeItem.executionStatus === 'PASSED' ? 'text-emerald-700' : 'text-rose-700'}>{activeItem.executionStatus} Proof</strong>
-                            </span>
+
+                          {/* Summary Log & Attributions */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <div className="space-y-1">
+                              <p className="text-slate-700 font-medium leading-relaxed">
+                                {run.summaryLog}
+                              </p>
+                              <div className="flex items-center space-x-3 text-[10px] text-slate-500">
+                                <span>Executed By: <strong className="text-slate-800">{run.executedBy}</strong></span>
+                                {run.jiraBugKey && (
+                                  <span className="font-mono font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200">
+                                    Linked Defect: {run.jiraBugKey}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Evidence Action Buttons */}
+                            <div className="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
+                              {run.screenshotUrl && (
+                                <button
+                                  onClick={() => setActiveMediaUrl({ url: run.screenshotUrl!, type: 'image' })}
+                                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                                >
+                                  <Camera className="w-3.5 h-3.5 mr-1.5" />
+                                  Inspect Screenshot Proof
+                                </button>
+                              )}
+                              {run.videoUrl && (
+                                <button
+                                  onClick={() => setActiveMediaUrl({ url: run.videoUrl!, type: 'video' })}
+                                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                                >
+                                  <Video className="w-3.5 h-3.5 mr-1.5" />
+                                  Play Video Recording
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => setActiveMediaUrl({ url: activeItem.evidenceScreenshotUrl!, type: 'image' })}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-xs active:scale-95 flex-shrink-0"
-                        >
-                          Inspect Proof
-                        </button>
+                      ))
+                    ) : (
+                      /* Fallback view if item has legacy attachments but no executionHistory array */
+                      <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-3">
+                        <div className="flex items-center justify-between border-b border-indigo-200/60 pb-2">
+                          <span className="font-mono font-extrabold text-xs text-indigo-800">
+                            BrowserAutomationAgent@{activeItem.testCase.key}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            Executed At: {activeItem.executedAt || new Date().toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-700 font-medium">
+                            {activeItem.executionStatus} execution trace saved for future audit reference.
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            {activeItem.evidenceScreenshotUrl && (
+                              <button
+                                onClick={() => setActiveMediaUrl({ url: activeItem.evidenceScreenshotUrl!, type: 'image' })}
+                                className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-extrabold text-xs shadow-xs"
+                              >
+                                Inspect Proof
+                              </button>
+                            )}
+                            {activeItem.evidenceVideoUrl && (
+                              <button
+                                onClick={() => setActiveMediaUrl({ url: activeItem.evidenceVideoUrl!, type: 'video' })}
+                                className="px-3 py-1.5 rounded-xl bg-purple-600 text-white font-extrabold text-xs shadow-xs"
+                              >
+                                Play Video
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
-
-                    {/* Render evidenceVideoUrl if available */}
-                    {activeItem.evidenceVideoUrl && (
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between shadow-2xs">
-                        <div className="flex items-center space-x-2.5 overflow-hidden">
-                          <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                            <Video className="w-4 h-4 text-purple-700" />
-                          </div>
-                          <div className="truncate">
-                            <span className="font-bold text-xs text-slate-800 block truncate">
-                              {activeItem.evidenceName || `${activeItem.testCase.key}_Recording.mp4`}
-                            </span>
-                            <span className="text-[10px] text-slate-500 font-mono">Screen Recording Proof</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setActiveMediaUrl({ url: activeItem.evidenceVideoUrl!, type: 'video' })}
-                          className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-xs active:scale-95 flex-shrink-0"
-                        >
-                          Play Video
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Render full attachments list */}
-                    {(activeItem.attachments || []).map((att) => (
-                      <div key={att.id} className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center justify-between shadow-2xs">
-                        <div className="flex items-center space-x-2.5 overflow-hidden">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${att.type === 'video' ? 'bg-purple-100' : 'bg-indigo-100'}`}>
-                            {att.type === 'video' ? <Video className="w-4 h-4 text-purple-700" /> : <Camera className="w-4 h-4 text-indigo-700" />}
-                          </div>
-                          <div className="truncate">
-                            <span className="font-bold text-xs text-slate-800 block truncate">{att.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">Uploaded: {att.uploadedAt || 'Recently'}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setActiveMediaUrl({ url: att.url, type: att.type })}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs active:scale-95 flex-shrink-0"
-                        >
-                          View
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}

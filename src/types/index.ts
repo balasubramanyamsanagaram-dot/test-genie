@@ -175,6 +175,22 @@ export interface JiraBug {
   evidenceName?: string;
 }
 
+export interface AgentExecutionRun {
+  id: string;
+  agentName: string; // e.g. "BrowserAutomationAgent@AUT-8840" or "BrowserAutomationAgent@TC-HOL-206"
+  testCaseKey: string;
+  executionStatus: TestExecutionStatus;
+  executionType: 'Automated' | 'Manual';
+  executedBy: string;
+  executedAt: string; // Date and Time
+  screenshotUrl?: string;
+  videoUrl?: string;
+  evidenceName?: string;
+  summaryLog?: string;
+  errorDetails?: string;
+  jiraBugKey?: string;
+}
+
 export interface TestCycleItem {
   id: string;
   testCase: TestCase;
@@ -196,6 +212,7 @@ export interface TestCycleItem {
   evidenceVideoUrl?: string;
   evidenceName?: string;
   attachments?: { id: string; name: string; url: string; type: 'image' | 'video'; uploadedAt: string }[];
+  executionHistory?: AgentExecutionRun[];
 }
 
 export interface TestCycle {

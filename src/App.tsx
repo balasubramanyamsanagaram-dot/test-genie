@@ -11,7 +11,7 @@ import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
 import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
-import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS } from './types';
+import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
 import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
@@ -1082,12 +1082,18 @@ export const App: React.FC = () => {
           existingBugs = existingBugs.map(b => {
             if (status === 'PASSED') {
               return { ...b, status: 'Resolved' };
+            } else if (status === 'FAILED' && b.status === 'Resolved') {
+              return { ...b, status: 'Re-opened' };
             }
             return b;
           });
 
-          if (primaryBug && status === 'PASSED') {
-            primaryBug = { ...primaryBug, status: 'Resolved' };
+          if (primaryBug) {
+            if (status === 'PASSED') {
+              primaryBug = { ...primaryBug, status: 'Resolved' };
+            } else if (status === 'FAILED' && primaryBug.status === 'Resolved') {
+              primaryBug = { ...primaryBug, status: 'Re-opened' };
+            }
           }
 
           const existingAttachments = item.attachments || [];
@@ -1102,6 +1108,24 @@ export const App: React.FC = () => {
             });
           }
 
+          const existingHistory = item.executionHistory || [];
+          const newExecutionRun: AgentExecutionRun = {
+            id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            agentName: `BrowserAutomationAgent@${itemKey}`,
+            testCaseKey: itemKey,
+            executionStatus: status,
+            executionType: evidence ? 'Automated' : 'Manual',
+            executedBy: currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Playwright Engine',
+            executedAt: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+            screenshotUrl: evidence?.screenshotUrl || item.evidenceScreenshotUrl,
+            videoUrl: evidence?.videoUrl || item.evidenceVideoUrl,
+            evidenceName: evidence?.evidenceName || item.evidenceName || `${itemKey}_Execution_Proof`,
+            summaryLog: status === 'PASSED'
+              ? `Automated Playwright browser assertion check passed. UI state verified with zero console errors.`
+              : (bugNotes || `Step assertion check failed during DOM element evaluation. ${primaryBug ? `Linked Defect: ${primaryBug.issueKey}` : ''}`),
+            jiraBugKey: primaryBug?.issueKey
+          };
+
           return {
             ...item,
             executionStatus: status,
@@ -1113,6 +1137,7 @@ export const App: React.FC = () => {
             evidenceVideoUrl: evidence?.videoUrl || item.evidenceVideoUrl,
             evidenceName: evidence?.evidenceName || item.evidenceName,
             attachments: updatedAttachments,
+            executionHistory: [newExecutionRun, ...existingHistory],
             executedBy: currentUser?.name || 'QA Tester',
             executedAt: new Date().toLocaleString()
           };
