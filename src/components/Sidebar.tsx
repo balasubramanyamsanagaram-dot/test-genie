@@ -157,32 +157,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'dashboard'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
           }`}
         >
           <span className="flex items-center">
             <LayoutDashboard className={`w-4 h-4 mr-2.5 ${activeTab === 'dashboard' ? 'text-white' : 'text-indigo-600'}`} />
-            Overview & Analytics
+            Overview &amp; Analytics
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('matrix')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'matrix'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
           }`}
         >
           <span className="flex items-center">
             <FileCheck2 className={`w-4 h-4 mr-2.5 ${activeTab === 'matrix' ? 'text-white' : 'text-indigo-600'}`} />
             Test Repositories
           </span>
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-            activeTab === 'matrix' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'
+          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+            activeTab === 'matrix' ? 'bg-indigo-700/60 text-white' : 'bg-slate-100 text-slate-600'
           }`}>
             {testCasesCount}
           </span>
@@ -190,10 +190,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setActiveTab('cycles')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'cycles'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
           }`}
         >
           <span className="flex items-center">
@@ -204,10 +204,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setActiveTab('execution')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-[0.98] ${
             activeTab === 'execution'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/20'
+              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent hover:border-slate-200'
           }`}
         >
           <span className="flex items-center">

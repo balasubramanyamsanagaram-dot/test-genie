@@ -238,15 +238,15 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                       {item.testCase.key}
                     </span>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                     <span
+                      className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all ${
                         item.executionStatus === 'PASSED'
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          ? 'bg-emerald-100/60 text-emerald-800 border-emerald-300/80 glow-passed'
                           : item.executionStatus === 'FAILED'
-                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          ? 'bg-rose-100/60 text-rose-800 border-rose-300/80 glow-failed'
                           : item.executionStatus === 'BLOCKED'
-                          ? 'bg-amber-100 text-amber-800 border-amber-300'
-                          : 'bg-slate-100 text-slate-600 border-slate-300'
+                          ? 'bg-amber-100/60 text-amber-800 border-amber-300/80 glow-blocked'
+                          : 'bg-slate-100/60 text-slate-600 border-slate-300/80 glow-unexecuted'
                       }`}
                     >
                       {item.executionStatus}
@@ -302,10 +302,10 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                   <>
                     <button
                       onClick={() => handleStatusChange('PASSED')}
-                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${
                         activeItem.executionStatus === 'PASSED'
-                          ? 'bg-emerald-600 text-white shadow-md'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+                          ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20 glow-passed'
+                          : 'bg-emerald-50/70 text-emerald-700 border border-emerald-300 hover:bg-emerald-100/80'
                       }`}
                     >
                       <CheckCircle2 className="w-4 h-4 mr-1.5" />
@@ -314,10 +314,10 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
                     <button
                       onClick={() => handleStatusChange('FAILED')}
-                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${
                         activeItem.executionStatus === 'FAILED'
-                          ? 'bg-rose-600 text-white shadow-md'
-                          : 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
+                          ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20 glow-failed'
+                          : 'bg-rose-50/70 text-rose-700 border border-rose-300 hover:bg-rose-100/80'
                       }`}
                     >
                       <XCircle className="w-4 h-4 mr-1.5" />
@@ -326,10 +326,10 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
                     <button
                       onClick={() => handleStatusChange('BLOCKED')}
-                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all ${
+                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${
                         activeItem.executionStatus === 'BLOCKED'
-                          ? 'bg-amber-600 text-white shadow-md'
-                          : 'bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100'
+                          ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20 glow-blocked'
+                          : 'bg-amber-50/70 text-amber-700 border border-amber-300 hover:bg-amber-100/80'
                       }`}
                     >
                       <AlertTriangle className="w-4 h-4 mr-1.5" />

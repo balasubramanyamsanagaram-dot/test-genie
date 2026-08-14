@@ -116,10 +116,10 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
               <div
                 key={mod.id}
                 onClick={() => onSelectModule(mod.id)}
-                className={`bg-white rounded-3xl p-6 border transition-all shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 cursor-pointer group ${
+                className={`bg-white rounded-3xl p-6 border transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between space-y-4 cursor-pointer group ${
                   isSelected
-                    ? 'border-indigo-500 ring-2 ring-indigo-500/10'
-                    : 'border-slate-200 hover:border-indigo-300'
+                    ? 'border-indigo-500 ring-4 ring-indigo-500/5 bg-gradient-to-tr from-white to-indigo-50/20'
+                    : 'border-slate-200/80 hover:border-indigo-300 hover:bg-gradient-to-tr hover:from-white hover:to-indigo-50/10'
                 }`}
               >
                 <div className="space-y-3">
