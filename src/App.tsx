@@ -1778,6 +1778,8 @@ export const App: React.FC = () => {
                     onSaveTestCase={handleSaveTestCase}
                     onDeleteCycleItem={handleDeleteCycleItem}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
+                    onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
+                    onAutomateTestCase={handleAutomateTestCase}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
                 ) : (

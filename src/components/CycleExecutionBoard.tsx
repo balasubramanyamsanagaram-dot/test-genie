@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
@@ -25,6 +25,8 @@ interface CycleExecutionBoardProps {
   onSaveTestCase?: (updatedCase: TestCase) => void;
   onDeleteCycleItem?: (cycleId: string, itemKey: string) => void;
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
+  onViewCodeSpec?: (testCase: TestCase) => void;
+  onAutomateTestCase?: (testCase: TestCase) => void;
   onBackToCycles: () => void;
 }
 
@@ -39,6 +41,8 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onSaveTestCase,
   onDeleteCycleItem,
   onSyncEditedCasesToCycle,
+  onViewCodeSpec,
+  onAutomateTestCase,
   onBackToCycles
 }) => {
   const [selectedItemKey, setSelectedItemKey] = useState<string>(cycle.items[0]?.testCase.key || '');
@@ -435,24 +439,48 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                   <p className="text-slate-600 leading-relaxed">{activeItem.testCase.objective}</p>
                 </div>
 
-                {canExecuteTests && (
-                  <div className="flex items-center space-x-2 flex-shrink-0">
+                <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                  {onViewCodeSpec && (
                     <button
-                      onClick={() => setEditingTestCase(activeItem.testCase)}
-                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center transition-all active:scale-95"
+                      onClick={() => onViewCodeSpec(activeItem.testCase)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-mono font-extrabold text-xs border border-emerald-300 flex items-center transition-all active:scale-95 shadow-2xs"
+                      title="View Playwright & Cypress Code Spec"
                     >
-                      <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                      Edit Case
+                      <Code2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                      &lt;/&gt; CODE SPEC
                     </button>
+                  )}
+
+                  {onAutomateTestCase && (
                     <button
-                      onClick={() => setDeletingItemKey(activeItem.testCase.key)}
-                      className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center transition-all active:scale-95"
+                      onClick={() => onAutomateTestCase(activeItem.testCase)}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-mono font-extrabold text-xs border border-indigo-300 flex items-center transition-all active:scale-95 shadow-2xs"
+                      title="Run No-Code Playwright Automation Trace"
                     >
-                      <Trash2 className="w-3.5 h-3.5 mr-1 text-rose-600" />
-                      Delete Case
+                      <Play className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+                      ▷ AUTOMATE
                     </button>
-                  </div>
-                )}
+                  )}
+
+                  {canExecuteTests && (
+                    <>
+                      <button
+                        onClick={() => setEditingTestCase(activeItem.testCase)}
+                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center transition-all active:scale-95"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                        Edit Case
+                      </button>
+                      <button
+                        onClick={() => setDeletingItemKey(activeItem.testCase.key)}
+                        className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs border border-rose-200 flex items-center transition-all active:scale-95"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1 text-rose-600" />
+                        Delete Case
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
