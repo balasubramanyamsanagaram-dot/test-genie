@@ -88,6 +88,7 @@ export const App: React.FC = () => {
     readOnlyMode?: boolean;
     initialStatus?: 'PASSED' | 'FAILED';
     initialScreenshotUrl?: string;
+    initialStepRuns?: any[];
   } | null>(null);
 
   const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
@@ -609,7 +610,7 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleOpenAgentConsoleTrace = (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string) => {
+  const handleOpenAgentConsoleTrace = (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string, stepRuns?: any[]) => {
     setSelectedAutomateCase(testCase);
     setAutomationParams({
       isOpen: true,
@@ -619,14 +620,16 @@ export const App: React.FC = () => {
       isHeaded: true,
       readOnlyMode: true,
       initialStatus: status === 'FAILED' ? 'FAILED' : 'PASSED',
-      initialScreenshotUrl: screenshotUrl
+      initialScreenshotUrl: screenshotUrl,
+      initialStepRuns: stepRuns
     });
   };
 
   const handleSaveAutomationResultToCycle = (
     cycleId: string,
     status: 'PASSED' | 'FAILED',
-    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }
+    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string },
+    stepRuns?: any[]
   ) => {
     const cycle = activeProjectCycles.find(c => c.id === cycleId) || activeProjectCycles[0];
     if (cycle && selectedAutomateCase) {
@@ -639,7 +642,8 @@ export const App: React.FC = () => {
           undefined,
           undefined,
           undefined,
-          evidence
+          evidence,
+          stepRuns
         );
         showToast(`Automation execution (${status}): Stored evidence proof in cycle "${cycle.name}"!`, 'success');
       } else {
@@ -653,6 +657,7 @@ export const App: React.FC = () => {
           evidenceScreenshotUrl: evidence?.screenshotUrl,
           evidenceVideoUrl: evidence?.videoUrl,
           evidenceName: evidence?.evidenceName || `${selectedAutomateCase.key}_Automated_Proof`,
+          stepRuns: stepRuns,
           attachments: (evidence?.screenshotUrl || evidence?.videoUrl) ? [{
             id: `att-${Date.now()}`,
             name: evidence?.evidenceName || `${selectedAutomateCase.key}_Proof`,
@@ -1078,7 +1083,8 @@ export const App: React.FC = () => {
     jiraBug?: JiraBug,
     bugNotes?: string,
     defectId?: string,
-    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }
+    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string },
+    stepRuns?: any[]
   ) => {
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
@@ -1141,7 +1147,8 @@ export const App: React.FC = () => {
             summaryLog: status === 'PASSED'
               ? `Automated Playwright browser assertion check passed. UI state verified with zero console errors.`
               : (bugNotes || `Step assertion check failed during DOM element evaluation. ${primaryBug ? `Linked Defect: ${primaryBug.issueKey}` : ''}`),
-            jiraBugKey: primaryBug?.issueKey
+            jiraBugKey: primaryBug?.issueKey,
+            stepRuns: stepRuns || item.stepRuns
           };
 
           return {
@@ -1156,6 +1163,7 @@ export const App: React.FC = () => {
             evidenceName: evidence?.evidenceName || item.evidenceName,
             attachments: updatedAttachments,
             executionHistory: [newExecutionRun, ...existingHistory],
+            stepRuns: stepRuns || item.stepRuns,
             executedBy: currentUser?.name || 'QA Tester',
             executedAt: new Date().toLocaleString()
           };
@@ -2155,8 +2163,9 @@ export const App: React.FC = () => {
           readOnlyMode={automationParams.readOnlyMode}
           initialStatus={automationParams.initialStatus}
           initialScreenshotUrl={automationParams.initialScreenshotUrl}
-          onSaveToCycle={(automationParams.cycleId && !automationParams.readOnlyMode) ? (status, evidence) => {
-            handleSaveAutomationResultToCycle(automationParams.cycleId!, status, evidence);
+          initialStepRuns={automationParams.initialStepRuns}
+          onSaveToCycle={(automationParams.cycleId && !automationParams.readOnlyMode) ? (status, evidence, stepRuns) => {
+            handleSaveAutomationResultToCycle(automationParams.cycleId!, status, evidence, stepRuns);
           } : undefined}
           onRaiseBug={(automationParams.cycleId && !automationParams.readOnlyMode) ? (failedStep, screenshotUrl) => {
             handleRaiseBugFromAutomation(automationParams.cycleId!, failedStep, screenshotUrl);

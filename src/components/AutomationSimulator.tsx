@@ -21,7 +21,8 @@ interface AutomationSimulatorProps {
   readOnlyMode?: boolean;
   initialStatus?: 'PASSED' | 'FAILED';
   initialScreenshotUrl?: string;
-  onSaveToCycle?: (status: 'PASSED' | 'FAILED', evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }) => void;
+  initialStepRuns?: AutomationStepRun[];
+  onSaveToCycle?: (status: 'PASSED' | 'FAILED', evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string }, stepRuns?: AutomationStepRun[]) => void;
   onRaiseBug?: (failedStep: string, screenshotUrl?: string) => void;
 }
 
@@ -36,6 +37,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   readOnlyMode = false,
   initialStatus,
   initialScreenshotUrl,
+  initialStepRuns,
   onSaveToCycle,
   onRaiseBug
 }) => {
@@ -67,19 +69,22 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
     }));
 
     if (readOnlyMode) {
-      const mapped: AutomationStepRun[] = initialSteps.map((step, idx) => ({
-        stepNumber: step.stepNumber,
-        instruction: step.instruction,
-        status: (initialStatus || 'PASSED') as any,
-        screenshot: initialScreenshotUrl || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
-        log: `[READONLY TRACE] Verified step ${idx + 1}: ${step.instruction}`
-      }));
+      const mapped: AutomationStepRun[] = initialSteps.map((step, idx) => {
+        const savedStep = initialStepRuns && initialStepRuns[idx];
+        return {
+          stepNumber: step.stepNumber,
+          instruction: step.instruction,
+          status: (savedStep?.status || initialStatus || 'PASSED') as any,
+          screenshot: savedStep?.screenshot || initialScreenshotUrl,
+          log: savedStep?.log || `[READONLY TRACE] Verified step ${idx + 1}: ${step.instruction}`
+        };
+      });
       setSteps(mapped);
       setStatus(initialStatus || 'PASSED');
       setIsRunning(false);
       setLogs([
         `[SYSTEM] Loaded stored Playwright execution trace console for BrowserAutomationAgent@${testCase.key}.`,
-        `[SYSTEM] Execution Status: ${initialStatus || 'PASSED'}. Click any step on the left panel to inspect step screenshot captures.`
+        `[SYSTEM] Execution Status: ${initialStatus || 'PASSED'}. Displaying stored step screenshots.`
       ]);
       setActiveStepIdx(0);
       return;
@@ -148,7 +153,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
             onSaveToCycle('PASSED', {
               screenshotUrl: proofScreenshot,
               evidenceName: `${testCase.key}_Automated_PASSED_Proof.png`
-            });
+            }, mapped);
           }
         } else {
           setStatus('FAILED');
@@ -167,7 +172,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
             onSaveToCycle('FAILED', {
               screenshotUrl: errorScreenshot,
               evidenceName: `${testCase.key}_Automated_FAILED_ErrorTrace.png`
-            });
+            }, mapped);
           }
           if (onRaiseBug) {
             onRaiseBug(data.error || 'Step validation checks failed.', errorScreenshot);

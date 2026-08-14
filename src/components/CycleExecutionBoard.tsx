@@ -27,7 +27,7 @@ interface CycleExecutionBoardProps {
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
   onViewCodeSpec?: (testCase: TestCase) => void;
   onAutomateTestCase?: (testCase: TestCase) => void;
-  onOpenAgentConsoleTrace?: (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string) => void;
+  onOpenAgentConsoleTrace?: (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string, stepRuns?: any[]) => void;
   onBackToCycles: () => void;
 }
 
@@ -607,7 +607,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                             {/* Evidence & Trace Console Action Buttons */}
                             <div className="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
                               <button
-                                onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, run.executionStatus, run.screenshotUrl)}
+                                onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, run.executionStatus, run.screenshotUrl, run.stepRuns || activeItem.stepRuns)}
                                 className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
                               >
                                 <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
@@ -653,7 +653,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                           </span>
                           <div className="flex items-center space-x-2">
                             <button
-                              onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, activeItem.executionStatus, activeItem.evidenceScreenshotUrl)}
+                              onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, activeItem.executionStatus, activeItem.evidenceScreenshotUrl, activeItem.stepRuns)}
                               className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-extrabold text-xs shadow-xs flex items-center"
                             >
                               <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />

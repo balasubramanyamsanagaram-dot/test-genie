@@ -189,6 +189,13 @@ export interface AgentExecutionRun {
   summaryLog?: string;
   errorDetails?: string;
   jiraBugKey?: string;
+  stepRuns?: {
+    stepNumber: number;
+    instruction: string;
+    status: 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED' | 'SKIPPED';
+    screenshot?: string;
+    log: string;
+  }[];
 }
 
 export interface TestCycleItem {
@@ -213,6 +220,13 @@ export interface TestCycleItem {
   evidenceName?: string;
   attachments?: { id: string; name: string; url: string; type: 'image' | 'video'; uploadedAt: string }[];
   executionHistory?: AgentExecutionRun[];
+  stepRuns?: {
+    stepNumber: number;
+    instruction: string;
+    status: 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED' | 'SKIPPED';
+    screenshot?: string;
+    log: string;
+  }[];
 }
 
 export interface TestCycle {
