@@ -277,26 +277,18 @@ export const App: React.FC = () => {
     const failedCount = executedItems.filter(item => item.executionStatus === 'FAILED').length;
     const blockedCount = executedItems.filter(item => item.executionStatus === 'BLOCKED').length;
     
-    const passRate = totalExecuted > 0 ? Math.round((passedCount / totalExecuted) * 100) : 94.1;
-    const executionsToday = totalExecuted > 0 ? totalExecuted : 315;
+    const passRate = totalExecuted > 0 ? Math.round((passedCount / totalExecuted) * 100) : 0;
+    const executionsToday = totalExecuted;
 
     // Defect priority distribution
     const allBugs = executedItems.flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []));
-    let critical = allBugs.filter(b => b.severity === 'Blocker' || b.severity === 'Critical').length;
-    let high = allBugs.filter(b => b.severity === 'Major').length;
-    let medium = allBugs.filter(b => b.severity !== 'Blocker' && b.severity !== 'Critical' && b.severity !== 'Major' && b.severity !== 'Minor').length;
-    let low = allBugs.filter(b => b.severity === 'Minor').length;
-
-    // Fallbacks if no real defects are logged yet to display beautiful mockup ratios
-    if (allBugs.length === 0) {
-      critical = 12;
-      high = 24;
-      medium = 22;
-      low = 16;
-    }
+    const critical = allBugs.filter(b => b.severity === 'Blocker' || b.severity === 'Critical').length;
+    const high = allBugs.filter(b => b.severity === 'Major').length;
+    const medium = allBugs.filter(b => b.severity !== 'Blocker' && b.severity !== 'Critical' && b.severity !== 'Major' && b.severity !== 'Minor').length;
+    const low = allBugs.filter(b => b.severity === 'Minor').length;
 
     // Dynamic recent runs
-    let recentRuns = projCycles.flatMap(c => 
+    const recentRuns = projCycles.flatMap(c => 
       (c.items || []).map(item => ({
         runId: item.testCase.key.replace(/\D/g, '') || '131011',
         title: item.testCase.name,
@@ -307,16 +299,6 @@ export const App: React.FC = () => {
       }))
     ).filter(r => r.status !== 'UNEXECUTED').slice(0, 4);
 
-    // Default runs list fallback to populate table cleanly if no executions are run yet
-    if (recentRuns.length === 0) {
-      recentRuns = [
-        { runId: '131011', title: 'Auth Test Run', status: 'PASSED', executedBy: 'Suresh Kumar', executedAt: '28/03', isAutomated: true },
-        { runId: '131002', title: 'Payments Tow', status: 'FAILED', executedBy: 'Priya Sharma', executedAt: '23/03', isAutomated: true },
-        { runId: '131001', title: 'Rezent Test Runs', status: 'BLOCKED', executedBy: 'Anand V', executedAt: '29/03', isAutomated: true },
-        { runId: '131004', title: 'API Vunne', status: 'PASSED', executedBy: 'Rahul Dev', executedAt: '03/03', isAutomated: true }
-      ];
-    }
-
     return {
       totalModules,
       totalCases,
@@ -326,7 +308,7 @@ export const App: React.FC = () => {
       totalPermission,
       averageCoverage,
       totalCycles,
-      totalDefects: totalDefects > 0 ? totalDefects : 74,
+      totalDefects,
       passRate,
       executionsToday,
       critical,
@@ -947,10 +929,16 @@ export const App: React.FC = () => {
                         <div className="relative w-32 h-32">
                           {(() => {
                             const totalBugs = dashboardStats.critical + dashboardStats.high + dashboardStats.medium + dashboardStats.low;
-                            const lowPct = totalBugs > 0 ? (dashboardStats.low / totalBugs) * 251.2 : 62.8;
-                            const medPct = totalBugs > 0 ? (dashboardStats.medium / totalBugs) * 251.2 : 62.8;
-                            const highPct = totalBugs > 0 ? (dashboardStats.high / totalBugs) * 251.2 : 62.8;
-                            const critPct = totalBugs > 0 ? (dashboardStats.critical / totalBugs) * 251.2 : 62.8;
+                            if (totalBugs === 0) {
+                              return (
+                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
+                                </svg>
+                              );
+                            }
+                            const lowPct = (dashboardStats.low / totalBugs) * 251.2;
+                            const medPct = (dashboardStats.medium / totalBugs) * 251.2;
+                            const highPct = (dashboardStats.high / totalBugs) * 251.2;
                             return (
                               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                                 {/* Low - Green */}
