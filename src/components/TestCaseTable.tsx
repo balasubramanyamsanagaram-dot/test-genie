@@ -80,12 +80,29 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
       (tc.expectedResult && tc.expectedResult.toLowerCase().includes(q)) ||
       (tc.createdBy && tc.createdBy.toLowerCase().includes(q));
 
+    const getInferredType = (c: TestCase) => {
+      if (c.type) return c.type.toLowerCase();
+      const text = `${c.name} ${c.objective} ${c.testSteps}`.toLowerCase();
+      if (text.includes('duplicate') || text.includes('error') || text.includes('invalid') || text.includes('fail') || text.includes('omit') || text.includes('missing') || text.includes('validation')) {
+        return 'negative';
+      }
+      if (text.includes('boundary') || text.includes('limit') || text.includes('max') || text.includes('min')) {
+        return 'boundary';
+      }
+      if (text.includes('permission') || text.includes('rbac') || text.includes('role') || text.includes('restrict')) {
+        return 'permission';
+      }
+      return 'positive';
+    };
+
+    const infType = getInferredType(tc);
+
     const matchesType =
       selectedType === 'ALL' ||
-      (tc.type && tc.type.toLowerCase().includes(selectedType.toLowerCase())) ||
-      (selectedType === 'Negative' && tc.type && tc.type.toLowerCase().includes('validation')) ||
-      (selectedType === 'Boundary' && tc.type && tc.type.toLowerCase().includes('boundary')) ||
-      (selectedType === 'Permission' && tc.type && tc.type.toLowerCase().includes('rbac'));
+      infType.includes(selectedType.toLowerCase()) ||
+      (selectedType === 'Negative' && infType.includes('validation')) ||
+      (selectedType === 'Boundary' && infType.includes('boundary')) ||
+      (selectedType === 'Permission' && infType.includes('rbac'));
 
     return matchesSearch && matchesType;
   });
