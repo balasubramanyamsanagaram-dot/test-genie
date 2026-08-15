@@ -978,15 +978,20 @@ export const App: React.FC = () => {
     return customModuleCases[selectedModuleId] || [];
   }, [selectedModuleId, customModuleCases]);
 
-  // Handle Importing new test cases into repository
+  // Handle Importing new test cases into repository (Updates existing matching keys, appends new ones)
   const handleImportCases = (newCases: TestCase[]) => {
     if (!selectedModuleId) return;
     setCustomModuleCases(prev => {
-      const updated = {
+      const existingList = prev[selectedModuleId] || [];
+      const newKeySet = new Set(newCases.map(c => c.key?.trim().toUpperCase()).filter(Boolean));
+      
+      const retainedExisting = existingList.filter(c => !newKeySet.has(c.key?.trim().toUpperCase()));
+      const updatedList = [...retainedExisting, ...newCases];
+
+      return {
         ...prev,
-        [selectedModuleId]: [...(prev[selectedModuleId] || []), ...newCases]
+        [selectedModuleId]: updatedList
       };
-      return updated;
     });
     setImportSuccessCount(newCases.length);
   };
