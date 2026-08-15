@@ -181,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <span className="flex items-center">
             <FolderKanban className={`w-4 h-4 mr-2.5 ${activeTab === 'matrix' ? 'text-indigo-600' : 'text-slate-400'}`} />
-            Projects
+            Project Modules
           </span>
         </button>
 
