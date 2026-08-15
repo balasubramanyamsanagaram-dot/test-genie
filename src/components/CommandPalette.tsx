@@ -64,27 +64,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'nav-execution', title: 'Go to Live Execution Board', category: 'Navigation', icon: <PlaySquare className="w-4 h-4 text-indigo-600" />, action: () => { onSelectTab('execution'); onClose(); } },
     { id: 'nav-bugs', title: 'Go to Jira Defects Tracker', category: 'Navigation', icon: <Bug className="w-4 h-4 text-indigo-600" />, action: () => { onSelectTab('bugs'); onClose(); } },
 
-    // Quick Actions - Code Spec & Automate
-    {
+    // Quick Actions - Code Spec & Automate (Stealth Mode Only)
+    ...(onViewCodeSpec ? [{
       id: 'act-codespec-gen',
       title: '</> View Playwright Code Spec Generator',
-      category: 'Quick Actions',
+      category: 'Quick Actions' as const,
       icon: <Code2 className="w-4 h-4 text-emerald-600" />,
       action: () => {
         if (testCases[0] && onViewCodeSpec) onViewCodeSpec(testCases[0]);
         onClose();
       }
-    },
-    {
+    }] : []),
+    ...(onAutomateTestCase ? [{
       id: 'act-automate-run',
       title: '▷ Run Playwright Browser Automation Agent',
-      category: 'Quick Actions',
+      category: 'Quick Actions' as const,
       icon: <Play className="w-4 h-4 text-amber-500 fill-amber-500" />,
       action: () => {
         if (testCases[0] && onAutomateTestCase) onAutomateTestCase(testCases[0]);
         onClose();
       }
-    },
+    }] : []),
     { id: 'act-import', title: 'Add / Import Test Cases File', category: 'Quick Actions', icon: <Upload className="w-4 h-4 text-emerald-600" />, action: () => { onTriggerImport(); onClose(); } },
     { id: 'act-export', title: 'Export Zephyr Scale CSV Suite', category: 'Quick Actions', icon: <Download className="w-4 h-4 text-purple-600" />, action: () => { onTriggerExport(); onClose(); } },
 

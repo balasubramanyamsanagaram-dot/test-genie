@@ -1858,7 +1858,7 @@ export const App: React.FC = () => {
                       onDeleteTestCase={handleDeleteTestCase}
                       onBulkEditTestCases={handleBulkEditTestCases}
                       onBulkDeleteTestCases={handleBulkDeleteTestCases}
-                      onAutomateTestCase={handleAutomateTestCase}
+                      onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? handleAutomateTestCase : undefined}
                       onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
                       canManageCases={canManageCases}
                     />
@@ -1909,8 +1909,8 @@ export const App: React.FC = () => {
                     onSaveTestCase={handleSaveTestCase}
                     onDeleteCycleItem={handleDeleteCycleItem}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
-                    onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
-                    onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
+                    onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
+                    onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? (tc) => handleAutomateTestCase(tc, activeCycle.id) : undefined}
                     onOpenAgentConsoleTrace={handleOpenAgentConsoleTrace}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
@@ -2315,8 +2315,8 @@ export const App: React.FC = () => {
           onSelectProject={(projId) => setSelectedProjectId(projId)}
           onTriggerImport={() => setIsImporterOpen(true)}
           onTriggerExport={() => setIsExportModalOpen(true)}
-          onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
-          onAutomateTestCase={(tc) => handleAutomateTestCase(tc)}
+          onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
+          onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? (tc) => handleAutomateTestCase(tc) : undefined}
         />
       )}
 
