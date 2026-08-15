@@ -17,7 +17,7 @@ interface HeaderProps {
   onSelectProject: (id: string) => void;
   onOpenNewProjectModal: () => void;
   onOpenUserManagementModal: () => void;
-  onRestoreDefaultModules: () => void;
+  onRestoreDefaultModules?: () => void;
   onLogout: () => void;
 }
 
@@ -34,7 +34,6 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectProject,
   onOpenNewProjectModal,
   onOpenUserManagementModal,
-  onRestoreDefaultModules,
   onLogout
 }) => {
   const canManageProjects = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
@@ -121,7 +120,6 @@ export const Header: React.FC<HeaderProps> = ({
               currentUser={currentUser}
               onOpenUserManagementModal={onOpenUserManagementModal}
               onLogout={onLogout}
-              onRestoreDefaults={onRestoreDefaultModules}
             />
 
           </div>

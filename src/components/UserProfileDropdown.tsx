@@ -6,14 +6,13 @@ interface UserProfileDropdownProps {
   currentUser: UserProfile;
   onOpenUserManagementModal: () => void;
   onLogout: () => void;
-  onRestoreDefaults: () => void;
+  onRestoreDefaults?: () => void;
 }
 
 export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
   currentUser,
   onOpenUserManagementModal,
-  onLogout,
-  onRestoreDefaults
+  onLogout
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -179,19 +178,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
               </>
             )}
 
-            {/* Restore Default Repositories */}
-            {isAdmin && (
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  onRestoreDefaults();
-                }}
-                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-700 font-medium flex items-center transition-colors"
-              >
-                <RotateCw className="w-4 h-4 mr-2.5 text-amber-600" />
-                Restore Default Modules (100 Cases)
-              </button>
-            )}
+
 
           </div>
 

@@ -1338,7 +1338,7 @@ export const App: React.FC = () => {
       <FolderPlus className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
       <h2 className="text-2xl font-extrabold text-slate-900">No Module Repositories Found</h2>
       <p className="text-xs text-slate-500 mt-2 mb-6 leading-relaxed">
-        Create a new module repository or restore default repositories for <strong>{activeProject.name}</strong>.
+        Create a new module repository for <strong>{activeProject.name}</strong>.
       </p>
       <div className="flex items-center justify-center space-x-3">
         {canManageCases ? (
@@ -1359,14 +1359,6 @@ export const App: React.FC = () => {
             Create New Repository
           </button>
         )}
-
-        <button
-          onClick={handleRestoreDefaultModules}
-          className="inline-flex items-center px-5 py-2.5 rounded-2xl text-xs font-extrabold bg-slate-900 hover:bg-slate-800 text-white shadow-md active:scale-95 transition-all"
-        >
-          <RotateCw className="w-4 h-4 mr-2 text-indigo-400" />
-          Restore Default Modules
-        </button>
       </div>
     </div>
   );
@@ -2083,27 +2075,7 @@ export const App: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Restore Factory Data</h3>
-                      <p className="text-xs text-slate-500 font-medium">Reset default modules data to original factory specs.</p>
-                      {currentUser.role === 'Admin' ? (
-                        <button
-                          onClick={handleRestoreDefaultModules}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all"
-                        >
-                          Restore Defaults
-                        </button>
-                      ) : (
-                        <button
-                          disabled
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60 transition-all flex items-center"
-                          title="Restoring default data restricted to Admin role"
-                        >
-                          <Lock className="w-3.5 h-3.5 mr-1.5 inline text-slate-400" />
-                          Restore Defaults
-                        </button>
-                      )}
-                    </div>
+
                   </div>
                 </div>
               )}
