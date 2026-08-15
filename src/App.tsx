@@ -64,14 +64,10 @@ export const App: React.FC = () => {
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
   const [isVisualDiffOpen, setIsVisualDiffOpen] = useState(false);
 
-  // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L) and Command Palette (Cmd+K)
+  // Keyboard Shortcuts for Command Palette & Feature Engine (Cmd+Shift+L / Cmd+K)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
-        e.preventDefault();
-        setIsLabsModalOpen(prev => !prev);
-      }
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+      if ((e.metaKey || e.ctrlKey) && ((e.shiftKey && (e.key === 'l' || e.key === 'L')) || e.key === 'k' || e.key === 'K')) {
         if (isFeatureActive(featureFlags, 'command_palette')) {
           e.preventDefault();
           setIsCommandPaletteOpen(prev => !prev);
@@ -2294,7 +2290,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Universal Command Palette (Cmd + K) */}
+      {/* Universal Command Palette (Cmd + Shift + L / Cmd + K) */}
       {isCommandPaletteOpen && (
         <CommandPalette
           isOpen={isCommandPaletteOpen}
@@ -2307,6 +2303,8 @@ export const App: React.FC = () => {
           onSelectProject={(projId) => setSelectedProjectId(projId)}
           onTriggerImport={() => setIsImporterOpen(true)}
           onTriggerExport={() => setIsExportModalOpen(true)}
+          onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
+          onAutomateTestCase={(tc) => handleAutomateTestCase(tc)}
         />
       )}
 

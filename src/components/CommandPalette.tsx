@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ProjectModule, TestCase, EnterpriseProject } from '../types';
-import { Search, Layers, RotateCw, PlaySquare, Bug, Settings, FolderKanban, Upload, Download, Sparkles, ChevronRight, Command } from 'lucide-react';
+import { Search, Layers, RotateCw, PlaySquare, Bug, Settings, FolderKanban, Upload, Download, Sparkles, ChevronRight, Command, Code2, Play } from 'lucide-react';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -13,6 +13,8 @@ interface CommandPaletteProps {
   onSelectProject: (projectId: string) => void;
   onTriggerImport: () => void;
   onTriggerExport: () => void;
+  onViewCodeSpec?: (testCase: TestCase) => void;
+  onAutomateTestCase?: (testCase: TestCase) => void;
 }
 
 interface CommandItem {
@@ -21,6 +23,7 @@ interface CommandItem {
   category: 'Navigation' | 'Module Repositories' | 'Projects' | 'Test Cases' | 'Quick Actions';
   icon: React.ReactNode;
   action: () => void;
+  testCase?: TestCase;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -33,7 +36,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectModule,
   onSelectProject,
   onTriggerImport,
-  onTriggerExport
+  onTriggerExport,
+  onViewCodeSpec,
+  onAutomateTestCase
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -59,7 +64,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'nav-execution', title: 'Go to Live Execution Board', category: 'Navigation', icon: <PlaySquare className="w-4 h-4 text-indigo-600" />, action: () => { onSelectTab('execution'); onClose(); } },
     { id: 'nav-bugs', title: 'Go to Jira Defects Tracker', category: 'Navigation', icon: <Bug className="w-4 h-4 text-indigo-600" />, action: () => { onSelectTab('bugs'); onClose(); } },
 
-    // Quick Actions
+    // Quick Actions - Code Spec & Automate
+    {
+      id: 'act-codespec-gen',
+      title: '</> View Playwright Code Spec Generator',
+      category: 'Quick Actions',
+      icon: <Code2 className="w-4 h-4 text-emerald-600" />,
+      action: () => {
+        if (testCases[0] && onViewCodeSpec) onViewCodeSpec(testCases[0]);
+        onClose();
+      }
+    },
+    {
+      id: 'act-automate-run',
+      title: '▷ Run Playwright Browser Automation Agent',
+      category: 'Quick Actions',
+      icon: <Play className="w-4 h-4 text-amber-500 fill-amber-500" />,
+      action: () => {
+        if (testCases[0] && onAutomateTestCase) onAutomateTestCase(testCases[0]);
+        onClose();
+      }
+    },
     { id: 'act-import', title: 'Add / Import Test Cases File', category: 'Quick Actions', icon: <Upload className="w-4 h-4 text-emerald-600" />, action: () => { onTriggerImport(); onClose(); } },
     { id: 'act-export', title: 'Export Zephyr Scale CSV Suite', category: 'Quick Actions', icon: <Download className="w-4 h-4 text-purple-600" />, action: () => { onTriggerExport(); onClose(); } },
 
@@ -81,13 +106,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       action: () => { onSelectProject(proj.id); onClose(); }
     })),
 
-    // Test cases (first 20 matches)
-    ...testCases.slice(0, 20).map(tc => ({
+    // Test cases (first 25 matches)
+    ...testCases.slice(0, 25).map(tc => ({
       id: `tc-${tc.key}`,
       title: `${tc.key}: ${tc.name}`,
       category: 'Test Cases' as const,
       icon: <Sparkles className="w-4 h-4 text-purple-500" />,
-      action: () => { onSelectTab('repository'); onClose(); }
+      action: () => { onSelectTab('repository'); onClose(); },
+      testCase: tc
     }))
   ];
 
@@ -137,9 +163,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             placeholder="Type a command, test key (e.g. HOL-T01), or search module..."
             className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none font-sans font-semibold"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-white text-slate-400 border border-slate-200 px-2 py-1 rounded-md shadow-2xs">
-            <Command className="w-3 h-3" /> K
-          </kbd>
+          <div className="hidden sm:flex items-center space-x-1 font-mono text-[10px] font-bold text-slate-400">
+            <kbd className="bg-white text-slate-500 border border-slate-200 px-2 py-1 rounded-md shadow-2xs">
+              ⌘ + Shift + L
+            </kbd>
+            <span>/</span>
+            <kbd className="bg-white text-slate-500 border border-slate-200 px-2 py-1 rounded-md shadow-2xs">
+              ⌘ + K
+            </kbd>
+          </div>
         </div>
 
         {/* Items List */}
@@ -174,8 +206,36 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center text-[10px] font-bold text-slate-400">
-                    {isSelected && <ChevronRight className="w-4 h-4 text-indigo-600" />}
+                  <div className="flex items-center space-x-1.5 flex-shrink-0">
+                    {item.testCase && onViewCodeSpec && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewCodeSpec(item.testCase!);
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-xl text-[10px] font-extrabold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-all flex items-center active:scale-95 shadow-2xs"
+                        title="View Playwright Code Spec"
+                      >
+                        <Code2 className="w-3 h-3 mr-1 text-emerald-600" />
+                        Code Spec
+                      </button>
+                    )}
+                    {item.testCase && onAutomateTestCase && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAutomateTestCase(item.testCase!);
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-xl text-[10px] font-extrabold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all flex items-center active:scale-95 shadow-2xs"
+                        title="Run Playwright Automation"
+                      >
+                        <Play className="w-3 h-3 mr-1 text-amber-600 fill-amber-600" />
+                        Automate
+                      </button>
+                    )}
+                    {isSelected && <ChevronRight className="w-4 h-4 text-indigo-600 ml-1" />}
                   </div>
                 </div>
               );
