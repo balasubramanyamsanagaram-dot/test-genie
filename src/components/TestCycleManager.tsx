@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TestCycle, TestCase, UserProfile, TestCycleItem, ProjectModule } from '../types';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
+import { ConfirmModal } from './ConfirmModal';
 import { RotateCw, Plus, PlaySquare, Calendar, Layers, ShieldCheck, CheckCircle2, User, FileSpreadsheet, Lock, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -33,6 +34,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [targetCycleForAddModal, setTargetCycleForAddModal] = useState<TestCycle | null>(null);
+  const [deletingCycle, setDeletingCycle] = useState<TestCycle | null>(null);
 
   // Form State
   const [cycleName, setCycleName] = useState(`Sprint 24 — ${moduleName} Execution`);
@@ -417,11 +419,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                     )}
                     {canCreateCycle && onDeleteCycle && (
                       <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete execution cycle "${cycle.name}"? This will also wipe its telemetry and logged defects from the dashboard.`)) {
-                            onDeleteCycle(cycle.id);
-                          }
-                        }}
+                        onClick={() => setDeletingCycle(cycle)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                         title="Delete Cycle"
                       >
@@ -452,6 +450,23 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
           availableCases={allAvailableCases}
           onAddCasesToCycle={onAddCasesToCycle}
           onClose={() => setTargetCycleForAddModal(null)}
+        />
+      )}
+
+      {/* Delete Cycle Confirmation Modal */}
+      {deletingCycle && (
+        <ConfirmModal
+          isOpen={true}
+          type="danger"
+          title={`Delete Execution Cycle — ${deletingCycle.name}`}
+          message={`Are you sure you want to delete execution cycle "${deletingCycle.name}"? This will also wipe its telemetry and logged defects from the dashboard.`}
+          confirmText="Yes, Delete Cycle"
+          cancelText="Cancel"
+          onConfirm={() => {
+            if (onDeleteCycle) onDeleteCycle(deletingCycle.id);
+            setDeletingCycle(null);
+          }}
+          onCancel={() => setDeletingCycle(null)}
         />
       )}
 

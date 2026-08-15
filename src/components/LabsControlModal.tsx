@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FeatureFlags, toggleFeatureFlag, promoteToPermanent, rollbackAllLabs, toggleLabsGlobal } from '../engine/feature-flags';
 import { X, Sparkles, ShieldAlert, CheckCircle2, RotateCcw, Zap, Terminal, Code2, Moon, Eye, Key } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface LabsControlModalProps {
   flags: FeatureFlags;
@@ -27,11 +28,12 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
     onFlagsUpdated(updated);
   };
 
-  const handlePromote = () => {
-    if (window.confirm('Promote to Permanent Production Mode?\n\nThis will permanently enable all 10 advanced QA features across the application for all users.')) {
-      const updated = promoteToPermanent();
-      onFlagsUpdated(updated);
-    }
+  const [isPromoteConfirmOpen, setIsPromoteConfirmOpen] = useState(false);
+
+  const handlePromoteConfirm = () => {
+    const updated = promoteToPermanent();
+    onFlagsUpdated(updated);
+    setIsPromoteConfirmOpen(false);
   };
 
   const handleRollback = () => {
@@ -254,7 +256,7 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
           </button>
 
           <button
-            onClick={handlePromote}
+            onClick={() => setIsPromoteConfirmOpen(true)}
             className="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-md transition-all active:scale-95"
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-200" />
@@ -263,6 +265,19 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
         </div>
 
       </div>
+
+      {isPromoteConfirmOpen && (
+        <ConfirmModal
+          isOpen={true}
+          type="info"
+          title="Promote to Permanent Production Mode"
+          message="This will permanently enable all advanced QA features across the application for all users."
+          confirmText="Promote to Production"
+          cancelText="Cancel"
+          onConfirm={handlePromoteConfirm}
+          onCancel={() => setIsPromoteConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 };

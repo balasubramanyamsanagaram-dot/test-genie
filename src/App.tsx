@@ -98,6 +98,7 @@ export const App: React.FC = () => {
     initialStepRuns?: any[];
   } | null>(null);
 
+  const [deletingBugKey, setDeletingBugKey] = useState<string | null>(null);
   const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
   const [promptConfig, setPromptConfig] = useState<{
     isOpen: boolean;
@@ -889,31 +890,7 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteBug = (bugKey: string) => {
-    if (confirm(`Are you sure you want to delete defect ticket "${bugKey}"?`)) {
-      setDefectRegistry(prev => prev.filter(b => b.issueKey !== bugKey));
-      
-      setTestCycles(prev => prev.map(cycle => ({
-        ...cycle,
-        items: cycle.items.map(item => {
-          let updatedBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
-          updatedBugs = updatedBugs.filter(b => b.issueKey !== bugKey);
-          
-          let primaryBug = item.jiraBug;
-          if (primaryBug?.issueKey === bugKey) {
-            primaryBug = updatedBugs[0] || undefined;
-          }
-          
-          return {
-            ...item,
-            jiraBug: primaryBug,
-            jiraBugs: updatedBugs,
-            defectId: primaryBug?.issueKey || undefined,
-            executionStatus: updatedBugs.length > 0 ? 'FAILED' : (item.executionStatus === 'FAILED' ? 'UNEXECUTED' : item.executionStatus)
-          };
-        })
-      })));
-      showToast(`Defect ticket "${bugKey}" deleted successfully!`);
-    }
+    setDeletingBugKey(bugKey);
   };
 
   const handleCreateOrUpdateBugRegistry = (
@@ -2241,6 +2218,46 @@ export const App: React.FC = () => {
           confirmText="Dismiss"
           onConfirm={() => setImportSuccessCount(null)}
           onCancel={() => setImportSuccessCount(null)}
+        />
+      )}
+
+      {/* Delete Defect Confirmation Modal */}
+      {deletingBugKey && (
+        <ConfirmModal
+          isOpen={true}
+          type="danger"
+          title={`Delete Defect Ticket ${deletingBugKey}`}
+          message={`Are you sure you want to delete defect ticket "${deletingBugKey}"? This will permanently remove it from Jira integration and executive telemetry.`}
+          confirmText="Delete Defect"
+          cancelText="Cancel"
+          onConfirm={() => {
+            const bugKey = deletingBugKey;
+            setDefectRegistry(prev => prev.filter(b => b.issueKey !== bugKey));
+            
+            setTestCycles(prev => prev.map(cycle => ({
+              ...cycle,
+              items: cycle.items.map(item => {
+                let updatedBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
+                updatedBugs = updatedBugs.filter(b => b.issueKey !== bugKey);
+                
+                let primaryBug = item.jiraBug;
+                if (primaryBug?.issueKey === bugKey) {
+                  primaryBug = updatedBugs[0] || undefined;
+                }
+                
+                return {
+                  ...item,
+                  jiraBug: primaryBug,
+                  jiraBugs: updatedBugs,
+                  defectId: primaryBug?.issueKey || undefined,
+                  executionStatus: updatedBugs.length > 0 ? 'FAILED' : (item.executionStatus === 'FAILED' ? 'UNEXECUTED' : item.executionStatus)
+                };
+              })
+            })));
+            showToast(`Defect ticket "${bugKey}" deleted successfully!`);
+            setDeletingBugKey(null);
+          }}
+          onCancel={() => setDeletingBugKey(null)}
         />
       )}
 
