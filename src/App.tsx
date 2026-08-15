@@ -2249,6 +2249,7 @@ export const App: React.FC = () => {
           <TestCaseImporter
             moduleName={activeModule.name}
             currentUser={currentUser}
+            existingCases={customModuleCases[activeModule.id] || []}
             onImportCases={handleImportCases}
             onClose={() => setIsImporterOpen(false)}
           />

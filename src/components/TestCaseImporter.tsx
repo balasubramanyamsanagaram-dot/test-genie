@@ -8,8 +8,64 @@ import { cleanTestCaseTitle } from '../engine/default-data';
 interface TestCaseImporterProps {
   moduleName: string;
   currentUser: UserProfile;
+  existingCases?: TestCase[];
   onImportCases: (newCases: TestCase[]) => void;
   onClose: () => void;
+}
+
+export function generateNextTcId(moduleName: string, existingCases: TestCase[] = []): string {
+  let prefix = '';
+  let maxNumber = 0;
+
+  if (existingCases && existingCases.length > 0) {
+    existingCases.forEach(c => {
+      if (!c.key) return;
+      const keyStr = c.key.trim();
+      
+      const match = keyStr.match(/^([A-Z]+-[A-Z]?)(\d+)/i);
+      if (match) {
+        prefix = match[1].toUpperCase();
+        if (!prefix.endsWith('-')) prefix += '-';
+        const num = parseInt(match[2], 10);
+        if (!isNaN(num) && num > maxNumber) {
+          maxNumber = num;
+        }
+      } else {
+        const numMatch = keyStr.match(/\d+/);
+        if (numMatch) {
+          const num = parseInt(numMatch[0], 10);
+          if (!isNaN(num) && num > maxNumber) {
+            maxNumber = num;
+          }
+        }
+      }
+    });
+  }
+
+  if (!prefix || prefix === 'TC-') {
+    const modPrefixMap: Record<string, string> = {
+      holidays: 'HOL-T',
+      leaves: 'LEV-T',
+      payroll: 'PAY-T',
+      performance: 'PRF-T',
+      attendance: 'ATT-T',
+      employees: 'EMP-T',
+      organization: 'ORG-T',
+      resignation: 'RSG-T'
+    };
+    const modKey = moduleName.toLowerCase().replace(/[^a-z]/g, '');
+    const foundPrefix = Object.keys(modPrefixMap).find(k => modKey.includes(k));
+    if (foundPrefix) {
+      prefix = modPrefixMap[foundPrefix];
+    } else {
+      prefix = `${moduleName.substring(0, 3).toUpperCase()}-T`;
+    }
+  }
+
+  const nextNum = maxNumber > 0 ? maxNumber + 1 : (existingCases.length + 1);
+  const formattedNum = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+
+  return `${prefix}${formattedNum}`;
 }
 
 export interface FileValidationError {
@@ -23,6 +79,7 @@ export interface FileValidationError {
 export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
   moduleName,
   currentUser,
+  existingCases = [],
   onImportCases,
   onClose
 }) => {
@@ -35,8 +92,8 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
   // Diagnostic Error State
   const [diagnosticError, setDiagnosticError] = useState<FileValidationError | null>(null);
 
-  // Manual Form Fields
-  const [key, setKey] = useState(`TC-${Date.now().toString().slice(-4)}`);
+  // Manual Form Fields with Dynamic Next TC - ID
+  const [key, setKey] = useState(() => generateNextTcId(moduleName, existingCases));
   const [name, setName] = useState('');
   const [objective, setObjective] = useState('');
   const [precondition, setPrecondition] = useState('');
@@ -312,7 +369,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
           <form onSubmit={handleManualSubmit} className="p-6 space-y-3 text-xs overflow-y-auto flex-1">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Scenario Key *</label>
+                <label className="font-bold text-slate-700 block mb-1">TC - ID *</label>
                 <input
                   type="text"
                   value={key}
@@ -336,7 +393,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Manual Test Scenario Title *</label>
+              <label className="font-bold text-slate-700 block mb-1">Manual Test Cases *</label>
               <input
                 type="text"
                 value={name}
@@ -393,7 +450,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
                 type="submit"
                 className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md"
               >
-                Save Manual Scenario
+                Save Manual Test Case
               </button>
             </div>
           </form>
