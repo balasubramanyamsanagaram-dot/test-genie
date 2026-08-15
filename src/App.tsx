@@ -21,7 +21,6 @@ import { AutomationSimulator } from './components/AutomationSimulator';
 
 import { getFeatureFlags, FeatureFlags, isFeatureActive } from './engine/feature-flags';
 import { LabsControlModal } from './components/LabsControlModal';
-import { SpeedRunExecutionBoard } from './components/SpeedRunExecutionBoard';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
@@ -56,7 +55,6 @@ export const App: React.FC = () => {
   // Feature Flags Engine State & Stealth Modals
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(getFeatureFlags());
   const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
-  const [isSpeedRunOpen, setIsSpeedRunOpen] = useState(false);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
 
@@ -1993,16 +1991,6 @@ export const App: React.FC = () => {
                         </button>
                       )}
 
-                      {isFeatureActive(featureFlags, 'speedrun_mode') && activeProjectCycles.length > 0 && (
-                        <button
-                          onClick={() => setIsSpeedRunOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-md transition-all active:scale-95 flex items-center"
-                        >
-                          <Zap className="w-3.5 h-3.5 mr-1.5" />
-                          SpeedRun Mode
-                        </button>
-                      )}
-
                       {canManageCases && (
                         <button
                           onClick={handleAddAIDemoCase}
@@ -2538,16 +2526,6 @@ export const App: React.FC = () => {
       )}
 
 
-
-      {/* SpeedRun Keyboard Execution Mode */}
-      {isSpeedRunOpen && activeProjectCycles.length > 0 && (
-        <SpeedRunExecutionBoard
-          cycle={activeProjectCycles[0]}
-          currentUser={currentUser}
-          onUpdateStatus={handleUpdateExecutionStatus}
-          onClose={() => setIsSpeedRunOpen(false)}
-        />
-      )}
 
       {/* AI Story to Test Case Modal */}
       {isStoryModalOpen && activeModule && (

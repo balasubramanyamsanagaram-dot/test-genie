@@ -17,7 +17,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   labs_enabled: false,
   permanent_mode: false,
   command_palette: true,
-  speedrun_mode: true,
+  speedrun_mode: false,
   ai_story_generator: true,
   playwright_drawer: true,
   dark_mode_theme: true,

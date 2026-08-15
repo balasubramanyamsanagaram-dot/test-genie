@@ -118,25 +118,7 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
             
 
 
-            {/* Feature 2: SpeedRun Execution */}
-            <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-1.5">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="font-extrabold text-xs text-slate-900">SpeedRun Keyboard Execution</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Distraction-free mode with P (Pass), F (Fail), B (Block), J/K keys.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={flags.permanent_mode || flags.speedrun_mode}
-                disabled={flags.permanent_mode}
-                onChange={() => handleToggle('speedrun_mode')}
-                className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
-              />
-            </div>
+
 
             {/* Feature 3: AI Story Importer */}
             <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
