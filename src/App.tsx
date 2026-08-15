@@ -64,14 +64,15 @@ export const App: React.FC = () => {
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
   const [isVisualDiffOpen, setIsVisualDiffOpen] = useState(false);
 
-  // Keyboard Shortcuts for Command Palette & Feature Engine (Cmd+Shift+L / Cmd+K)
+  // Keyboard Shortcuts for Command Palette (Cmd+Shift+L / Cmd+K)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && ((e.shiftKey && (e.key === 'l' || e.key === 'L')) || e.key === 'k' || e.key === 'K')) {
-        if (isFeatureActive(featureFlags, 'command_palette')) {
-          e.preventDefault();
-          setIsCommandPaletteOpen(prev => !prev);
-        }
+      const isCmdShiftL = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL');
+      const isCmdK = (e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK');
+      
+      if (isCmdShiftL || isCmdK) {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
       }
     };
 
@@ -85,7 +86,7 @@ export const App: React.FC = () => {
       window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('genie_feature_flags_updated', handleFlagsUpdated);
     };
-  }, [featureFlags]);
+  }, []);
 
   const [selectedAutomateCase, setSelectedAutomateCase] = useState<TestCase | null>(null);
   const [isAutomationDrawerOpen, setIsAutomationDrawerOpen] = useState(false);
@@ -1394,7 +1395,7 @@ export const App: React.FC = () => {
           onSelectProject={setSelectedProjectId}
           onOpenNewProjectModal={() => setIsNewProjectModalOpen(true)}
           onOpenUserManagementModal={() => setIsUserManagementOpen(true)}
-          onRestoreDefaultModules={handleRestoreDefaultModules}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onLogout={handleLogout}
         />
 
