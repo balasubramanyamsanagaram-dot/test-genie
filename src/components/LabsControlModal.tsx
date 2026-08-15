@@ -114,25 +114,7 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             
-            {/* Feature 1: Command Palette */}
-            <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-1.5">
-                  <Terminal className="w-4 h-4 text-indigo-600" />
-                  <span className="font-extrabold text-xs text-slate-900">Cmd + K Command Palette</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Universal search across modules, test keys, and quick actions.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={flags.permanent_mode || flags.command_palette}
-                disabled={flags.permanent_mode}
-                onChange={() => handleToggle('command_palette')}
-                className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
-              />
-            </div>
+
 
             {/* Feature 2: SpeedRun Execution */}
             <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
