@@ -285,6 +285,10 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             const unexec = total - (passed + failed + blocked);
 
             const passPercent = total > 0 ? Math.round((passed / total) * 100) : 0;
+            const failPercent = total > 0 ? Math.round((failed / total) * 100) : 0;
+            const blockPercent = total > 0 ? Math.round((blocked / total) * 100) : 0;
+            const executedTotal = passed + failed + blocked;
+            const execPercent = total > 0 ? Math.round((executedTotal / total) * 100) : 0;
 
             // Check if there are newly uploaded cases in the repository NOT in this cycle
             const existingCycleKeys = new Set([
@@ -371,16 +375,32 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                   )}
 
                   {/* Progress Bar */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-700">Execution Progress</span>
-                      <span className="text-emerald-600">{passPercent}% Passed</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-800 font-extrabold">Execution Progress</span>
+                      <div className="flex items-center space-x-1.5 text-[11px]">
+                        <span className="text-slate-600 font-mono">{execPercent}% Executed</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-emerald-600 font-mono">{passPercent}% Passed</span>
+                        {failPercent > 0 && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-rose-600 font-mono">{failPercent}% Failed</span>
+                          </>
+                        )}
+                        {blockPercent > 0 && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-amber-600 font-mono">{blockPercent}% Blocked</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
-                      <div style={{ width: `${(passed / total) * 100}%` }} className="bg-emerald-500 transition-all" />
-                      <div style={{ width: `${(failed / total) * 100}%` }} className="bg-rose-500 transition-all" />
-                      <div style={{ width: `${(blocked / total) * 100}%` }} className="bg-amber-500 transition-all" />
-                      <div style={{ width: `${(unexec / total) * 100}%` }} className="bg-slate-200 transition-all" />
+                    <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner border border-slate-200/80 p-0.5" title={`Passed: ${passed} | Failed: ${failed} | Blocked: ${blocked} | Unexecuted: ${unexec}`}>
+                      <div style={{ width: `${total > 0 ? (passed / total) * 100 : 0}%` }} className="bg-emerald-500 h-full transition-all rounded-l-full" title={`Passed: ${passed} (${passPercent}%)`} />
+                      <div style={{ width: `${total > 0 ? (failed / total) * 100 : 0}%` }} className="bg-rose-500 h-full transition-all" title={`Failed: ${failed} (${failPercent}%)`} />
+                      <div style={{ width: `${total > 0 ? (blocked / total) * 100 : 0}%` }} className="bg-amber-500 h-full transition-all" title={`Blocked: ${blocked} (${blockPercent}%)`} />
+                      <div style={{ width: `${total > 0 ? (unexec / total) * 100 : 0}%` }} className="bg-slate-200 h-full transition-all rounded-r-full" title={`Unexecuted: ${unexec}`} />
                     </div>
                   </div>
 
