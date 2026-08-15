@@ -1082,20 +1082,15 @@ export const App: React.FC = () => {
     }
   };
 
-  // Single Test Case Edit / Save
+  // Single Test Case Edit / Save in Master Repository (Triggers Sync alert in Execution Cycles)
   const handleSaveTestCase = (updatedCase: TestCase) => {
-    // 1. Update in customModuleCases
+    const keyUpper = updatedCase.key?.trim().toUpperCase();
     setCustomModuleCases(prev => {
       const modCases = prev[selectedModuleId] || [];
-      const updatedModCases = modCases.map(c => c.key === updatedCase.key ? updatedCase : c);
+      const updatedModCases = modCases.map(c => c.key?.trim().toUpperCase() === keyUpper ? updatedCase : c);
       return { ...prev, [selectedModuleId]: updatedModCases };
     });
-
-    // 2. Update inside active test cycles
-    setTestCycles(prev => prev.map(cycle => ({
-      ...cycle,
-      items: cycle.items.map(item => item.testCase.key === updatedCase.key ? { ...item, testCase: updatedCase } : item)
-    })));
+    showToast(`Updated test case ${updatedCase.key} in Master Repository!`, 'success');
   };
 
   // Single Test Case Delete in Master Repository (Does NOT affect execution cycles)
