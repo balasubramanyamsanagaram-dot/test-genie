@@ -521,6 +521,69 @@ export const App: React.FC = () => {
       }))
     ).filter(r => r.status !== 'UNEXECUTED').slice(0, 4);
 
+    // Dynamic per-module coverage stats
+    const moduleCoverageList = activeProject.modules.map(mod => {
+      const modCases = customModuleCases[mod.id] || [];
+      const modTotal = modCases.length;
+      const modExecItems = projCycles
+        .filter(c => c.moduleName?.toLowerCase() === mod.name?.toLowerCase())
+        .flatMap(c => c.items || []);
+      
+      const modExecuted = modExecItems.filter(i => i.executionStatus !== 'UNEXECUTED').length;
+      const modPassed = modExecItems.filter(i => i.executionStatus === 'PASSED').length;
+      const modFailed = modExecItems.filter(i => i.executionStatus === 'FAILED').length;
+      const modBlocked = modExecItems.filter(i => i.executionStatus === 'BLOCKED').length;
+
+      // Repository AST coverage vs 100 benchmark
+      const repoCoveragePct = modTotal > 0 ? Math.min(100, Math.round((modTotal / 100) * 100)) : 0;
+      const execCoveragePct = modTotal > 0 ? Math.round((modExecuted / modTotal) * 100) : 0;
+      const passCoveragePct = modTotal > 0 ? Math.round((modPassed / modTotal) * 100) : 0;
+
+      return {
+        id: mod.id,
+        name: mod.name,
+        totalCases: modTotal,
+        executed: modExecuted,
+        passed: modPassed,
+        failed: modFailed,
+        blocked: modBlocked,
+        repoCoveragePct,
+        execCoveragePct,
+        passCoveragePct
+      };
+    });
+
+    // Dynamic Line Chart 10-Point Data Construction
+    const nonUnexecuted = executedItems.filter(i => i.executionStatus !== 'UNEXECUTED');
+    const numPoints = 10;
+    const lineChartData = Array.from({ length: numPoints }, (_, i) => {
+      if (nonUnexecuted.length === 0) return { index: i + 1, pass: 0, fail: 0, block: 0 };
+      const sliceEnd = Math.max(1, Math.ceil(((i + 1) / numPoints) * nonUnexecuted.length));
+      const currentSlice = nonUnexecuted.slice(0, sliceEnd);
+      const passC = currentSlice.filter(x => x.executionStatus === 'PASSED').length;
+      const failC = currentSlice.filter(x => x.executionStatus === 'FAILED').length;
+      const blockC = currentSlice.filter(x => x.executionStatus === 'BLOCKED').length;
+      return { index: i + 1, pass: passC, fail: failC, block: blockC };
+    });
+
+    const maxLineVal = Math.max(1, ...lineChartData.map(d => Math.max(d.pass, d.fail, d.block)));
+
+    const getSvgPath = (key: 'pass' | 'fail' | 'block') => {
+      if (nonUnexecuted.length === 0) return "M 0 140 L 400 140";
+      const pts = lineChartData.map((d, idx) => {
+        const x = (idx / (numPoints - 1)) * 400;
+        const val = d[key];
+        const y = 140 - (val / maxLineVal) * 110;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      return `M ${pts.join(' L ')}`;
+    };
+
+    const passLinePath = getSvgPath('pass');
+    const passAreaPath = nonUnexecuted.length === 0 ? "M 0 140 L 400 140 L 400 160 L 0 160 Z" : `${passLinePath} L 400 160 L 0 160 Z`;
+    const failLinePath = getSvgPath('fail');
+    const blockLinePath = getSvgPath('block');
+
     return {
       totalModules,
       totalCases,
@@ -538,7 +601,13 @@ export const App: React.FC = () => {
       medium,
       low,
       recentRuns,
-      failedItems
+      failedItems,
+      moduleCoverageList,
+      lineChartData,
+      passLinePath,
+      passAreaPath,
+      failLinePath,
+      blockLinePath
     };
   }, [activeProject.modules, customModuleCases, testCycles, activeProject.id]);
 
@@ -1558,15 +1627,15 @@ export const App: React.FC = () => {
                           <line x1="0" y1="80" x2="400" y2="80" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
                           <line x1="0" y1="120" x2="400" y2="120" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
                           
-                          {/* Passed Curve */}
-                          <path d={dashboardStats.executionsToday > 0 ? "M0,130 C40,90 70,110 130,70 C190,60 250,95 310,110 C370,60 400,50 400,50" : "M0,150 L400,150"} fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" />
-                          <path d={dashboardStats.executionsToday > 0 ? "M0,130 C40,90 70,110 130,70 C190,60 250,95 310,110 C370,60 400,50 400,50 L400,160 L0,160 Z" : "M0,150 L400,150 L400,160 L0,160 Z"} fill="url(#passGrad)" />
+                          {/* Passed Line */}
+                          <path d={dashboardStats.passLinePath} fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" />
+                          <path d={dashboardStats.passAreaPath} fill="url(#passGrad)" />
                           
-                          {/* Failed Curve */}
-                          <path d={dashboardStats.executionsToday > 0 ? "M0,140 C40,130 70,120 130,135 C190,140 250,115 310,130 C370,125 400,130 400,130" : "M0,150 L400,150"} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+                          {/* Failed Line */}
+                          <path d={dashboardStats.failLinePath} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
                           
-                          {/* Blocked Curve */}
-                          <path d={dashboardStats.executionsToday > 0 ? "M0,150 C40,145 70,148 130,140 C190,146 250,142 310,147 C370,145 400,148 400,148" : "M0,150 L400,150"} fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                          {/* Blocked Line */}
+                          <path d={dashboardStats.blockLinePath} fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
                         </svg>
                         
                         {/* X Axis Labels */}
@@ -1705,19 +1774,27 @@ export const App: React.FC = () => {
                         <span className="text-[9px] font-mono text-slate-400">Class chart by modules</span>
                       </div>
 
-                      <div className="flex items-end justify-between h-44 pt-4 px-2">
-                        {activeProject.modules.slice(0, 5).map(mod => {
-                          const coverage = mod.coveragePercentage || 100;
-                          const heightPx = Math.round((coverage / 100) * 144);
+                      <div className="flex items-end justify-around h-44 pt-4 px-2">
+                        {dashboardStats.moduleCoverageList.slice(0, 5).map(mod => {
+                          const heightPx = Math.max(12, Math.round((mod.repoCoveragePct / 100) * 144));
+                          const execHeightPx = Math.round((mod.execCoveragePct / 100) * heightPx);
                           return (
                             <div key={mod.id} className="flex flex-col items-center space-y-2 flex-grow min-w-0">
+                              <div className="text-[9px] font-mono font-bold text-slate-600">
+                                {mod.totalCases}
+                              </div>
                               <div 
-                                className="w-4 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-t-lg transition-all duration-500" 
+                                className="w-5 bg-indigo-100 rounded-t-lg relative overflow-hidden transition-all duration-500 border border-indigo-200/60" 
                                 style={{ height: `${heightPx}px` }}
-                                title={`${mod.name}: ${coverage}% coverage`}
-                              ></div>
-                              <span className="text-[9px] font-mono text-slate-400 truncate w-12 text-center" title={mod.name}>
-                                {mod.name.substring(0, 5)}
+                                title={`${mod.name}: ${mod.totalCases} Manual Test Cases (${mod.executed} executed: ${mod.passed} passed, ${mod.failed} failed)`}
+                              >
+                                <div 
+                                  className="w-full bg-gradient-to-t from-indigo-600 to-purple-600 absolute bottom-0 left-0 transition-all duration-500"
+                                  style={{ height: `${execHeightPx}px` }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-mono font-bold text-slate-600 truncate w-16 text-center" title={mod.name}>
+                                {mod.name.length > 7 ? `${mod.name.substring(0, 6)}..` : mod.name}
                               </span>
                             </div>
                           );
