@@ -70,22 +70,24 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Center: Global Search Input / Command Palette Trigger */}
-          <div 
-            onClick={() => onOpenCommandPalette?.()}
-            className="flex-1 max-w-md mx-4 relative hidden md:block cursor-pointer group"
-          >
-            <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+          {/* Center: Global Search Input */}
+          <div className="flex-1 max-w-md mx-4 relative hidden md:block">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
             <input
               type="text"
-              readOnly
               value={searchQuery}
-              placeholder="Search test cases, run commands (⌘ + Shift + L)..."
-              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-16 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none group-hover:border-indigo-300 font-sans font-medium cursor-pointer"
+              onChange={e => onSearchChange(e.target.value)}
+              placeholder="Search test cases..."
+              className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-sans font-medium"
             />
-            <div className="absolute right-2 top-2 flex items-center space-x-1 font-mono text-[9px] font-bold text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded-md shadow-2xs">
-              <span>⌘+Shift+L</span>
-            </div>
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Right: Export, Help, Notification & Profile Dropdown */}

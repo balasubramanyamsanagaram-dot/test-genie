@@ -21,7 +21,6 @@ import { AutomationSimulator } from './components/AutomationSimulator';
 
 import { getFeatureFlags, FeatureFlags, isFeatureActive } from './engine/feature-flags';
 import { LabsControlModal } from './components/LabsControlModal';
-import { CommandPalette } from './components/CommandPalette';
 import { SpeedRunExecutionBoard } from './components/SpeedRunExecutionBoard';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
@@ -57,23 +56,18 @@ export const App: React.FC = () => {
   // Feature Flags Engine State & Stealth Modals
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(getFeatureFlags());
   const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSpeedRunOpen, setIsSpeedRunOpen] = useState(false);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
 
-  // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L) and Command Palette (Cmd+K)
+  // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isCmdShiftL = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL');
-      const isCmdK = (e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK');
       
       if (isCmdShiftL) {
         e.preventDefault();
         setIsLabsModalOpen(prev => !prev);
-      } else if (isCmdK) {
-        e.preventDefault();
-        setIsCommandPaletteOpen(prev => !prev);
       }
     };
 
@@ -1396,7 +1390,6 @@ export const App: React.FC = () => {
           onSelectProject={setSelectedProjectId}
           onOpenNewProjectModal={() => setIsNewProjectModalOpen(true)}
           onOpenUserManagementModal={() => setIsUserManagementOpen(true)}
-          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onLogout={handleLogout}
         />
 
@@ -2290,23 +2283,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Universal Command Palette (Cmd + Shift + L / Cmd + K) */}
-      {isCommandPaletteOpen && (
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          modules={activeProject.modules}
-          projects={DEFAULT_ENTERPRISE_PROJECTS}
-          testCases={testCases}
-          onSelectTab={handleTabChange}
-          onSelectModule={handleSelectModuleSmart}
-          onSelectProject={(projId) => setSelectedProjectId(projId)}
-          onTriggerImport={() => setIsImporterOpen(true)}
-          onTriggerExport={() => setIsExportModalOpen(true)}
-          onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
-          onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? (tc) => handleAutomateTestCase(tc) : undefined}
-        />
-      )}
+
 
       {/* SpeedRun Keyboard Execution Mode */}
       {isSpeedRunOpen && activeProjectCycles.length > 0 && (
