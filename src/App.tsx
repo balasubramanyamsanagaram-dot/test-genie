@@ -64,13 +64,16 @@ export const App: React.FC = () => {
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
   const [isVisualDiffOpen, setIsVisualDiffOpen] = useState(false);
 
-  // Keyboard Shortcuts for Command Palette (Cmd+Shift+L / Cmd+K)
+  // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L) and Command Palette (Cmd+K)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isCmdShiftL = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL');
       const isCmdK = (e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K' || e.code === 'KeyK');
       
-      if (isCmdShiftL || isCmdK) {
+      if (isCmdShiftL) {
+        e.preventDefault();
+        setIsLabsModalOpen(prev => !prev);
+      } else if (isCmdK) {
         e.preventDefault();
         setIsCommandPaletteOpen(prev => !prev);
       }
@@ -2282,12 +2285,20 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Genie Labs Controls Modal (Cmd + Shift + L) */}
+      {/* Stealth Labs Controls Modal (Cmd + Shift + L) */}
       {isLabsModalOpen && (
         <LabsControlModal
           flags={featureFlags}
           onFlagsUpdated={setFeatureFlags}
           onClose={() => setIsLabsModalOpen(false)}
+          onLaunchCodeSpec={() => {
+            setIsLabsModalOpen(false);
+            if (testCases.length > 0) setSelectedCodeCase(testCases[0]);
+          }}
+          onLaunchAutomate={() => {
+            setIsLabsModalOpen(false);
+            if (testCases.length > 0) handleAutomateTestCase(testCases[0]);
+          }}
         />
       )}
 

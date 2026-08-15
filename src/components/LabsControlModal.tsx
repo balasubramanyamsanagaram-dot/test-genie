@@ -6,12 +6,16 @@ interface LabsControlModalProps {
   flags: FeatureFlags;
   onFlagsUpdated: (flags: FeatureFlags) => void;
   onClose: () => void;
+  onLaunchCodeSpec?: () => void;
+  onLaunchAutomate?: () => void;
 }
 
 export const LabsControlModal: React.FC<LabsControlModalProps> = ({
   flags,
   onFlagsUpdated,
-  onClose
+  onClose,
+  onLaunchCodeSpec,
+  onLaunchAutomate
 }) => {
   const handleToggle = (key: keyof FeatureFlags) => {
     const updated = toggleFeatureFlag(key);
@@ -170,24 +174,68 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               />
             </div>
 
-            {/* Feature 4: Playwright Exporter */}
-            <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-1.5">
-                  <Code2 className="w-4 h-4 text-emerald-600" />
-                  <span className="font-extrabold text-xs text-slate-900">Playwright/Cypress Code Drawer</span>
+            {/* Feature 4: Playwright Code Spec Generator */}
+            <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col justify-between space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-1.5">
+                    <Code2 className="w-4 h-4 text-emerald-600" />
+                    <span className="font-extrabold text-xs text-slate-900">Playwright Code Spec Generator</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Side-by-side drawer generating runnable TypeScript .spec.ts code.
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Live side-by-side drawer generating runnable .spec.ts code.
-                </p>
+                <input
+                  type="checkbox"
+                  checked={flags.permanent_mode || (flags.labs_enabled && flags.playwright_drawer)}
+                  disabled={flags.permanent_mode || !flags.labs_enabled}
+                  onChange={() => handleToggle('playwright_drawer')}
+                  className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
+                />
               </div>
-              <input
-                type="checkbox"
-                checked={flags.permanent_mode || (flags.labs_enabled && flags.playwright_drawer)}
-                disabled={flags.permanent_mode || !flags.labs_enabled}
-                onChange={() => handleToggle('playwright_drawer')}
-                className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
-              />
+
+              {onLaunchCodeSpec && (
+                <button
+                  onClick={onLaunchCodeSpec}
+                  className="w-full py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-[11px] border border-emerald-200 flex items-center justify-center transition-all active:scale-95 shadow-2xs"
+                >
+                  <Code2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                  Launch Code Spec Generator
+                </button>
+              )}
+            </div>
+
+            {/* Feature 5: Headed Browser Automation Runner */}
+            <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex flex-col justify-between space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-1.5">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    <span className="font-extrabold text-xs text-slate-900">Browser Automation Agent</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    Local chromium headed execution engine with step trace viewer.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={flags.permanent_mode || (flags.labs_enabled && flags.browser_automation_runner)}
+                  disabled={flags.permanent_mode || !flags.labs_enabled}
+                  onChange={() => handleToggle('browser_automation_runner')}
+                  className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
+                />
+              </div>
+
+              {onLaunchAutomate && (
+                <button
+                  onClick={onLaunchAutomate}
+                  className="w-full py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-[11px] border border-amber-200 flex items-center justify-center transition-all active:scale-95 shadow-2xs"
+                >
+                  <Zap className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+                  Launch Browser Automation Agent
+                </button>
+              )}
             </div>
 
             {/* Feature 5: Dark Mode Theme */}

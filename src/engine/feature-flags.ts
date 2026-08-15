@@ -9,6 +9,7 @@ export interface FeatureFlags {
   dark_mode_theme: boolean;
   visual_regression: boolean;
   flaky_test_healer: boolean;
+  browser_automation_runner: boolean;
 }
 
 const STORAGE_KEY = 'test_genie_feature_flags_v1';
@@ -23,6 +24,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   dark_mode_theme: true,
   visual_regression: true,
   flaky_test_healer: true,
+  browser_automation_runner: true,
 };
 
 export const getFeatureFlags = (): FeatureFlags => {
@@ -71,6 +73,7 @@ export const promoteToPermanent = (): FeatureFlags => {
     dark_mode_theme: true,
     visual_regression: true,
     flaky_test_healer: true,
+    browser_automation_runner: true,
   };
   saveFeatureFlags(updated);
   return updated;
