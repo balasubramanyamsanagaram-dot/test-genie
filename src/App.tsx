@@ -278,19 +278,51 @@ export const App: React.FC = () => {
     return casesMap;
   });
 
-  // Load Persisted Test Cycles from localStorage (Backward Compatible)
+  // Cycle Sanitizer: Deduplicates items by testCase.key (case-insensitive)
+  function sanitizeTestCycle(cycle: TestCycle): TestCycle {
+    if (!cycle || !cycle.items) return cycle;
+    const seen = new Set<string>();
+    const dedupedItems: TestCycleItem[] = [];
+
+    for (const item of cycle.items) {
+      if (!item || !item.testCase) continue;
+      const rawKey = item.testCase.key || '';
+      const keyUpper = rawKey.trim().toUpperCase();
+      
+      if (keyUpper && !seen.has(keyUpper)) {
+        seen.add(keyUpper);
+        dedupedItems.push({
+          ...item,
+          testCase: {
+            ...item.testCase,
+            key: rawKey.trim()
+          }
+        });
+      }
+    }
+
+    return {
+      ...cycle,
+      items: dedupedItems
+    };
+  }
+
+  // Load Persisted Test Cycles from localStorage with Automatic Deduplication Sanitizer
   const [testCycles, setTestCycles] = useState<TestCycle[]>(() => {
+    let cyclesRaw: TestCycle[] = DEFAULT_PRELOADED_TEST_CYCLES;
     try {
       const savedV2 = localStorage.getItem(STORAGE_KEY_CYCLES);
       if (savedV2) {
-        return JSON.parse(savedV2);
-      }
-      const savedV1 = localStorage.getItem('test_genie_test_cycles_v1');
-      if (savedV1) {
-        return JSON.parse(savedV1);
+        cyclesRaw = JSON.parse(savedV2);
+      } else {
+        const savedV1 = localStorage.getItem('test_genie_test_cycles_v1');
+        if (savedV1) {
+          cyclesRaw = JSON.parse(savedV1);
+        }
       }
     } catch (e) {}
-    return DEFAULT_PRELOADED_TEST_CYCLES;
+    
+    return cyclesRaw.map(c => sanitizeTestCycle(c));
   });
 
   const [defectRegistry, setDefectRegistry] = useState<JiraBug[]>(() => {
@@ -1071,29 +1103,31 @@ export const App: React.FC = () => {
   // Sync Edited Master Test Cases into Execution Cycle
   const handleSyncEditedCasesToCycle = (cycleId: string) => {
     const moduleCases = customModuleCases[selectedModuleId] || [];
-    const masterCaseMap = new Map(moduleCases.map(c => [c.key, c]));
+    const masterCaseMap = new Map(moduleCases.map(c => [c.key?.trim().toUpperCase(), c]));
 
     let syncedCount = 0;
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
 
-      const updatedItems = cycle.items.map(item => {
-        const master = masterCaseMap.get(item.testCase.key);
-        if (master && (
-          master.name !== item.testCase.name ||
-          master.testSteps !== item.testCase.testSteps ||
-          master.expectedResult !== item.testCase.expectedResult ||
-          master.objective !== item.testCase.objective ||
-          master.precondition !== item.testCase.precondition
-        )) {
+      const seenKeys = new Set<string>();
+      const updatedItems: TestCycleItem[] = [];
+
+      for (const item of cycle.items) {
+        const keyUpper = item.testCase.key?.trim().toUpperCase();
+        if (!keyUpper || seenKeys.has(keyUpper)) continue; // Drop any duplicates
+        seenKeys.add(keyUpper);
+
+        const master = masterCaseMap.get(keyUpper);
+        if (master) {
           syncedCount++;
-          return {
+          updatedItems.push({
             ...item,
             testCase: { ...master }
-          };
+          });
+        } else {
+          updatedItems.push(item);
         }
-        return item;
-      });
+      }
 
       return {
         ...cycle,
@@ -1101,17 +1135,17 @@ export const App: React.FC = () => {
       };
     }));
 
-    showToast(`Successfully synced edited test cases into execution cycle!`, 'success');
+    showToast(`Successfully synced ${syncedCount} updated test cases into cycle!`, 'success');
   };
 
   // Bulk Edit Test Cases
   const handleBulkEditTestCases = (keys: string[], updates: { priority?: string; type?: string; status?: string }) => {
-    const keySet = new Set(keys);
+    const keySet = new Set(keys.map(k => k.trim().toUpperCase()));
 
     setCustomModuleCases(prev => {
       const modCases = prev[selectedModuleId] || [];
       const updatedModCases = modCases.map(c => {
-        if (!keySet.has(c.key)) return c;
+        if (!keySet.has(c.key?.trim().toUpperCase())) return c;
         return {
           ...c,
           priority: updates.priority || c.priority,
@@ -1125,7 +1159,7 @@ export const App: React.FC = () => {
     setTestCycles(prev => prev.map(cycle => ({
       ...cycle,
       items: cycle.items.map(item => {
-        if (!keySet.has(item.testCase.key)) return item;
+        if (!keySet.has(item.testCase.key?.trim().toUpperCase())) return item;
         return {
           ...item,
           testCase: {
@@ -1141,11 +1175,11 @@ export const App: React.FC = () => {
 
   // Bulk Delete Test Cases in Master Repository (Does NOT affect execution cycles)
   const handleBulkDeleteTestCases = (keys: string[]) => {
-    const keySet = new Set(keys);
+    const keySet = new Set(keys.map(k => k.trim().toUpperCase()));
 
     setCustomModuleCases(prev => {
       const modCases = prev[selectedModuleId] || [];
-      const updatedModCases = modCases.filter(c => !keySet.has(c.key));
+      const updatedModCases = modCases.filter(c => !keySet.has(c.key?.trim().toUpperCase()));
       return { ...prev, [selectedModuleId]: updatedModCases };
     });
 
@@ -1154,26 +1188,27 @@ export const App: React.FC = () => {
 
   // Bulk Remove items from a specific Execution Cycle
   const handleBulkDeleteCycleItems = (cycleId: string, itemKeys: string[]) => {
-    const keySet = new Set(itemKeys);
+    const keySet = new Set(itemKeys.map(k => k.trim().toUpperCase()));
     setTestCycles(prev => prev.map(c => {
       if (c.id !== cycleId) return c;
-      return {
+      const filtered = c.items.filter(i => !keySet.has(i.testCase.key?.trim().toUpperCase()));
+      return sanitizeTestCycle({
         ...c,
-        items: c.items.filter(i => !keySet.has(i.testCase.key))
-      };
+        items: filtered
+      });
     }));
     showToast(`Removed ${itemKeys.length} test cases from execution cycle!`, 'info');
   };
 
   // Bulk Edit items in a specific Execution Cycle
   const handleBulkEditCycleItems = (cycleId: string, itemKeys: string[], updates: { priority?: string; type?: string; status?: string }) => {
-    const keySet = new Set(itemKeys);
+    const keySet = new Set(itemKeys.map(k => k.trim().toUpperCase()));
     setTestCycles(prev => prev.map(c => {
       if (c.id !== cycleId) return c;
       return {
         ...c,
         items: c.items.map(i => {
-          if (!keySet.has(i.testCase.key)) return i;
+          if (!keySet.has(i.testCase.key?.trim().toUpperCase())) return i;
           return {
             ...i,
             testCase: {
@@ -1191,11 +1226,12 @@ export const App: React.FC = () => {
 
   // Remove single item from cycle
   const handleRemoveCycleItem = (cycleId: string, itemKey: string) => {
+    const keyUpper = itemKey.trim().toUpperCase();
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
       return {
         ...cycle,
-        items: cycle.items.filter(item => item.testCase.key !== itemKey)
+        items: cycle.items.filter(item => item.testCase.key?.trim().toUpperCase() !== keyUpper)
       };
     }));
   };
@@ -1205,9 +1241,9 @@ export const App: React.FC = () => {
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
       
-      const existingKeys = new Set(cycle.items.map(i => i.testCase.key));
+      const existingKeys = new Set(cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean));
       const newItems: TestCycleItem[] = newCases
-        .filter(c => !existingKeys.has(c.key))
+        .filter(c => c.key && !existingKeys.has(c.key.trim().toUpperCase()))
         .map(c => ({
           id: `item-${c.key}-${Date.now()}`,
           testCase: c,
@@ -1215,10 +1251,10 @@ export const App: React.FC = () => {
           assignedTo: cycle.assignedTester
         }));
 
-      return {
+      return sanitizeTestCycle({
         ...cycle,
         items: [...cycle.items, ...newItems]
-      };
+      });
     }));
   };
 
