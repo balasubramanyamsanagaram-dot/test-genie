@@ -223,7 +223,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
             type="text"
             value={activeSearch}
             onChange={e => handleInputChange(e.target.value)}
-            placeholder="Search by Key, Scenario Name, or Instructions..."
+            placeholder="Search by TC - ID, Manual Test Cases, or Test Steps..."
             className="w-full bg-white text-slate-800 text-xs rounded-xl pl-10 pr-4 py-2.5 border border-slate-300 focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
           />
         </div>
