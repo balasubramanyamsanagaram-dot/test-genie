@@ -1,5 +1,36 @@
 import { TestCase, TestCycle } from '../types';
 
+export const cleanTestCaseTitle = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/^\[?[A-Z0-9]+-[A-Z0-9-]+\]?\s*:?\s*/i, '')
+    .replace(/^Verify\s+\[?[A-Z0-9]+-[A-Z0-9-]+\]?\s+/i, 'Verify ')
+    .replace(/^Verify\s+Verify\s+/i, 'Verify ')
+    .trim();
+};
+
+export const normalizeTestCase = (tc: TestCase): TestCase => {
+  if (!tc) return tc;
+  let cleanKey = tc.key || '';
+  
+  const matchInName = tc.name ? tc.name.match(/^\[([A-Z0-9]+-[A-Z0-9]+)\]/i) : null;
+  if (matchInName && matchInName[1]) {
+    cleanKey = matchInName[1].toUpperCase();
+  } else if (/^TC-HOL-/i.test(cleanKey)) {
+    cleanKey = cleanKey.replace(/^TC-HOL-/i, 'HOL-T');
+  }
+
+  const cleanName = cleanTestCaseTitle(tc.name);
+  const cleanObjective = cleanTestCaseTitle(tc.objective) || cleanName;
+
+  return {
+    ...tc,
+    key: cleanKey,
+    name: cleanName,
+    objective: cleanObjective
+  };
+};
+
 export const DEFAULT_PRELOADED_TEST_CYCLES: TestCycle[] = [
   {
     id: 'cycle-holidays-sprint24',

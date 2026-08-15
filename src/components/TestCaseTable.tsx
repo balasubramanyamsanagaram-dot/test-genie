@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TestCase } from '../types';
 import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play, Lock, Code2 } from 'lucide-react';
 import { EditTestCaseModal } from './EditTestCaseModal';
+import { cleanTestCaseTitle } from '../engine/default-data';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
 import { ConfirmModal, ConfirmType } from './ConfirmModal';
 import { SearchableSelect } from './SearchableSelect';
@@ -349,8 +350,8 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
 
                     {/* Scenario Name & Objective */}
                     <td className="py-4 px-4 align-top max-w-xs space-y-1">
-                      <span className="font-extrabold text-slate-900 block">{tc.name}</span>
-                      <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-2">{tc.objective}</p>
+                      <span className="font-extrabold text-slate-900 block">{cleanTestCaseTitle(tc.name)}</span>
+                      <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-2">{cleanTestCaseTitle(tc.objective)}</p>
                       {tc.createdBy && (
                         <span className="inline-block text-[10px] text-slate-400 font-medium">
                           Added by: {tc.createdBy}

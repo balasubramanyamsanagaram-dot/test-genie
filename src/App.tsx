@@ -10,7 +10,7 @@ import { ModuleCardsGrid } from './components/ModuleCardsGrid';
 import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
 import { CreateEditBugModal } from './components/CreateEditBugModal';
-import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES } from './engine/default-data';
+import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES, normalizeTestCase, cleanTestCaseTitle } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
 import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye } from 'lucide-react';
 
@@ -329,12 +329,23 @@ export const App: React.FC = () => {
       try {
         const savedCycles = await getIDBItem<TestCycle[]>(STORAGE_KEY_CYCLES);
         if (savedCycles && savedCycles.length > 0 && isMounted) {
-          setTestCycles(savedCycles);
+          const normalizedCycles = savedCycles.map(cycle => ({
+            ...cycle,
+            items: (cycle.items || []).map(item => ({
+              ...item,
+              testCase: normalizeTestCase(item.testCase)
+            }))
+          }));
+          setTestCycles(normalizedCycles);
         }
 
         const savedCases = await getIDBItem<Record<string, TestCase[]>>(STORAGE_KEY_CASES);
         if (savedCases && isMounted) {
-          setCustomModuleCases(savedCases);
+          const normalizedMap: Record<string, TestCase[]> = {};
+          Object.keys(savedCases).forEach(modId => {
+            normalizedMap[modId] = (savedCases[modId] || []).map(normalizeTestCase);
+          });
+          setCustomModuleCases(normalizedMap);
         }
 
         const savedBugs = await getIDBItem<JiraBug[]>('test_genie_defect_registry_v1');
