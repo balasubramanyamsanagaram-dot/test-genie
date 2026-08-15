@@ -240,7 +240,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
                 <Terminal className="w-4 h-4 mr-2 text-indigo-400" />
                 BrowserAutomationAgent@{testCase.key}
               </h3>
-              <p className="text-[10px] text-slate-500 font-mono">Running local chromium headed engine...</p>
+              <p className="text-[10px] text-slate-500 font-mono">Running local {browser} headed engine...</p>
             </div>
           </div>
 
@@ -336,7 +336,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-800">Browser Executing...</h4>
                     <p className="text-[10px] text-slate-500 max-w-xs mx-auto">
-                      Chromium is running manual test instructions headed on your Mac desktop screen. Please wait...
+                      {browser} is running manual test instructions headed on your Mac desktop screen. Please wait...
                     </p>
                   </div>
                 </div>
