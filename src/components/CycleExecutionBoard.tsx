@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase, AgentExecutionRun } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
 import { EditTestCaseModal } from './EditTestCaseModal';
+import { BulkEditCasesModal } from './BulkEditCasesModal';
 import { ConfirmModal } from './ConfirmModal';
 
 interface CycleExecutionBoardProps {
@@ -24,6 +25,8 @@ interface CycleExecutionBoardProps {
   onRequestPassEvidence?: (cycleId: string, itemKey: string, itemTitle: string) => void;
   onSaveTestCase?: (updatedCase: TestCase) => void;
   onDeleteCycleItem?: (cycleId: string, itemKey: string) => void;
+  onBulkEditCycleItems?: (cycleId: string, itemKeys: string[], updates: { priority?: string; type?: string; status?: string }) => void;
+  onBulkDeleteCycleItems?: (cycleId: string, itemKeys: string[]) => void;
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
   onViewCodeSpec?: (testCase: TestCase) => void;
   onAutomateTestCase?: (testCase: TestCase) => void;
@@ -41,6 +44,8 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onRequestPassEvidence,
   onSaveTestCase,
   onDeleteCycleItem,
+  onBulkEditCycleItems,
+  onBulkDeleteCycleItems,
   onSyncEditedCasesToCycle,
   onViewCodeSpec,
   onAutomateTestCase,
@@ -48,12 +53,15 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onBackToCycles
 }) => {
   const [selectedItemKey, setSelectedItemKey] = useState<string>(cycle.items[0]?.testCase.key || '');
+  const [selectedItemKeys, setSelectedItemKeys] = useState<string[]>([]);
   const [isBugModalOpen, setIsBugModalOpen] = useState<boolean>(false);
   const [isAddCasesModalOpen, setIsAddCasesModalOpen] = useState<boolean>(false);
 
   // Edit & Delete In-App Modal States
   const [editingTestCase, setEditingTestCase] = useState<TestCase | null>(null);
   const [deletingItemKey, setDeletingItemKey] = useState<string | null>(null);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState<boolean>(false);
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState<boolean>(false);
 
   // Lightbox Media Viewer State
   const [activeMediaUrl, setActiveMediaUrl] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
@@ -261,84 +269,136 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
         {/* Left Side: Test Cases List (4 Cols) */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col max-h-[700px]">
           <div className="p-3 bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-700 flex items-center justify-between">
-            <span>Cycle Test Cases ({cycle.items.length})</span>
-            <span className="text-[10px] text-slate-400 font-mono">Assigned & Executed</span>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={cycle.items.length > 0 && selectedItemKeys.length === cycle.items.length}
+                onChange={() => {
+                  if (selectedItemKeys.length === cycle.items.length) {
+                    setSelectedItemKeys([]);
+                  } else {
+                    setSelectedItemKeys(cycle.items.map(i => i.testCase.key));
+                  }
+                }}
+                className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer"
+              />
+              <span>Cycle Test Cases ({cycle.items.length})</span>
+            </div>
+            {selectedItemKeys.length > 0 ? (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setIsBulkEditOpen(true)}
+                  className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-2xs flex items-center"
+                >
+                  <Layers className="w-3 h-3 mr-1" />
+                  Edit ({selectedItemKeys.length})
+                </button>
+                <button
+                  onClick={() => setIsBulkDeleteConfirmOpen(true)}
+                  className="px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold shadow-2xs flex items-center"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Delete ({selectedItemKeys.length})
+                </button>
+              </div>
+            ) : (
+              <span className="text-[10px] text-slate-400 font-mono">Assigned & Executed</span>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100 overflow-y-auto flex-1 p-2 space-y-1">
             {cycle.items.map(item => {
               const isSelected = item.testCase.key === selectedItemKey;
+              const isChecked = selectedItemKeys.includes(item.testCase.key);
               const bugsCount = (item.jiraBugs || (item.jiraBug ? [item.jiraBug] : [])).length;
               
               return (
-                <button
+                <div
                   key={item.testCase.key}
-                  onClick={() => setSelectedItemKey(item.testCase.key)}
-                  className={`w-full text-left p-3 rounded-xl transition-all ${
+                  className={`w-full text-left p-2.5 rounded-xl transition-all flex items-start space-x-2 ${
                     isSelected
-                      ? 'bg-indigo-50 border border-indigo-200 shadow-sm'
+                      ? 'bg-indigo-50 border border-indigo-200 shadow-2xs'
                       : 'hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center space-x-1">
-                      <span className="font-mono text-xs font-bold text-indigo-700">
-                        {item.testCase.key}
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setSelectedItemKeys(prev => 
+                        prev.includes(item.testCase.key)
+                          ? prev.filter(k => k !== item.testCase.key)
+                          : [...prev, item.testCase.key]
+                      );
+                    }}
+                    className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer mt-1 flex-shrink-0"
+                  />
+
+                  <div 
+                    onClick={() => setSelectedItemKey(item.testCase.key)}
+                    className="flex-1 cursor-pointer space-y-1"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center space-x-1">
+                        <span className="font-mono text-xs font-bold text-indigo-700">
+                          {item.testCase.key}
+                        </span>
+                        {canExecuteTests && (
+                          <div className="inline-flex items-center space-x-0.5 ml-1">
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTestCase(item.testCase);
+                              }}
+                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer"
+                              title="Edit Test Case"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </span>
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingItemKey(item.testCase.key);
+                              }}
+                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                              title="Delete Test Case from Cycle"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                       <span
+                        className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all ${
+                          item.executionStatus === 'PASSED'
+                            ? 'bg-emerald-100/60 text-emerald-800 border-emerald-300/80 glow-passed'
+                            : item.executionStatus === 'FAILED'
+                            ? 'bg-rose-100/60 text-rose-800 border-rose-300/80 glow-failed'
+                            : item.executionStatus === 'BLOCKED'
+                            ? 'bg-amber-100/60 text-amber-800 border-amber-300/80 glow-blocked'
+                            : 'bg-slate-100/60 text-slate-600 border-slate-300/80 glow-unexecuted'
+                        }`}
+                      >
+                        {item.executionStatus}
                       </span>
-                      {canExecuteTests && (
-                        <div className="inline-flex items-center space-x-0.5 ml-1">
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingTestCase(item.testCase);
-                            }}
-                            className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer"
-                            title="Edit Test Case"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </span>
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingItemKey(item.testCase.key);
-                            }}
-                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                            title="Delete Test Case from Cycle"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </span>
-                        </div>
-                      )}
                     </div>
 
-                     <span
-                      className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all ${
-                        item.executionStatus === 'PASSED'
-                          ? 'bg-emerald-100/60 text-emerald-800 border-emerald-300/80 glow-passed'
-                          : item.executionStatus === 'FAILED'
-                          ? 'bg-rose-100/60 text-rose-800 border-rose-300/80 glow-failed'
-                          : item.executionStatus === 'BLOCKED'
-                          ? 'bg-amber-100/60 text-amber-800 border-amber-300/80 glow-blocked'
-                          : 'bg-slate-100/60 text-slate-600 border-slate-300/80 glow-unexecuted'
-                      }`}
-                    >
-                      {item.executionStatus}
-                    </span>
-                  </div>
+                    <p className="text-xs font-semibold text-slate-900 line-clamp-1">
+                      {item.testCase.name}
+                    </p>
 
-                  <p className="text-xs font-semibold text-slate-900 line-clamp-1">
-                    {item.testCase.name}
-                  </p>
-
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
-                    <span>Assigned: {item.assignedTo || item.testCase.assignedTo || 'Unassigned'}</span>
-                    {bugsCount > 0 && (
-                      <span className="font-mono font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                        {bugsCount} Jira Bug{bugsCount > 1 ? 's' : ''}
-                      </span>
-                    )}
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
+                      <span>Assigned: {item.assignedTo || item.testCase.assignedTo || 'Unassigned'}</span>
+                      {bugsCount > 0 && (
+                        <span className="font-mono font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                          {bugsCount} Jira Bug{bugsCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -841,6 +901,40 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
             setDeletingItemKey(null);
           }}
           onCancel={() => setDeletingItemKey(null)}
+        />
+      )}
+
+      {/* Bulk Edit Cases in Cycle Modal */}
+      {isBulkEditOpen && (
+        <BulkEditCasesModal
+          selectedCount={selectedItemKeys.length}
+          onClose={() => setIsBulkEditOpen(false)}
+          onApplyBulkEdit={(updates) => {
+            if (onBulkEditCycleItems) {
+              onBulkEditCycleItems(cycle.id, selectedItemKeys, updates);
+            }
+            setSelectedItemKeys([]);
+            setIsBulkEditOpen(false);
+          }}
+        />
+      )}
+
+      {/* Bulk Delete Cases from Cycle Confirm Modal */}
+      {isBulkDeleteConfirmOpen && (
+        <ConfirmModal
+          isOpen={isBulkDeleteConfirmOpen}
+          type="danger"
+          title={`Remove ${selectedItemKeys.length} Test Cases from Execution Cycle`}
+          message={`Are you sure you want to remove ${selectedItemKeys.length} selected test cases from this execution cycle?`}
+          confirmText={`Yes, Delete ${selectedItemKeys.length} Cases`}
+          onConfirm={() => {
+            if (onBulkDeleteCycleItems) {
+              onBulkDeleteCycleItems(cycle.id, selectedItemKeys);
+            }
+            setSelectedItemKeys([]);
+            setIsBulkDeleteConfirmOpen(false);
+          }}
+          onCancel={() => setIsBulkDeleteConfirmOpen(false)}
         />
       )}
 

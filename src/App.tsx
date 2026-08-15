@@ -989,22 +989,17 @@ export const App: React.FC = () => {
     })));
   };
 
-  // Single Test Case Delete
+  // Single Test Case Delete in Master Repository (Does NOT affect execution cycles)
   const handleDeleteTestCase = (key: string) => {
-    // 1. Delete from customModuleCases
     setCustomModuleCases(prev => {
       const modCases = prev[selectedModuleId] || [];
       const updatedModCases = modCases.filter(c => c.key !== key);
       return { ...prev, [selectedModuleId]: updatedModCases };
     });
-
-    // 2. Delete from test cycles
-    setTestCycles(prev => prev.map(cycle => ({
-      ...cycle,
-      items: cycle.items.filter(item => item.testCase.key !== key)
-    })));
+    showToast(`Deleted test case ${key} from Master Repository!`, 'success');
   };
 
+  // Remove single item from cycle (Does NOT affect Master Repository)
   const handleDeleteCycleItem = (cycleId: string, itemKey: string) => {
     setTestCycles(prev => prev.map(c => {
       if (c.id !== cycleId) return c;
@@ -1013,8 +1008,7 @@ export const App: React.FC = () => {
         items: c.items.filter(i => i.testCase.key !== itemKey)
       };
     }));
-    handleDeleteTestCase(itemKey);
-    showToast(`Removed test case ${itemKey} from cycle!`);
+    showToast(`Removed test case ${itemKey} from execution cycle!`, 'info');
   };
 
   // Sync Edited Master Test Cases into Execution Cycle
@@ -1088,7 +1082,7 @@ export const App: React.FC = () => {
     })));
   };
 
-  // Bulk Delete Test Cases
+  // Bulk Delete Test Cases in Master Repository (Does NOT affect execution cycles)
   const handleBulkDeleteTestCases = (keys: string[]) => {
     const keySet = new Set(keys);
 
@@ -1098,10 +1092,44 @@ export const App: React.FC = () => {
       return { ...prev, [selectedModuleId]: updatedModCases };
     });
 
-    setTestCycles(prev => prev.map(cycle => ({
-      ...cycle,
-      items: cycle.items.filter(item => !keySet.has(item.testCase.key))
-    })));
+    showToast(`Bulk deleted ${keys.length} test cases from Master Repository!`, 'success');
+  };
+
+  // Bulk Remove items from a specific Execution Cycle
+  const handleBulkDeleteCycleItems = (cycleId: string, itemKeys: string[]) => {
+    const keySet = new Set(itemKeys);
+    setTestCycles(prev => prev.map(c => {
+      if (c.id !== cycleId) return c;
+      return {
+        ...c,
+        items: c.items.filter(i => !keySet.has(i.testCase.key))
+      };
+    }));
+    showToast(`Removed ${itemKeys.length} test cases from execution cycle!`, 'info');
+  };
+
+  // Bulk Edit items in a specific Execution Cycle
+  const handleBulkEditCycleItems = (cycleId: string, itemKeys: string[], updates: { priority?: string; type?: string; status?: string }) => {
+    const keySet = new Set(itemKeys);
+    setTestCycles(prev => prev.map(c => {
+      if (c.id !== cycleId) return c;
+      return {
+        ...c,
+        items: c.items.map(i => {
+          if (!keySet.has(i.testCase.key)) return i;
+          return {
+            ...i,
+            testCase: {
+              ...i.testCase,
+              priority: updates.priority || i.testCase.priority,
+              type: (updates.type as any) || i.testCase.type,
+              status: updates.status || i.testCase.status
+            }
+          };
+        })
+      };
+    }));
+    showToast(`Updated ${itemKeys.length} test cases in execution cycle!`, 'success');
   };
 
   // Remove single item from cycle
@@ -1900,6 +1928,8 @@ export const App: React.FC = () => {
                     onRequestPassEvidence={(cycleId, itemKey, itemTitle) => setPassEvidenceModalConfig({ isOpen: true, cycleId, itemKey, itemTitle })}
                     onSaveTestCase={handleSaveTestCase}
                     onDeleteCycleItem={handleDeleteCycleItem}
+                    onBulkEditCycleItems={handleBulkEditCycleItems}
+                    onBulkDeleteCycleItems={handleBulkDeleteCycleItems}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
                     onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
                     onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? (tc) => handleAutomateTestCase(tc, activeCycle.id) : undefined}
