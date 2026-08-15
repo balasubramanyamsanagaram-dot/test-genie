@@ -7,7 +7,6 @@ export interface FeatureFlags {
   ai_story_generator: boolean;
   playwright_drawer: boolean;
   dark_mode_theme: boolean;
-  visual_regression: boolean;
   flaky_test_healer: boolean;
   browser_automation_runner: boolean;
 }
@@ -22,7 +21,6 @@ const DEFAULT_FLAGS: FeatureFlags = {
   ai_story_generator: true,
   playwright_drawer: true,
   dark_mode_theme: true,
-  visual_regression: true,
   flaky_test_healer: true,
   browser_automation_runner: true,
 };
@@ -50,7 +48,11 @@ export const saveFeatureFlags = (flags: FeatureFlags): void => {
 
 export const toggleFeatureFlag = (key: keyof FeatureFlags): FeatureFlags => {
   const current = getFeatureFlags();
-  const updated = { ...current, [key]: !current[key] };
+  const updated = {
+    ...current,
+    labs_enabled: true, // Auto-enable labs mode when user toggles any flag
+    [key]: !current[key]
+  };
   saveFeatureFlags(updated);
   return updated;
 };
@@ -71,7 +73,6 @@ export const promoteToPermanent = (): FeatureFlags => {
     ai_story_generator: true,
     playwright_drawer: true,
     dark_mode_theme: true,
-    visual_regression: true,
     flaky_test_healer: true,
     browser_automation_runner: true,
   };

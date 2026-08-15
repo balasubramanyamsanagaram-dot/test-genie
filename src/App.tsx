@@ -25,7 +25,6 @@ import { CommandPalette } from './components/CommandPalette';
 import { SpeedRunExecutionBoard } from './components/SpeedRunExecutionBoard';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
-import { VisualDiffModal } from './components/VisualDiffModal';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
 import { getIDBItem, setIDBItem } from './utils/idbStorage';
 
@@ -62,7 +61,6 @@ export const App: React.FC = () => {
   const [isSpeedRunOpen, setIsSpeedRunOpen] = useState(false);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
-  const [isVisualDiffOpen, setIsVisualDiffOpen] = useState(false);
 
   // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L) and Command Palette (Cmd+K)
   useEffect(() => {
@@ -1801,16 +1799,6 @@ export const App: React.FC = () => {
                         </button>
                       )}
 
-                      {isFeatureActive(featureFlags, 'visual_regression') && (
-                        <button
-                          onClick={() => setIsVisualDiffOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-sky-600 hover:bg-sky-700 text-white shadow-md transition-all active:scale-95 flex items-center"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1.5" />
-                          Visual Diff
-                        </button>
-                      )}
-
                       {canManageCases && (
                         <button
                           onClick={handleAddAIDemoCase}
@@ -2350,13 +2338,6 @@ export const App: React.FC = () => {
         <PlaywrightCodeDrawer
           testCase={selectedCodeCase}
           onClose={() => setSelectedCodeCase(null)}
-        />
-      )}
-
-      {/* Visual Snapshot Diff Engine */}
-      {isVisualDiffOpen && (
-        <VisualDiffModal
-          onClose={() => setIsVisualDiffOpen(false)}
         />
       )}
 

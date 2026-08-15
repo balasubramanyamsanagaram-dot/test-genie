@@ -127,8 +127,8 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               </div>
               <input
                 type="checkbox"
-                checked={flags.permanent_mode || (flags.labs_enabled && flags.command_palette)}
-                disabled={flags.permanent_mode || !flags.labs_enabled}
+                checked={flags.permanent_mode || flags.command_palette}
+                disabled={flags.permanent_mode}
                 onChange={() => handleToggle('command_palette')}
                 className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
               />
@@ -147,8 +147,8 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               </div>
               <input
                 type="checkbox"
-                checked={flags.permanent_mode || (flags.labs_enabled && flags.speedrun_mode)}
-                disabled={flags.permanent_mode || !flags.labs_enabled}
+                checked={flags.permanent_mode || flags.speedrun_mode}
+                disabled={flags.permanent_mode}
                 onChange={() => handleToggle('speedrun_mode')}
                 className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
               />
@@ -167,8 +167,8 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               </div>
               <input
                 type="checkbox"
-                checked={flags.permanent_mode || (flags.labs_enabled && flags.ai_story_generator)}
-                disabled={flags.permanent_mode || !flags.labs_enabled}
+                checked={flags.permanent_mode || flags.ai_story_generator}
+                disabled={flags.permanent_mode}
                 onChange={() => handleToggle('ai_story_generator')}
                 className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
               />
@@ -188,8 +188,8 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
                 </div>
                 <input
                   type="checkbox"
-                  checked={flags.permanent_mode || (flags.labs_enabled && flags.playwright_drawer)}
-                  disabled={flags.permanent_mode || !flags.labs_enabled}
+                  checked={flags.permanent_mode || flags.playwright_drawer}
+                  disabled={flags.permanent_mode}
                   onChange={() => handleToggle('playwright_drawer')}
                   className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
                 />
@@ -220,8 +220,8 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
                 </div>
                 <input
                   type="checkbox"
-                  checked={flags.permanent_mode || (flags.labs_enabled && flags.browser_automation_runner)}
-                  disabled={flags.permanent_mode || !flags.labs_enabled}
+                  checked={flags.permanent_mode || flags.browser_automation_runner}
+                  disabled={flags.permanent_mode}
                   onChange={() => handleToggle('browser_automation_runner')}
                   className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
                 />
@@ -238,7 +238,7 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               )}
             </div>
 
-            {/* Feature 5: Dark Mode Theme */}
+            {/* Feature 6: Dark Mode Theme */}
             <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center space-x-1.5">
@@ -251,29 +251,9 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               </div>
               <input
                 type="checkbox"
-                checked={flags.permanent_mode || (flags.labs_enabled && flags.dark_mode_theme)}
-                disabled={flags.permanent_mode || !flags.labs_enabled}
+                checked={flags.permanent_mode || flags.dark_mode_theme}
+                disabled={flags.permanent_mode}
                 onChange={() => handleToggle('dark_mode_theme')}
-                className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
-              />
-            </div>
-
-            {/* Feature 6: Visual Diff */}
-            <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-1.5">
-                  <Eye className="w-4 h-4 text-sky-600" />
-                  <span className="font-extrabold text-xs text-slate-900">Visual Screenshot Diff Engine</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Compare baseline vs execution screenshots for DOM pixel diffs.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={flags.permanent_mode || (flags.labs_enabled && flags.visual_regression)}
-                disabled={flags.permanent_mode || !flags.labs_enabled}
-                onChange={() => handleToggle('visual_regression')}
                 className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
               />
             </div>
