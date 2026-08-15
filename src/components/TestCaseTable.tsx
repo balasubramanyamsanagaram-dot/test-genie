@@ -294,10 +294,10 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                   />
                 </th>
               )}
-              <th className="py-3.5 px-4 w-28">Key</th>
-              <th className="py-3.5 px-4 max-w-xs">Manual Test Scenario</th>
+              <th className="py-3.5 px-4 w-28">TC - ID</th>
+              <th className="py-3.5 px-4 max-w-xs">Manual Test Cases</th>
               <th className="py-3.5 px-4 w-32">Type</th>
-              <th className="py-3.5 px-4">Numbered 4-Step Instructions</th>
+              <th className="py-3.5 px-4">Test Steps</th>
               <th className="py-3.5 px-4 max-w-xs">Expected Result</th>
               {canManageCases && <th className="py-3.5 px-4 w-20 text-center">Actions</th>}
             </tr>

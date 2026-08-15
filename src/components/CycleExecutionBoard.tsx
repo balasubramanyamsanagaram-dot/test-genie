@@ -579,9 +579,9 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                 <span className="text-slate-600 font-mono">{activeItem.testCase.precondition}</span>
               </div>
 
-              {/* Numbered 4-Step Instructions */}
+              {/* Test Steps */}
               <div>
-                <span className="font-bold text-slate-900 block mb-2">Numbered 4-Step Instructions</span>
+                <span className="font-bold text-slate-900 block mb-2">Test Steps</span>
                 <div className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-[11px] whitespace-pre-line leading-relaxed shadow-inner">
                   {activeItem.testCase.testSteps}
                 </div>

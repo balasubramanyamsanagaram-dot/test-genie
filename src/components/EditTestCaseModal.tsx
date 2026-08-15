@@ -136,7 +136,7 @@ export const EditTestCaseModal: React.FC<EditTestCaseModalProps> = ({
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Numbered 4-Step Instructions *</label>
+            <label className="font-bold text-slate-700 block mb-1">Test Steps *</label>
             <textarea
               rows={4}
               value={testSteps}
