@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile, EnterpriseProject } from '../types';
-import { Download, Search, X, Plus, FolderKanban, HelpCircle, Bell, Sun, Moon } from 'lucide-react';
+import { Download, Search, X, Plus, FolderKanban, HelpCircle, Bell } from 'lucide-react';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -19,8 +19,6 @@ interface HeaderProps {
   onOpenUserManagementModal: () => void;
   onRestoreDefaultModules?: () => void;
   onOpenCommandPalette?: () => void;
-  theme?: 'light' | 'dark';
-  onToggleTheme?: () => void;
   onLogout: () => void;
 }
 
@@ -38,8 +36,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNewProjectModal,
   onOpenUserManagementModal,
   onOpenCommandPalette,
-  theme = 'light',
-  onToggleTheme,
   onLogout
 }) => {
   const canManageProjects = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
@@ -94,30 +90,9 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Right: Theme Toggle, Export, Help, Notification & Profile Dropdown */}
-          <div className="flex items-center space-x-3">
+          {/* Right: Export, Help, Notification & Profile Dropdown */}
+          <div className="flex items-center space-x-4">
             
-            {/* Theme Switcher Button */}
-            {onToggleTheme && (
-              <button
-                onClick={onToggleTheme}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 transition-all flex items-center space-x-1.5 text-xs font-bold text-slate-700 shadow-2xs active:scale-95"
-                title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-              >
-                {theme === 'dark' ? (
-                  <>
-                    <Sun className="w-4 h-4 text-amber-500 fill-amber-400" />
-                    <span>Light Mode</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="w-4 h-4 text-slate-600" />
-                    <span>Dark Mode</span>
-                  </>
-                )}
-              </button>
-            )}
-
             {/* Export Zephyr CSV / Audit Button */}
             {(currentUser.role === 'Admin' || currentUser.role === 'QA Lead') && (
               <button
@@ -147,8 +122,6 @@ export const Header: React.FC<HeaderProps> = ({
               currentUser={currentUser}
               onOpenUserManagementModal={onOpenUserManagementModal}
               onLogout={onLogout}
-              theme={theme}
-              onToggleTheme={onToggleTheme}
             />
 
           </div>

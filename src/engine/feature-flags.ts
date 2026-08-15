@@ -20,7 +20,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   speedrun_mode: false,
   ai_story_generator: true,
   playwright_drawer: true,
-  dark_mode_theme: true,
+  dark_mode_theme: false,
   flaky_test_healer: true,
   browser_automation_runner: true,
 };
