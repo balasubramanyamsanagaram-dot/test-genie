@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase, AgentExecutionRun } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers, Search } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
@@ -63,8 +63,22 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   const [isBulkEditOpen, setIsBulkEditOpen] = useState<boolean>(false);
   const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState<boolean>(false);
 
+  // Search & Filtering State
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Lightbox Media Viewer State
   const [activeMediaUrl, setActiveMediaUrl] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+
+  const filteredItems = cycle.items.filter(item => {
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      item.testCase.key.toLowerCase().includes(q) ||
+      item.testCase.name.toLowerCase().includes(q) ||
+      (item.testCase.testSteps || '').toLowerCase().includes(q) ||
+      item.executionStatus.toLowerCase().includes(q)
+    );
+  });
 
   const masterCaseMap = new Map(allAvailableCases.map(c => [c.key, c]));
   const outdatedCasesCount = cycle.items.filter(item => {
@@ -272,17 +286,19 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                checked={cycle.items.length > 0 && selectedItemKeys.length === cycle.items.length}
+                checked={filteredItems.length > 0 && filteredItems.every(i => selectedItemKeys.includes(i.testCase.key))}
                 onChange={() => {
-                  if (selectedItemKeys.length === cycle.items.length) {
-                    setSelectedItemKeys([]);
+                  const filteredKeys = filteredItems.map(i => i.testCase.key);
+                  const isAllSelected = filteredKeys.every(k => selectedItemKeys.includes(k));
+                  if (isAllSelected) {
+                    setSelectedItemKeys(prev => prev.filter(k => !filteredKeys.includes(k)));
                   } else {
-                    setSelectedItemKeys(cycle.items.map(i => i.testCase.key));
+                    setSelectedItemKeys(prev => Array.from(new Set([...prev, ...filteredKeys])));
                   }
                 }}
                 className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer"
               />
-              <span>Cycle Test Cases ({cycle.items.length})</span>
+              <span>Cycle Test Cases ({filteredItems.length !== cycle.items.length ? `${filteredItems.length}/${cycle.items.length}` : cycle.items.length})</span>
             </div>
             {selectedItemKeys.length > 0 ? (
               <div className="flex items-center space-x-1">
@@ -306,8 +322,35 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
             )}
           </div>
 
+          {/* Search Box */}
+          <div className="p-2 bg-slate-50/50 border-b border-slate-200">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search by TC - ID, Manual Test Cases, or Test Steps..."
+                className="w-full bg-white text-slate-800 text-xs rounded-xl pl-8 pr-7 py-1.5 border border-slate-200 focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-2xs"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="divide-y divide-slate-100 overflow-y-auto flex-1 p-2 space-y-1">
-            {cycle.items.map(item => {
+            {filteredItems.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">
+                No test cases matched "{searchTerm}".
+              </div>
+            ) : (
+              filteredItems.map(item => {
               const isSelected = item.testCase.key === selectedItemKey;
               const isChecked = selectedItemKeys.includes(item.testCase.key);
               const bugsCount = (item.jiraBugs || (item.jiraBug ? [item.jiraBug] : [])).length;
@@ -400,7 +443,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
 
