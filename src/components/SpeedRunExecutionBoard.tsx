@@ -20,6 +20,8 @@ export const SpeedRunExecutionBoard: React.FC<SpeedRunExecutionBoardProps> = ({
   const items = cycle.items;
   const activeItem = items[currentIndex];
 
+  const canExecuteTests = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Avoid handling if typing in input/textarea
@@ -30,19 +32,19 @@ export const SpeedRunExecutionBoard: React.FC<SpeedRunExecutionBoardProps> = ({
 
       if (e.key === 'p' || e.key === 'P') {
         e.preventDefault();
-        if (activeItem) {
+        if (activeItem && canExecuteTests) {
           onUpdateStatus(cycle.id, activeItem.testCase.key, 'PASSED');
           if (currentIndex < items.length - 1) setCurrentIndex(prev => prev + 1);
         }
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
-        if (activeItem) {
+        if (activeItem && canExecuteTests) {
           onUpdateStatus(cycle.id, activeItem.testCase.key, 'FAILED');
           if (currentIndex < items.length - 1) setCurrentIndex(prev => prev + 1);
         }
       } else if (e.key === 'b' || e.key === 'B') {
         e.preventDefault();
-        if (activeItem) {
+        if (activeItem && canExecuteTests) {
           onUpdateStatus(cycle.id, activeItem.testCase.key, 'BLOCKED');
           if (currentIndex < items.length - 1) setCurrentIndex(prev => prev + 1);
         }
@@ -60,7 +62,7 @@ export const SpeedRunExecutionBoard: React.FC<SpeedRunExecutionBoardProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, items, activeItem, cycle.id, onUpdateStatus, onClose]);
+  }, [currentIndex, items, activeItem, cycle.id, canExecuteTests, onUpdateStatus, onClose]);
 
   if (!activeItem) return null;
 
