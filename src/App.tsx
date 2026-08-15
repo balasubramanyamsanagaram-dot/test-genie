@@ -12,7 +12,7 @@ import { NewProjectModal } from './components/NewProjectModal';
 import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES, normalizeTestCase, cleanTestCaseTitle } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -476,6 +476,16 @@ export const App: React.FC = () => {
     const projCycles = testCycles.filter(c => !c.projectId || c.projectId === activeProject.id);
     const totalCycles = projCycles.length;
 
+    // Compute dynamic failed items across active cycles
+    const failedItems: Array<{ cycleId: string; cycleName: string; item: TestCycleItem }> = [];
+    projCycles.forEach(cycle => {
+      (cycle.items || []).forEach(item => {
+        if (item.executionStatus === 'FAILED') {
+          failedItems.push({ cycleId: cycle.id, cycleName: cycle.name, item });
+        }
+      });
+    });
+
     // Compute dynamic executions and pass rates
     const executedItems = projCycles.flatMap(c => c.items || []);
     const totalExecuted = executedItems.filter(item => item.executionStatus !== 'UNEXECUTED').length;
@@ -526,7 +536,8 @@ export const App: React.FC = () => {
       high,
       medium,
       low,
-      recentRuns
+      recentRuns,
+      failedItems
     };
   }, [activeProject.modules, customModuleCases, testCycles, activeProject.id]);
 
@@ -1470,20 +1481,26 @@ export const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Metric 2 */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                    {/* Metric 2: Failed Test Cases */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all border-l-4 border-l-rose-500">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Executions Today</span>
-                          <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.executionsToday}</h3>
+                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Failed Test Cases</span>
+                          <h3 className="text-2xl font-black text-rose-600 mt-1">{dashboardStats.failedItems.length}</h3>
                         </div>
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                          <PlaySquare className="w-4 h-4" />
+                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 font-bold">
+                          <XCircle className="w-4 h-4" />
                         </div>
                       </div>
                       <div className="flex items-center mt-4 text-[10px] font-extrabold">
-                        <span className={`${computedTrends.executions.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.executions.value}</span>
-                        <span className="text-slate-400 font-medium">{computedTrends.executions.label}</span>
+                        <span className={`px-2 py-0.5 rounded-full mr-1.5 font-mono border ${
+                          dashboardStats.failedItems.length > 0
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        }`}>
+                          {dashboardStats.failedItems.length > 0 ? `🛑 ${dashboardStats.failedItems.length} Failures` : '✅ 0 Failures'}
+                        </span>
+                        <span className="text-slate-400 font-medium">In active execution cycles</span>
                       </div>
                     </div>
 
@@ -1652,6 +1669,54 @@ export const App: React.FC = () => {
                     </div>
 
                   </div>
+
+                  {/* Failed Test Cases Breakdown Panel */}
+                  {dashboardStats.failedItems.length > 0 && (
+                    <div className="bg-white p-6 rounded-3xl border border-rose-200 shadow-xs space-y-4 bg-rose-50/20">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 font-bold">
+                            <XCircle className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-extrabold text-slate-900">Failed Test Cases ({dashboardStats.failedItems.length})</h3>
+                            <p className="text-xs text-slate-500">Failed scenarios requiring immediate QA review & re-execution.</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleTabChange('execution')}
+                          className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center"
+                        >
+                          Open Execution Board <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                        </button>
+                      </div>
+
+                      <div className="divide-y divide-rose-100 bg-white rounded-2xl border border-rose-100 overflow-hidden shadow-2xs">
+                        {dashboardStats.failedItems.map(({ cycleId, cycleName, item }) => (
+                          <div key={`${cycleId}-${item.testCase.key}`} className="p-3.5 flex items-center justify-between hover:bg-rose-50/60 transition-colors">
+                            <div className="flex items-center space-x-3">
+                              <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-200">
+                                {item.testCase.key}
+                              </span>
+                              <div>
+                                <h4 className="text-xs font-bold text-slate-900">{cleanTestCaseTitle(item.testCase.name)}</h4>
+                                <p className="text-[11px] text-slate-500">Cycle: {cycleName} • Priority: {item.testCase.priority}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setActiveCycleId(cycleId);
+                                handleTabChange('execution');
+                              }}
+                              className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95 flex items-center"
+                            >
+                              Inspect Failure
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Bottom Row: Bar Chart + Recent Test Runs Table */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
