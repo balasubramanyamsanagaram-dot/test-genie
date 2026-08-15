@@ -307,6 +307,21 @@ export const App: React.FC = () => {
     };
   }
 
+  // Helper to check if a master test case has actual content changes vs cycle item
+  function isTestCaseOutdated(master: TestCase, itemCase: TestCase): boolean {
+    if (!master || !itemCase) return false;
+
+    const normalize = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();
+
+    const nameDiff = normalize(master.name) !== normalize(itemCase.name);
+    const stepsDiff = normalize(master.testSteps) !== normalize(itemCase.testSteps);
+    const expectedDiff = normalize(master.expectedResult) !== normalize(itemCase.expectedResult);
+    const objDiff = normalize(master.objective) !== normalize(itemCase.objective);
+    const preDiff = normalize(master.precondition) !== normalize(itemCase.precondition);
+
+    return nameDiff || stepsDiff || expectedDiff || objDiff || preDiff;
+  }
+
   // Load Persisted Test Cycles from localStorage with Automatic Deduplication Sanitizer
   const [testCycles, setTestCycles] = useState<TestCycle[]>(() => {
     let cyclesRaw: TestCycle[] = DEFAULT_PRELOADED_TEST_CYCLES;
@@ -1119,7 +1134,9 @@ export const App: React.FC = () => {
 
         const master = masterCaseMap.get(keyUpper);
         if (master) {
-          syncedCount++;
+          if (isTestCaseOutdated(master, item.testCase)) {
+            syncedCount++;
+          }
           updatedItems.push({
             ...item,
             testCase: { ...master }

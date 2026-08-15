@@ -86,12 +86,14 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     if (!keyUpper) return false;
     const master = masterCaseMap.get(keyUpper);
     if (!master) return false;
+
+    const normalize = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();
     return (
-      master.name !== item.testCase.name ||
-      master.testSteps !== item.testCase.testSteps ||
-      master.expectedResult !== item.testCase.expectedResult ||
-      master.objective !== item.testCase.objective ||
-      master.precondition !== item.testCase.precondition
+      normalize(master.name) !== normalize(item.testCase.name) ||
+      normalize(master.testSteps) !== normalize(item.testCase.testSteps) ||
+      normalize(master.expectedResult) !== normalize(item.testCase.expectedResult) ||
+      normalize(master.objective) !== normalize(item.testCase.objective) ||
+      normalize(master.precondition) !== normalize(item.testCase.precondition)
     );
   }).length;
 
