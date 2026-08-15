@@ -106,8 +106,19 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
 
     if (!isEdit) {
       const cleanKey = projectKey.trim().toUpperCase() || 'HRM';
-      const randomNum = Math.floor(1000 + Math.random() * 9000);
-      finalIssueKey = `${cleanKey}-${randomNum}`;
+      let randomNum = Math.floor(1000 + Math.random() * 9000);
+      let candidateKey = `${cleanKey}-${randomNum}`;
+      
+      const existingBugKeys = new Set(
+        testCycles.flatMap(c => (c.items || []).flatMap(i => (i.jiraBugs || (i.jiraBug ? [i.jiraBug] : [])).map(b => b.issueKey?.toUpperCase()))).filter(Boolean)
+      );
+
+      while (existingBugKeys.has(candidateKey.toUpperCase())) {
+        randomNum = Math.floor(1000 + Math.random() * 9000);
+        candidateKey = `${cleanKey}-${randomNum}`;
+      }
+
+      finalIssueKey = candidateKey;
       finalIssueUrl = `https://jira.company.com/browse/${finalIssueKey}`;
     }
 

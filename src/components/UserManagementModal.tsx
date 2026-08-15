@@ -94,6 +94,17 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleSaveEdit = (user: UserProfile, e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim() || !email.trim()) {
+      alert('Validation Error: Name and Email cannot be blank.');
+      return;
+    }
+
+    const emailExists = users.some(u => u.id !== user.id && u.email.toLowerCase() === email.trim().toLowerCase());
+    if (emailExists) {
+      alert(`Validation Error: Email '${email.trim()}' is already in use by another user account.`);
+      return;
+    }
+
     const updated: UserProfile = {
       ...user,
       name: name.trim(),
