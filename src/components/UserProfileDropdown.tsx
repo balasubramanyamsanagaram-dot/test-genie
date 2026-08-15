@@ -1,18 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
-import { Users, Database, Upload, RotateCw, LogOut, ChevronDown, Shield, CheckCircle2, Lock } from 'lucide-react';
+import { Users, Database, Upload, RotateCw, LogOut, ChevronDown, Shield, CheckCircle2, Lock, Sun, Moon } from 'lucide-react';
 
 interface UserProfileDropdownProps {
   currentUser: UserProfile;
   onOpenUserManagementModal: () => void;
   onLogout: () => void;
   onRestoreDefaults?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
   currentUser,
   onOpenUserManagementModal,
-  onLogout
+  onLogout,
+  theme = 'light',
+  onToggleTheme
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -178,8 +182,28 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
               </>
             )}
 
-
-
+            {/* Dark / Light Theme Toggle */}
+            {onToggleTheme && (
+              <button
+                onClick={() => {
+                  onToggleTheme();
+                  setIsOpen(false);
+                }}
+                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center justify-between transition-colors"
+              >
+                <div className="flex items-center">
+                  {theme === 'dark' ? (
+                    <Sun className="w-4 h-4 mr-2.5 text-amber-500 fill-amber-400" />
+                  ) : (
+                    <Moon className="w-4 h-4 mr-2.5 text-slate-600" />
+                  )}
+                  <span>Theme: {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
+                </div>
+                <span className="text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                  {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Footer Logout Button (Matches Screenshot Log out style) */}

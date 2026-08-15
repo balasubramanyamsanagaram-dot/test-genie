@@ -12,7 +12,7 @@ import { NewProjectModal } from './components/NewProjectModal';
 import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES, normalizeTestCase, cleanTestCaseTitle } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight, Sun, Moon } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -51,6 +51,34 @@ export const App: React.FC = () => {
     } catch (e) {}
   }, [activeTab]);
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
+
+  // Dark / Light Theme State Engine
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('test_genie_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+    return 'light';
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('test_genie_theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // Feature Flags Engine State & Stealth Modals
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(getFeatureFlags());
@@ -1537,6 +1565,8 @@ export const App: React.FC = () => {
           onSelectProject={setSelectedProjectId}
           onOpenNewProjectModal={() => setIsNewProjectModalOpen(true)}
           onOpenUserManagementModal={() => setIsUserManagementOpen(true)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onLogout={handleLogout}
         />
 
@@ -2257,11 +2287,60 @@ export const App: React.FC = () => {
                       </button>
                     </div>
 
+                    {/* Appearance & Theme Setting Card */}
+                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900 font-sans">Appearance &amp; Theme</h3>
+                          <p className="text-xs text-slate-500 font-medium">Switch between Light Mode and Dark Mode.</p>
+                        </div>
+                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          {theme === 'dark' ? '🌙 Dark Active' : '☀️ Light Active'}
+                        </span>
+                      </div>
 
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <button
+                          onClick={() => {
+                            if (theme !== 'light') toggleTheme();
+                          }}
+                          className={`p-4 rounded-2xl border text-left transition-all ${
+                            theme === 'light'
+                              ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-500/20'
+                              : 'border-slate-200 hover:border-slate-300 bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <Sun className="w-5 h-5 text-amber-500 fill-amber-400" />
+                            {theme === 'light' && <span className="w-2 h-2 rounded-full bg-indigo-600"></span>}
+                          </div>
+                          <h4 className="text-xs font-extrabold text-slate-900">Light Theme</h4>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Clean high-contrast daytime QA workspace</p>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (theme !== 'dark') toggleTheme();
+                          }}
+                          className={`p-4 rounded-2xl border text-left transition-all ${
+                            theme === 'dark'
+                              ? 'border-indigo-600 bg-slate-900 text-white ring-2 ring-indigo-500/20'
+                              : 'border-slate-200 hover:border-slate-300 bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <Moon className="w-5 h-5 text-indigo-400 fill-indigo-400" />
+                            {theme === 'dark' && <span className="w-2 h-2 rounded-full bg-emerald-400"></span>}
+                          </div>
+                          <h4 className={`text-xs font-extrabold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Dark Theme</h4>
+                          <p className={`text-[10px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} mt-0.5`}>Sleek dark mode for night QA testing</p>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </>
+          </>
         </main>
 
         {/* Create New Project Modal */}
