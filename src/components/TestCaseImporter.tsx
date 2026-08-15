@@ -16,6 +16,7 @@ interface TestCaseImporterProps {
 export function generateNextTcId(moduleName: string, existingCases: TestCase[] = []): string {
   let prefix = '';
   let maxNumber = 0;
+  const existingKeySet = new Set(existingCases.map(c => c.key?.trim().toUpperCase()).filter(Boolean));
 
   if (existingCases && existingCases.length > 0) {
     existingCases.forEach(c => {
@@ -62,10 +63,16 @@ export function generateNextTcId(moduleName: string, existingCases: TestCase[] =
     }
   }
 
-  const nextNum = maxNumber > 0 ? maxNumber + 1 : (existingCases.length + 1);
-  const formattedNum = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+  let nextNum = maxNumber > 0 ? maxNumber + 1 : (existingCases.length + 1);
+  let candidateKey = `${prefix}${nextNum < 10 ? `0${nextNum}` : nextNum}`;
 
-  return `${prefix}${formattedNum}`;
+  // Collision Guard: Ensure candidateKey is not already in existingKeySet
+  while (existingKeySet.has(candidateKey.toUpperCase())) {
+    nextNum++;
+    candidateKey = `${prefix}${nextNum < 10 ? `0${nextNum}` : nextNum}`;
+  }
+
+  return candidateKey;
 }
 
 export interface FileValidationError {
@@ -216,6 +223,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
             return;
           }
 
+          const accumulatedInBatch: TestCase[] = [];
           const importedCases: TestCase[] = parsedRows.map((row, idx) => {
             const rawTitle = row['Test Case Name'] || row['Test Case'] || row['Scenario Title'] || row['Scenario'] || row['Title'] || row['Name'] || `Test Scenario ${idx + 1}`;
             const cleanName = cleanTestCaseTitle(rawTitle);
@@ -226,40 +234,30 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
             if (matchInTitle && matchInTitle[1]) {
               rawKey = matchInTitle[1].toUpperCase();
             } else if (!rawKey) {
-              rawKey = `TC-${moduleName.toUpperCase().slice(0, 3)}-${100 + idx}`;
+              rawKey = generateNextTcId(moduleName, [...existingCases, ...accumulatedInBatch]);
             }
 
-            // Zephyr Scale & Universal CSV Step Column Aliases
-            const steps = row['Step Description'] || row['Step description'] || row['Step'] || row['Test Steps (High Level)'] || row['Test Steps'] || row['Test step'] || row['Test Step'] || row['Steps'] || row['Instructions'] || row['Action'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.';
-
-            // Zephyr Scale & Universal CSV Expected Result Column Aliases
-            const expected = row['Expected Result'] || row['Expected result'] || row['Expected'] || row['Expected Outcome'] || 'Verified successfully.';
-
-            const rawObjective = row['Objective'] || row['Scenario Description'] || row['Description'] || row['Preconditions'] || `Verify ${cleanName} behavior`;
-            const cleanObj = cleanTestCaseTitle(rawObjective) || cleanName;
-            const precondition = row['Precondition'] || row['Preconditions'] || row['Prerequisite'] || 'User logged into HR portal.';
-            const priority = row['Priority'] || 'High';
-            const status = row['Status'] || 'Approved';
-            const scenarioType = (row['Type'] || (cleanName.toLowerCase().includes('negative') || cleanName.toLowerCase().includes('reject') || cleanName.toLowerCase().includes('invalid') ? 'Negative' : 'Positive')) as 'Positive' | 'Negative';
-
-            return {
-              key: String(rawKey).trim(),
+            const caseObj: TestCase = {
+              key: String(rawKey).trim().toUpperCase(),
               folder: row['Folder Path'] || row['Folder'] || `/${moduleName}`,
               name: cleanName,
-              objective: cleanObj,
-              precondition: String(precondition).trim(),
-              testSteps: String(steps).trim(),
-              testData: row['Test Data'] || 'Standard QA Payload',
-              expectedResult: String(expected).trim(),
-              status: String(status).trim(),
-              priority: String(priority).trim(),
-              category: row['Component'] || moduleName,
-              type: scenarioType,
+              objective: cleanTestCaseTitle(row['Objective'] || row['Scenario Description'] || row['Description'] || row['Preconditions']) || cleanName,
+              precondition: String(row['Precondition'] || row['Preconditions'] || row['Prerequisite'] || 'User logged into HR portal.').trim(),
+              testSteps: String(row['Step Description'] || row['Step description'] || row['Step'] || row['Test Steps (High Level)'] || row['Test Steps'] || row['Test step'] || row['Test Step'] || row['Steps'] || row['Instructions'] || row['Action'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.').trim(),
+              testData: String(row['Test Data'] || row['Data'] || 'Standard QA Payload').trim(),
+              expectedResult: String(row['Expected Result'] || row['Expected result'] || row['Expected'] || row['Expected Outcome'] || 'Verified successfully.').trim(),
+              status: row['Status'] || 'Approved',
+              priority: row['Priority'] || 'High',
+              category: moduleName,
+              type: (row['Type'] || (cleanName.toLowerCase().includes('negative') || cleanName.toLowerCase().includes('reject') || cleanName.toLowerCase().includes('invalid') ? 'Negative' : 'Positive')) as 'Positive' | 'Negative',
               sourceFile: fileName,
               createdBy: createdBy.trim(),
               createdAt: new Date().toLocaleString(),
               assignedTo: assignedTo.trim()
             };
+
+            accumulatedInBatch.push(caseObj);
+            return caseObj;
           });
 
           onImportCases(importedCases);
