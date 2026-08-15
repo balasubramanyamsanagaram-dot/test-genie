@@ -2601,6 +2601,8 @@ export const App: React.FC = () => {
             setIsLabsModalOpen(false);
             if (testCases.length > 0) handleAutomateTestCase(testCases[0]);
           }}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
 

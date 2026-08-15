@@ -9,6 +9,8 @@ interface LabsControlModalProps {
   onClose: () => void;
   onLaunchCodeSpec?: () => void;
   onLaunchAutomate?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const LabsControlModal: React.FC<LabsControlModalProps> = ({
@@ -16,11 +18,16 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
   onFlagsUpdated,
   onClose,
   onLaunchCodeSpec,
-  onLaunchAutomate
+  onLaunchAutomate,
+  theme = 'light',
+  onToggleTheme
 }) => {
   const handleToggle = (key: keyof FeatureFlags) => {
     const updated = toggleFeatureFlag(key);
     onFlagsUpdated(updated);
+    if (key === 'dark_mode_theme' && onToggleTheme) {
+      onToggleTheme();
+    }
   };
 
   const handleGlobalToggle = () => {
@@ -217,7 +224,7 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
               </div>
               <input
                 type="checkbox"
-                checked={flags.permanent_mode || flags.dark_mode_theme}
+                checked={theme === 'dark'}
                 disabled={flags.permanent_mode}
                 onChange={() => handleToggle('dark_mode_theme')}
                 className="w-4 h-4 text-indigo-600 rounded cursor-pointer mt-1"
