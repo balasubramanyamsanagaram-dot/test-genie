@@ -3,6 +3,7 @@ import { TestCase, UserProfile } from '../types';
 import { Upload, Plus, FileText, CheckCircle, AlertCircle, X, User, AlertTriangle, ShieldAlert } from 'lucide-react';
 import Papa from 'papaparse';
 import { SearchableSelect } from './SearchableSelect';
+import { cleanTestCaseTitle } from '../engine/default-data';
 
 interface TestCaseImporterProps {
   moduleName: string;
@@ -159,23 +160,43 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
           }
 
           const importedCases: TestCase[] = parsedRows.map((row, idx) => {
-            const scenarioTitle = row['Scenario Title'] || row['Scenario'] || row['Title'] || row['Name'] || row['Test Case Name'] || `Test Scenario ${idx + 1}`;
-            const steps = row['Test Steps (High Level)'] || row['Test Steps'] || row['Steps'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.';
-            const expected = row['Expected Result'] || row['Expected'] || 'Verified successfully.';
-            const scenarioType = (scenarioTitle.toLowerCase().includes('negative') || scenarioTitle.toLowerCase().includes('verify invalid') || scenarioTitle.toLowerCase().includes('reject')) ? 'Negative' : 'Positive';
+            const rawTitle = row['Test Case Name'] || row['Test Case'] || row['Scenario Title'] || row['Scenario'] || row['Title'] || row['Name'] || `Test Scenario ${idx + 1}`;
+            const cleanName = cleanTestCaseTitle(rawTitle);
+
+            // Extract Key from title [HOL-T01] or Key columns
+            let rawKey = row['Key'] || row['Issue Key'] || row['Test Case Key'] || row['Scenario ID'] || row['ID'];
+            const matchInTitle = String(rawTitle).match(/^\[([A-Z0-9]+-[A-Z0-9]+)\]/i);
+            if (matchInTitle && matchInTitle[1]) {
+              rawKey = matchInTitle[1].toUpperCase();
+            } else if (!rawKey) {
+              rawKey = `TC-${moduleName.toUpperCase().slice(0, 3)}-${100 + idx}`;
+            }
+
+            // Zephyr Scale & Universal CSV Step Column Aliases
+            const steps = row['Step Description'] || row['Step description'] || row['Step'] || row['Test Steps (High Level)'] || row['Test Steps'] || row['Test step'] || row['Test Step'] || row['Steps'] || row['Instructions'] || row['Action'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.';
+
+            // Zephyr Scale & Universal CSV Expected Result Column Aliases
+            const expected = row['Expected Result'] || row['Expected result'] || row['Expected'] || row['Expected Outcome'] || 'Verified successfully.';
+
+            const rawObjective = row['Objective'] || row['Scenario Description'] || row['Description'] || row['Preconditions'] || `Verify ${cleanName} behavior`;
+            const cleanObj = cleanTestCaseTitle(rawObjective) || cleanName;
+            const precondition = row['Precondition'] || row['Preconditions'] || row['Prerequisite'] || 'User logged into HR portal.';
+            const priority = row['Priority'] || 'High';
+            const status = row['Status'] || 'Approved';
+            const scenarioType = (row['Type'] || (cleanName.toLowerCase().includes('negative') || cleanName.toLowerCase().includes('reject') || cleanName.toLowerCase().includes('invalid') ? 'Negative' : 'Positive')) as 'Positive' | 'Negative';
 
             return {
-              key: row['Scenario ID'] || row['Key'] || `TC-${moduleName.toUpperCase().slice(0, 3)}-${100 + idx}`,
-              folder: `/${moduleName}`,
-              name: scenarioTitle,
-              objective: row['Preconditions'] || row['Scenario Description'] || `Verify ${scenarioTitle} behavior`,
-              precondition: row['Preconditions'] || 'User logged into HR portal.',
-              testSteps: steps,
-              testData: 'Standard QA Payload',
-              expectedResult: expected,
-              status: 'Approved',
-              priority: 'High',
-              category: moduleName,
+              key: String(rawKey).trim(),
+              folder: row['Folder Path'] || row['Folder'] || `/${moduleName}`,
+              name: cleanName,
+              objective: cleanObj,
+              precondition: String(precondition).trim(),
+              testSteps: String(steps).trim(),
+              testData: row['Test Data'] || 'Standard QA Payload',
+              expectedResult: String(expected).trim(),
+              status: String(status).trim(),
+              priority: String(priority).trim(),
+              category: row['Component'] || moduleName,
               type: scenarioType,
               sourceFile: fileName,
               createdBy: createdBy.trim(),
