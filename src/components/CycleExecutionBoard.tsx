@@ -80,9 +80,11 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     );
   });
 
-  const masterCaseMap = new Map(allAvailableCases.map(c => [c.key, c]));
+  const masterCaseMap = new Map((allAvailableCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
   const outdatedCasesCount = cycle.items.filter(item => {
-    const master = masterCaseMap.get(item.testCase.key);
+    const keyUpper = item.testCase.key?.trim().toUpperCase();
+    if (!keyUpper) return false;
+    const master = masterCaseMap.get(keyUpper);
     if (!master) return false;
     return (
       master.name !== item.testCase.name ||

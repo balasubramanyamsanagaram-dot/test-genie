@@ -302,9 +302,11 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             ).length;
 
             // Check if any test cases in this cycle have been edited in the master repository
-            const masterCaseMap = new Map(currentModuleCases.map(c => [c.key, c]));
+            const masterCaseMap = new Map((currentModuleCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
             const outdatedCasesCount = cycle.items.filter(item => {
-              const master = masterCaseMap.get(item.testCase.key);
+              const keyUpper = item.testCase.key?.trim().toUpperCase();
+              if (!keyUpper) return false;
+              const master = masterCaseMap.get(keyUpper);
               if (!master) return false;
               return (
                 master.name !== item.testCase.name ||

@@ -2074,7 +2074,7 @@ export const App: React.FC = () => {
                   <CycleExecutionBoard
                     cycle={activeCycle}
                     currentUser={currentUser}
-                    allAvailableCases={Object.values(customModuleCases).flat()}
+                    allAvailableCases={customModuleCases[selectedModuleId] || []}
                     onUpdateStatus={handleUpdateExecutionStatus}
                     onAddCasesToCycle={handleAddCasesToCycle}
                     onReopenBug={(itemKey, bugKey, notes, screenshotUrl, videoUrl) => 
