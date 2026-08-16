@@ -115,7 +115,7 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({
                   options={[
                     { value: 'Google Chrome', label: 'Google Chrome' },
                     { value: 'Firefox', label: 'Mozilla Firefox' },
-                    { value: 'Safari', label: 'Apple Safari (WebKit)' },
+                    { value: 'Safari', label: 'Safari' },
                     { value: 'Microsoft Edge', label: 'Microsoft Edge' }
                   ]}
                   value={browser}

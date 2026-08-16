@@ -87,14 +87,17 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     const master = masterCaseMap.get(keyUpper);
     if (!master) return false;
 
-    const normalize = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();
-    return (
-      normalize(master.name) !== normalize(item.testCase.name) ||
-      normalize(master.testSteps) !== normalize(item.testCase.testSteps) ||
-      normalize(master.expectedResult) !== normalize(item.testCase.expectedResult) ||
-      normalize(master.objective) !== normalize(item.testCase.objective) ||
-      normalize(master.precondition) !== normalize(item.testCase.precondition)
+    const norm = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    
+    const isDifferent = (
+      norm(master.name) !== norm(item.testCase.name) ||
+      norm(master.testSteps) !== norm(item.testCase.testSteps) ||
+      norm(master.expectedResult) !== norm(item.testCase.expectedResult) ||
+      norm(master.objective) !== norm(item.testCase.objective) ||
+      norm(master.precondition) !== norm(item.testCase.precondition)
     );
+
+    return isDifferent;
   }).length;
 
   const report = calculateCycleReport(cycle);

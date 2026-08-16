@@ -1120,8 +1120,11 @@ export const App: React.FC = () => {
 
   // Sync Edited Master Test Cases into Execution Cycle
   const handleSyncEditedCasesToCycle = (cycleId: string) => {
-    const moduleCases = customModuleCases[selectedModuleId] || [];
-    const masterCaseMap = new Map(moduleCases.map(c => [c.key?.trim().toUpperCase(), c]));
+    const allCases = [
+      ...(customModuleCases[selectedModuleId] || []),
+      ...testCases
+    ];
+    const masterCaseMap = new Map(allCases.map(c => [c.key?.trim().toUpperCase(), c]));
 
     let syncedCount = 0;
     setTestCycles(prev => prev.map(cycle => {
@@ -1137,12 +1140,17 @@ export const App: React.FC = () => {
 
         const master = masterCaseMap.get(keyUpper);
         if (master) {
-          if (isTestCaseOutdated(master, item.testCase)) {
-            syncedCount++;
-          }
+          syncedCount++;
           updatedItems.push({
             ...item,
-            testCase: { ...master }
+            testCase: {
+              ...master,
+              name: master.name ? master.name.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
+              testSteps: master.testSteps ? master.testSteps.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
+              expectedResult: master.expectedResult ? master.expectedResult.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
+              objective: master.objective ? master.objective.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
+              precondition: master.precondition ? master.precondition.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : ''
+            }
           });
         } else {
           updatedItems.push(item);
@@ -1155,7 +1163,7 @@ export const App: React.FC = () => {
       };
     }));
 
-    showToast(`Successfully synced ${syncedCount} updated test cases into cycle!`, 'success');
+    showToast(`Successfully synced updated test cases into cycle!`, 'success');
   };
 
   // Bulk Edit Test Cases
