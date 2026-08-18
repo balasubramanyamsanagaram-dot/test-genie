@@ -290,19 +290,24 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             const executedTotal = passed + failed + blocked;
             const execPercent = total > 0 ? Math.round((executedTotal / total) * 100) : 0;
 
+            // Filter master repository cases specifically for this card's module
+            const targetModuleCases = (allModuleCasesMap[cycle.moduleName] || currentModuleCases || []).filter(c => 
+              !cycle.moduleName || c.category === cycle.moduleName || cycle.moduleName === moduleName
+            );
+
             // Check if there are newly uploaded cases in the repository NOT in this cycle
             const existingCycleKeys = new Set([
               ...cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean),
               ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
             ]);
 
-            const newUnassignedCasesCount = currentModuleCases.filter(c => 
+            const newUnassignedCasesCount = targetModuleCases.filter(c => 
               !existingCycleKeys.has(c.key?.trim().toUpperCase()) &&
               !existingCycleKeys.has(c.name?.trim().toLowerCase())
             ).length;
 
             // Check if any test cases in this cycle have been edited in the master repository
-            const masterCaseMap = new Map((currentModuleCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
+            const masterCaseMap = new Map((targetModuleCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
             const outdatedCasesCount = cycle.items.filter(item => {
               const keyUpper = item.testCase.key?.trim().toUpperCase();
               if (!keyUpper) return false;

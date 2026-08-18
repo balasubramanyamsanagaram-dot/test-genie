@@ -9,20 +9,22 @@ export interface FeatureFlags {
   dark_mode_theme: boolean;
   flaky_test_healer: boolean;
   browser_automation_runner: boolean;
+  reflect_remote_recorder: boolean;
 }
 
 const STORAGE_KEY = 'test_genie_feature_flags_v1';
 
 const DEFAULT_FLAGS: FeatureFlags = {
-  labs_enabled: false,
-  permanent_mode: false,
+  labs_enabled: true,
+  permanent_mode: false, // Set to false so individual checkboxes directly control UI features!
   command_palette: true,
-  speedrun_mode: false,
+  speedrun_mode: true,
   ai_story_generator: true,
   playwright_drawer: true,
   dark_mode_theme: false,
   flaky_test_healer: true,
   browser_automation_runner: true,
+  reflect_remote_recorder: true,
 };
 
 export const getFeatureFlags = (): FeatureFlags => {
@@ -50,7 +52,7 @@ export const toggleFeatureFlag = (key: keyof FeatureFlags): FeatureFlags => {
   const current = getFeatureFlags();
   const updated = {
     ...current,
-    labs_enabled: true, // Auto-enable labs mode when user toggles any flag
+    permanent_mode: false,
     [key]: !current[key]
   };
   saveFeatureFlags(updated);
@@ -75,6 +77,7 @@ export const promoteToPermanent = (): FeatureFlags => {
     dark_mode_theme: true,
     flaky_test_healer: true,
     browser_automation_runner: true,
+    reflect_remote_recorder: true,
   };
   saveFeatureFlags(updated);
   return updated;
@@ -83,7 +86,7 @@ export const promoteToPermanent = (): FeatureFlags => {
 export const rollbackAllLabs = (): FeatureFlags => {
   const updated: FeatureFlags = {
     ...DEFAULT_FLAGS,
-    labs_enabled: false,
+    labs_enabled: true,
     permanent_mode: false,
   };
   saveFeatureFlags(updated);
@@ -91,7 +94,6 @@ export const rollbackAllLabs = (): FeatureFlags => {
 };
 
 export const isFeatureActive = (flags: FeatureFlags, featureKey: keyof FeatureFlags): boolean => {
-  if (flags.permanent_mode) return true;
-  if (!flags.labs_enabled) return false;
-  return !!flags[featureKey];
+  // Direct reactivity: evaluate the exact state of the target feature flag
+  return Boolean(flags[featureKey]);
 };

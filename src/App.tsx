@@ -18,11 +18,11 @@ import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { AutomationDrawer } from './components/AutomationDrawer';
 import { AutomationSimulator } from './components/AutomationSimulator';
+import { ReflectRecordingStudioModal } from './components/ReflectRecordingStudioModal';
 
 import { getFeatureFlags, FeatureFlags, isFeatureActive } from './engine/feature-flags';
 import { LabsControlModal } from './components/LabsControlModal';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
-import { PlaywrightCodeDrawer } from './components/PlaywrightCodeDrawer';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
 import { getIDBItem, setIDBItem } from './utils/idbStorage';
 
@@ -209,6 +209,25 @@ export const App: React.FC = () => {
   });
 
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+
+  // Reflect Remote Browser Studio State
+  const [isReflectStudioOpen, setIsReflectStudioOpen] = useState(false);
+  const [recordingTargetCase, setRecordingTargetCase] = useState<TestCase | null>(null);
+
+  const handleOpenRecorder = (testCase?: TestCase) => {
+    setRecordingTargetCase(testCase || null);
+    setIsReflectStudioOpen(true);
+  };
+
+  const handleSaveRecordedSteps = (stepsText: string) => {
+    if (recordingTargetCase) {
+      const updatedCase: TestCase = {
+        ...recordingTargetCase,
+        testSteps: stepsText
+      };
+      handleSaveTestCase(updatedCase);
+    }
+  };
 
   // Sync Projects & Selected Project to localStorage
   useEffect(() => {
@@ -981,19 +1000,37 @@ export const App: React.FC = () => {
     return customModuleCases[selectedModuleId] || [];
   }, [selectedModuleId, customModuleCases]);
 
-  // Handle Importing new test cases into repository (Updates existing matching keys, appends new ones)
+  // Handle Importing test cases into repository (Smart Upsert: Updates existing matching keys/titles in place, appends new ones)
   const handleImportCases = (newCases: TestCase[]) => {
     if (!selectedModuleId) return;
     setCustomModuleCases(prev => {
       const existingList = prev[selectedModuleId] || [];
-      const newKeySet = new Set(newCases.map(c => c.key?.trim().toUpperCase()).filter(Boolean));
-      
-      const retainedExisting = existingList.filter(c => !newKeySet.has(c.key?.trim().toUpperCase()));
-      const updatedList = [...retainedExisting, ...newCases];
+      const incomingKeyMap = new Map(newCases.map(c => [c.key?.trim().toUpperCase(), c]));
+      const incomingNameMap = new Map(newCases.map(c => [c.name?.trim().toLowerCase(), c]));
+
+      // Update existing cases in place if key or clean name matches
+      const updatedExisting = existingList.map(existing => {
+        const keyMatch = existing.key ? incomingKeyMap.get(existing.key.trim().toUpperCase()) : undefined;
+        const nameMatch = existing.name ? incomingNameMap.get(existing.name.trim().toLowerCase()) : undefined;
+        const match = keyMatch || nameMatch;
+        if (match) {
+          return { ...existing, ...match, key: existing.key }; // Preserves existing key & updates content
+        }
+        return existing;
+      });
+
+      // Find brand new cases that were not present in existingList
+      const existingKeySet = new Set(existingList.map(c => c.key?.trim().toUpperCase()).filter(Boolean));
+      const existingNameSet = new Set(existingList.map(c => c.name?.trim().toLowerCase()).filter(Boolean));
+
+      const trulyNewCases = newCases.filter(c =>
+        (!c.key || !existingKeySet.has(c.key.trim().toUpperCase())) &&
+        (!c.name || !existingNameSet.has(c.name.trim().toLowerCase()))
+      );
 
       return {
         ...prev,
-        [selectedModuleId]: updatedList
+        [selectedModuleId]: [...updatedExisting, ...trulyNewCases]
       };
     });
     setImportSuccessCount(newCases.length);
@@ -2053,6 +2090,7 @@ export const App: React.FC = () => {
                       onBulkDeleteTestCases={handleBulkDeleteTestCases}
                       onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? handleAutomateTestCase : undefined}
                       onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
+                      onRecordSteps={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? handleOpenRecorder : undefined}
                       canManageCases={canManageCases}
                     />
                   )}
@@ -2553,14 +2591,6 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Playwright & Cypress Code Spec Exporter Drawer */}
-      {selectedCodeCase && (
-        <PlaywrightCodeDrawer
-          testCase={selectedCodeCase}
-          onClose={() => setSelectedCodeCase(null)}
-        />
-      )}
-
       {/* Mandatory Pass Evidence Upload Modal */}
       {passEvidenceModalConfig?.isOpen && (
         <PassEvidenceUploadModal
@@ -2581,6 +2611,15 @@ export const App: React.FC = () => {
           onClose={() => setPassEvidenceModalConfig(null)}
         />
       )}
+
+      {/* Reflect-Style Remote Browser Studio Modal */}
+      <ReflectRecordingStudioModal
+        isOpen={isReflectStudioOpen}
+        onClose={() => setIsReflectStudioOpen(false)}
+        onSaveSteps={handleSaveRecordedSteps}
+        testCaseTitle={recordingTargetCase ? recordingTargetCase.name : 'Verify Search functionality in Work Location'}
+        startingUrl="https://qa.hrmgenie.outstrive.co/login"
+      />
 
       </div>
 

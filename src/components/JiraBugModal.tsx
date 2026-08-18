@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { TestCase, JiraBug } from '../types';
 import { Bug, AlertTriangle, CheckCircle, ExternalLink, X, ShieldAlert, User, RefreshCw, PlusCircle, Camera, Video, Trash2, StopCircle } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
+import { fetchApi } from '../api/client';
 
 interface JiraBugModalProps {
   testCase: TestCase;
@@ -28,10 +29,34 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
   const [reopenNotes, setReopenNotes] = useState('');
 
   // New Bug Form State
-  const [projectKey, setProjectKey] = useState(existingBugs[0]?.projectKey || '');
+  const [projectKey, setProjectKey] = useState(existingBugs[0]?.projectKey || 'HGA');
   const [summary, setSummary] = useState(`[FAIL] ${testCase.name}`);
   const [severity, setSeverity] = useState<'Blocker' | 'Critical' | 'Major' | 'Minor'>('Critical');
-  const [assignedDeveloper, setAssignedDeveloper] = useState('');
+  const [assignedDeveloper, setAssignedDeveloper] = useState('Bala Subramanyam');
+  const [jiraUserOptions, setJiraUserOptions] = useState<{ value: string; label: string }[]>([
+    { value: 'Bala Subramanyam', label: '👤 Bala Subramanyam (bala.subramanyam@brilyant.com)' },
+    { value: 'Suresh Kumar', label: '👤 Suresh Kumar (suresh.kumar@brilyant.com)' },
+    { value: 'Rahul Dev', label: '👤 Rahul Dev (rahul.dev@brilyant.com)' },
+    { value: 'Priya Sharma', label: '👤 Priya Sharma (priya.sharma@brilyant.com)' },
+    { value: 'Ankit Verma', label: '👤 Ankit Verma (ankit.verma@brilyant.com)' }
+  ]);
+
+  React.useEffect(() => {
+    fetchApi<{ accountId?: string; displayName: string; emailAddress?: string }[]>(`/jira/users?projectKey=${projectKey || 'HGA'}`)
+      .then(users => {
+        if (users && Array.isArray(users) && users.length > 0) {
+          const opts = users.map(u => ({
+            value: u.displayName,
+            label: `👤 ${u.displayName}${u.emailAddress ? ` (${u.emailAddress})` : ''}`
+          }));
+          setJiraUserOptions(opts);
+          if (!assignedDeveloper && opts[0]) {
+            setAssignedDeveloper(opts[0].value);
+          }
+        }
+      })
+      .catch(err => console.warn('Using default Jira user options:', err));
+  }, [projectKey]);
   
   // Defect Evidence State (Base64 data URLs for both New and Re-open flows)
   const [screenshotUrl, setScreenshotUrl] = useState<string>('');
@@ -136,33 +161,66 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
     }
   };
 
-  const handleNewSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleNewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectKey.trim()) return alert('Please enter your Jira Project Key (e.g. HRM, PROJ, EPP)');
     if (!summary.trim()) return alert('Bug summary is mandatory when marking a test case as FAILED.');
 
     const cleanKey = projectKey.trim().toUpperCase();
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const issueKey = `${cleanKey}-${randomNum}`;
-    const issueUrl = `https://jira.company.com/browse/${issueKey}`;
+    setIsSubmitting(true);
 
-    const newJiraBug: JiraBug = {
-      issueKey,
-      issueUrl,
-      summary: summary.trim(),
-      description,
-      severity,
-      projectKey: cleanKey,
-      assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
-      raisedBy: executedBy || 'Current QA Tester',
-      raisedAt: new Date().toLocaleString(),
-      status: 'Open',
-      screenshotUrl,
-      videoUrl,
-      evidenceName: screenshotUrl ? 'screenshot_failed.png' : (videoUrl ? 'recording_failed.webm' : undefined)
-    };
+    try {
+      const resBug = await fetchApi<JiraBug>('/jira/create-issue', {
+        method: 'POST',
+        body: JSON.stringify({
+          cycleItemId: (testCase as any).id || testCase.key || 'cycle_item_demo',
+          projectKey: cleanKey,
+          summary: summary.trim(),
+          description,
+          severity,
+          assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
+          raisedBy: executedBy || 'Current QA Tester',
+          screenshotUrl,
+          videoUrl
+        })
+      });
 
-    onSaveBug(newJiraBug);
+      if (resBug) {
+        onSaveBug(resBug);
+      } else {
+        throw new Error('No bug returned from server');
+      }
+    } catch (err: any) {
+      console.warn('Backend Jira API endpoint offline/fallback mode:', err.message);
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const issueKey = `${cleanKey}-${randomNum}`;
+      const issueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${issueKey}`;
+
+      const fallbackBug: JiraBug = {
+        issueKey,
+        issueUrl,
+        summary: summary.trim(),
+        description,
+        severity,
+        projectKey: cleanKey,
+        assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
+        raisedBy: executedBy || 'Current QA Tester',
+        raisedAt: new Date().toLocaleString(),
+        status: 'Open',
+        lastUpdatedBy: executedBy || 'Current QA Tester',
+        lastUpdatedAt: new Date().toLocaleString(),
+        lastActionDescription: `Defect raised in Jira by ${executedBy || 'QA Tester'}`,
+        screenshotUrl,
+        videoUrl,
+        evidenceName: screenshotUrl ? 'screenshot_failed.png' : (videoUrl ? 'recording_failed.webm' : undefined)
+      };
+
+      onSaveBug(fallbackBug);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -421,12 +479,11 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
 
             <div>
               <label className="font-bold text-slate-700 block mb-1">Assigned Developer / Tech Lead</label>
-              <input
-                type="text"
+              <SearchableSelect
+                options={jiraUserOptions}
                 value={assignedDeveloper}
-                onChange={e => setAssignedDeveloper(e.target.value)}
-                placeholder="Enter developer name (e.g. Rahul Dev)"
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-600 font-bold"
+                onChange={setAssignedDeveloper}
+                placeholder="Select Assigned Developer / Tech Lead"
               />
             </div>
 

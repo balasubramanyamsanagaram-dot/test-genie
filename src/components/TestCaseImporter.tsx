@@ -233,6 +233,16 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
             const matchInTitle = String(rawTitle).match(/^\[([A-Z0-9]+-[A-Z0-9]+)\]/i);
             if (matchInTitle && matchInTitle[1]) {
               rawKey = matchInTitle[1].toUpperCase();
+            }
+
+            // Smart Upsert Check: Match against existing cases by Key OR by Clean Title
+            const existingMatch = [...existingCases, ...accumulatedInBatch].find(c =>
+              (rawKey && c.key?.trim().toLowerCase() === String(rawKey).trim().toLowerCase()) ||
+              (c.name?.trim().toLowerCase() === cleanName.trim().toLowerCase())
+            );
+
+            if (existingMatch) {
+              rawKey = existingMatch.key;
             } else if (!rawKey) {
               rawKey = generateNextTcId(moduleName, [...existingCases, ...accumulatedInBatch]);
             }

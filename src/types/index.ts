@@ -153,6 +153,8 @@ export interface TestCase {
 }
 
 export interface JiraBug {
+  id?: string;
+  cycleItemId?: string;
   issueKey: string; // e.g. HRM-1042
   issueUrl: string;
   summary: string;
@@ -162,8 +164,14 @@ export interface JiraBug {
   assignedDeveloper: string;
   raisedBy: string;
   raisedAt: string;
-  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Re-opened';
+  status: 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Re-opened' | string;
   
+  // Real-Time Jira Webhook Action Tracking
+  lastUpdatedBy?: string;
+  lastUpdatedAt?: string;
+  lastActionDescription?: string;
+  jiraAssignee?: string;
+
   // Re-open Audit Extensions
   reopenedBy?: string;
   reopenedAt?: string;

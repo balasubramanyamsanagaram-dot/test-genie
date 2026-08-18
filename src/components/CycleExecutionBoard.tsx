@@ -567,17 +567,6 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
                   {/* Right Action Toolbar */}
                   <div className="flex flex-wrap items-center gap-2">
-                    {onViewCodeSpec && (
-                      <button
-                        onClick={() => onViewCodeSpec(activeItem.testCase)}
-                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-700 font-mono font-extrabold text-[11px] border border-emerald-300 shadow-2xs flex items-center transition-all active:scale-95 hover:border-emerald-400"
-                        title="View Playwright & Cypress Code Spec"
-                      >
-                        <Code2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        &lt;/&gt; CODE SPEC
-                      </button>
-                    )}
-
                     {onAutomateTestCase && (
                       <button
                         onClick={() => onAutomateTestCase(activeItem.testCase)}
@@ -853,10 +842,16 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                           {bug.summary}
                         </p>
 
-                        <div className="text-[11px] text-slate-600 space-y-1 bg-white/70 p-2.5 rounded-xl border border-slate-200">
+                        <div className="text-[11px] text-slate-600 space-y-1.5 bg-white/70 p-2.5 rounded-xl border border-slate-200">
                           <div>
                             Severity: <strong className="text-slate-800">{bug.severity}</strong> | Dev: <strong className="text-indigo-700">{bug.assignedDeveloper}</strong> | Raised by: <strong className="text-slate-800">{bug.raisedBy}</strong> at {bug.raisedAt}
                           </div>
+                          {bug.lastUpdatedBy && (
+                            <div className="text-[10px] font-bold text-indigo-700 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center justify-between">
+                              <span>⚡ Last Jira Action: {bug.lastActionDescription || `Updated by ${bug.lastUpdatedBy}`}</span>
+                              <span className="font-mono text-slate-500">{bug.lastUpdatedAt ? new Date(bug.lastUpdatedAt).toLocaleTimeString() : ''}</span>
+                            </div>
+                          )}
                           {bug.reopenNotes && (
                             <div className="text-rose-900 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200 mt-1">
                               <strong>🔄 Re-open Notes:</strong> {bug.reopenNotes}

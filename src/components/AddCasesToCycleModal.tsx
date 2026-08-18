@@ -22,8 +22,9 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
     ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
   ]);
 
-  // Cases that are NOT in the cycle yet
+  // Cases belonging to this module that are NOT in the cycle yet
   const unassignedCases = availableCases.filter(tc => 
+    (!cycle.moduleName || tc.category === cycle.moduleName || cycle.moduleName === 'ALL') &&
     !existingKeys.has(tc.key?.trim().toUpperCase()) &&
     !existingKeys.has(tc.name?.trim().toLowerCase())
   );

@@ -23,25 +23,21 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  activeTab,
-  setActiveTab,
   searchQuery,
   onSearchChange,
   onExport,
-  testCasesCount,
   currentUser,
   projects,
   selectedProjectId,
   onSelectProject,
   onOpenNewProjectModal,
   onOpenUserManagementModal,
-  onOpenCommandPalette,
   onLogout
 }) => {
   const canManageProjects = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs">
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3">
           
@@ -91,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Right: Export, Help, Notification & Profile Dropdown */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             
             {/* Export Zephyr CSV / Audit Button */}
             {(currentUser.role === 'Admin' || currentUser.role === 'QA Lead') && (

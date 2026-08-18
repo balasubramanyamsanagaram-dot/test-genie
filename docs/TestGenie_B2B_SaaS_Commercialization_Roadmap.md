@@ -1,11 +1,11 @@
-# 🚀 TestGenie Enterprise B2B SaaS Commercialization Roadmap
+#  TestGenie Enterprise B2B SaaS Commercialization Roadmap
 
 ## Executive Summary
 This document provides a comprehensive roadmap for transforming **TestGenie** from an internal QA generator into a commercial, multi-tenant B2B Enterprise SaaS application ready for licensing and white-labeling to third-party companies.
 
 ---
 
-## 🏛️ 6 Core Pillars for B2B Commercial Readiness
+## 6 Core Pillars for B2B Commercial Readiness
 
 ```mermaid
 flowchart TD

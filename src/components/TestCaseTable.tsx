@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCase } from '../types';
-import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play, Lock, Code2 } from 'lucide-react';
+import { Search, Filter, CheckCircle2, AlertCircle, Edit3, Trash2, CheckSquare, Square, Layers, Play, Lock, Code2, Video } from 'lucide-react';
 import { EditTestCaseModal } from './EditTestCaseModal';
 import { cleanTestCaseTitle } from '../engine/default-data';
 import { BulkEditCasesModal } from './BulkEditCasesModal';
@@ -17,6 +17,7 @@ interface TestCaseTableProps {
   onBulkDeleteTestCases?: (keys: string[]) => void;
   onAutomateTestCase?: (testCase: TestCase) => void;
   onViewCodeSpec?: (testCase: TestCase) => void;
+  onRecordSteps?: (testCase: TestCase) => void;
   canManageCases?: boolean;
 }
 
@@ -30,6 +31,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   onBulkDeleteTestCases,
   onAutomateTestCase,
   onViewCodeSpec,
+  onRecordSteps,
   canManageCases = true
 }) => {
   const [internalSearch, setInternalSearch] = useState('');
@@ -391,14 +393,14 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                     {/* Actions Column (Automate, Edit & Delete) */}
                     {canManageCases && (
                       <td className="py-4 px-4 align-top text-center space-x-1 whitespace-nowrap">
-                        {onViewCodeSpec && (
+                        {onRecordSteps && (
                           <button
-                            onClick={() => onViewCodeSpec(tc)}
-                            className="p-1.5 px-2 rounded-lg text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 transition-all inline-flex items-center"
-                            title="View Playwright TypeScript Spec Code"
+                            onClick={() => onRecordSteps(tc)}
+                            className="p-1.5 px-2 rounded-lg text-purple-600 hover:text-purple-800 hover:bg-purple-50 transition-all inline-flex items-center"
+                            title="Record Live Human Steps (Reflect Engine)"
                           >
-                            <Code2 className="w-3 h-3 mr-1" />
-                            <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Code Spec</span>
+                            <Video className="w-3 h-3 mr-1 text-purple-500" />
+                            <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide">Record</span>
                           </button>
                         )}
                         {onAutomateTestCase && (

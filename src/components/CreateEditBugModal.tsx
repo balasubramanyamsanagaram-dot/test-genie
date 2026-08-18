@@ -10,7 +10,7 @@ interface CreateEditBugModalProps {
   testCycles: TestCycle[];
   currentUser: UserProfile;
   onSaveBug: (
-    bug: JiraBug, 
+    bug: JiraBug,
     options: { cycleId?: string; itemKey?: string; isEdit: boolean }
   ) => void;
 }
@@ -108,7 +108,7 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
       const cleanKey = projectKey.trim().toUpperCase() || 'HRM';
       let randomNum = Math.floor(1000 + Math.random() * 9000);
       let candidateKey = `${cleanKey}-${randomNum}`;
-      
+
       const existingBugKeys = new Set(
         testCycles.flatMap(c => (c.items || []).flatMap(i => (i.jiraBugs || (i.jiraBug ? [i.jiraBug] : [])).map(b => b.issueKey?.toUpperCase()))).filter(Boolean)
       );
@@ -119,7 +119,7 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
       }
 
       finalIssueKey = candidateKey;
-      finalIssueUrl = `https://jira.company.com/browse/${finalIssueKey}`;
+      finalIssueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${finalIssueKey}`;
     }
 
     const cleanProjectKey = projectKey.trim().toUpperCase() || 'HRM';
@@ -151,15 +151,13 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col font-sans">
-        
+
         {/* Header */}
-        <div className={`px-6 py-4 border-b flex items-center justify-between flex-shrink-0 ${
-          isEdit ? 'bg-indigo-50 border-indigo-100' : 'bg-rose-50 border-rose-100'
-        }`}>
+        <div className={`px-6 py-4 border-b flex items-center justify-between flex-shrink-0 ${isEdit ? 'bg-indigo-50 border-indigo-100' : 'bg-rose-50 border-rose-100'
+          }`}>
           <div className="flex items-center space-x-3">
-            <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center shadow-md ${
-              isEdit ? 'bg-indigo-600' : 'bg-rose-600'
-            }`}>
+            <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center shadow-md ${isEdit ? 'bg-indigo-600' : 'bg-rose-600'
+              }`}>
               <Bug className="w-5 h-5" />
             </div>
             <div>
@@ -171,8 +169,8 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="p-1.5 rounded-xl hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-all"
           >
             <X className="w-4 h-4" />
@@ -181,7 +179,7 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
-          
+
           {/* Cycle & Case Selection (Only for Create flow) */}
           {!isEdit ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -328,11 +326,10 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
             <button
               type="submit"
               disabled={!isEdit && (!selectedCycleId || cycleCases.length === 0)}
-              className={`px-6 py-2 rounded-xl text-white font-extrabold shadow-md active:scale-95 transition-all ${
-                isEdit 
-                  ? 'bg-indigo-600 hover:bg-indigo-700' 
+              className={`px-6 py-2 rounded-xl text-white font-extrabold shadow-md active:scale-95 transition-all ${isEdit
+                  ? 'bg-indigo-600 hover:bg-indigo-700'
                   : 'bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed'
-              }`}
+                }`}
             >
               {isEdit ? 'Save Ticket Changes' : 'Create & Log Ticket'}
             </button>
