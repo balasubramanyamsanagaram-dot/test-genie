@@ -2142,8 +2142,8 @@ export const App: React.FC = () => {
                     onBulkEditCycleItems={handleBulkEditCycleItems}
                     onBulkDeleteCycleItems={handleBulkDeleteCycleItems}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
-                    onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
-                    onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? (tc) => handleAutomateTestCase(tc, activeCycle.id) : undefined}
+                    onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
+                    onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
                     onOpenAgentConsoleTrace={handleOpenAgentConsoleTrace}
                     onBackToCycles={() => handleTabChange('cycles')}
                   />
