@@ -462,7 +462,19 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             );
             const existingIds = new Set(cycle.items.map(i => i.testCase.id).filter(Boolean));
 
+            const isAllOrCrossModuleCycle = 
+              !cycle.moduleName ||
+              cycle.moduleName.toLowerCase().includes('all project modules') ||
+              cycle.moduleName.toLowerCase().includes('cross-module');
+
             const newUnassignedCasesCount = allCasesPool.filter(c => {
+              // If cycle is for a single module, only check unassigned cases for that module!
+              if (!isAllOrCrossModuleCycle) {
+                const cCat = (c.category || '').trim().toLowerCase();
+                const cycleMod = (cycle.moduleName || '').trim().toLowerCase();
+                if (cCat && cycleMod && cCat !== cycleMod) return false;
+              }
+
               if (c.id && existingIds.has(c.id)) return false;
               const cat = (c.category || '').trim().toLowerCase();
               const key = (c.key || '').trim().toUpperCase();
