@@ -820,7 +820,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                     </button>
                                   )}
 
-                                  {run.screenshotUrl && (
+                                  {!isRunAutomated && run.screenshotUrl && (
                                     <button
                                       onClick={() => setActiveMediaUrl({ url: run.screenshotUrl!, type: 'image' })}
                                       className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
@@ -830,7 +830,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                     </button>
                                   )}
 
-                                  {run.videoUrl && (
+                                  {!isRunAutomated && run.videoUrl && (
                                     <button
                                       onClick={() => setActiveMediaUrl({ url: run.videoUrl!, type: 'video' })}
                                       className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
@@ -869,7 +869,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                   Inspect Agent Console Trace
                                 </button>
                               )}
-                              {activeItem.evidenceScreenshotUrl && (
+                              {!isAutomatedAudit && activeItem.evidenceScreenshotUrl && (
                                 <button
                                   onClick={() => setActiveMediaUrl({ url: activeItem.evidenceScreenshotUrl!, type: 'image' })}
                                   className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs shadow-xs flex items-center"
@@ -878,7 +878,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                   View Screenshot
                                 </button>
                               )}
-                              {activeItem.evidenceVideoUrl && (
+                              {!isAutomatedAudit && activeItem.evidenceVideoUrl && (
                                 <button
                                   onClick={() => setActiveMediaUrl({ url: activeItem.evidenceVideoUrl!, type: 'video' })}
                                   className="px-3 py-1.5 rounded-xl bg-purple-600 text-white font-extrabold text-xs shadow-xs"
