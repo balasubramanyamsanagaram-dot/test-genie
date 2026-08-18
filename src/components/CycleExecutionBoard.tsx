@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase, AgentExecutionRun } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers, Search, ChevronDown, FileSpreadsheet, FileText, Package } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
@@ -66,6 +66,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   const [deletingItemKey, setDeletingItemKey] = useState<string | null>(null);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState<boolean>(false);
   const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState<boolean>(false);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState<boolean>(false);
 
   // Search & Filtering State
   const [searchTerm, setSearchTerm] = useState('');
@@ -278,27 +279,79 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
               </button>
             )}
 
-            <button
-              onClick={handleDownloadCSV}
-              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Download CSV Report
-            </button>
-            <button
-              onClick={handleDownloadMarkdown}
-              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Download Markdown Audit
-            </button>
-            <button
-              onClick={handleDownloadJson}
-              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Export Snapshot (.json)
-            </button>
+            {/* Unified Export Audit & Reports Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsExportDropdownOpen(prev => !prev)}
+                className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4 mr-1.5" />
+                Export Audit & Reports
+                <ChevronDown className="w-3.5 h-3.5 ml-1.5" />
+              </button>
+
+              {isExportDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsExportDropdownOpen(false)} 
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-20 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                      Choose Export Format
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        handleDownloadCSV();
+                        setIsExportDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center space-x-2.5 text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="block font-bold text-slate-900">Download CSV Report</span>
+                        <span className="text-[10px] text-slate-400 font-normal block">Excel & Zephyr Scale format</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleDownloadMarkdown();
+                        setIsExportDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center space-x-2.5 text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="block font-bold text-slate-900">Download Markdown Audit</span>
+                        <span className="text-[10px] text-slate-400 font-normal block">Summary for release notes</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        handleDownloadJson();
+                        setIsExportDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center space-x-2.5 text-xs font-bold text-slate-800 transition-colors"
+                    >
+                      <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="block font-bold text-slate-900">Export Snapshot (.json)</span>
+                        <span className="text-[10px] text-slate-400 font-normal block">Complete execution backup archive</span>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
