@@ -2088,9 +2088,9 @@ export const App: React.FC = () => {
                       onDeleteTestCase={handleDeleteTestCase}
                       onBulkEditTestCases={handleBulkEditTestCases}
                       onBulkDeleteTestCases={handleBulkDeleteTestCases}
-                      onAutomateTestCase={isFeatureActive(featureFlags, 'browser_automation_runner') ? handleAutomateTestCase : undefined}
-                      onViewCodeSpec={isFeatureActive(featureFlags, 'playwright_drawer') ? (tc) => setSelectedCodeCase(tc) : undefined}
-                      onRecordSteps={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? handleOpenRecorder : undefined}
+                      onAutomateTestCase={handleAutomateTestCase}
+                      onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
+                      onRecordSteps={handleOpenRecorder}
                       canManageCases={canManageCases}
                     />
                   )}
