@@ -2127,11 +2127,11 @@ export const App: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center space-x-2">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
                       {isFeatureActive(featureFlags, 'ai_story_generator') && (
                         <button
                           onClick={() => setIsStoryModalOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center"
+                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center shrink-0"
                         >
                           <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                           AI Story Importer
@@ -2141,7 +2141,7 @@ export const App: React.FC = () => {
                       {canManageCases && (
                         <button
                           onClick={handleAddAIDemoCase}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all"
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all shrink-0"
                         >
                           <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
                           Add AI Automation Demo
@@ -2151,7 +2151,7 @@ export const App: React.FC = () => {
                       {canImportExport && (
                         <button
                           onClick={() => setIsImporterOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all"
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all shrink-0"
                         >
                           <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
                           Add / Import Test Cases

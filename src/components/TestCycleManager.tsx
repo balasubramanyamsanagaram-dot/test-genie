@@ -277,11 +277,11 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
           {canCreateCycle && onImportCycleSnapshot && (
             <button
               onClick={() => jsonFileInputRef.current?.click()}
-              className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all active:scale-95"
+              className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all active:scale-95 shrink-0"
             >
               <Upload className="w-4 h-4 mr-1.5 text-indigo-600" />
               Import Snapshot (.json)
@@ -291,7 +291,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
           {canCreateCycle && (
             <button
               onClick={handleOpenCreateDrawer}
-              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 shrink-0"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               + Create New Test Cycle
