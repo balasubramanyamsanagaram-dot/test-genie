@@ -16,7 +16,7 @@ const STORAGE_KEY = 'test_genie_feature_flags_v1';
 
 const DEFAULT_FLAGS: FeatureFlags = {
   labs_enabled: true,
-  permanent_mode: false, // Set to false so individual checkboxes directly control UI features!
+  permanent_mode: true,
   command_palette: true,
   speedrun_mode: true,
   ai_story_generator: true,
@@ -52,7 +52,6 @@ export const toggleFeatureFlag = (key: keyof FeatureFlags): FeatureFlags => {
   const current = getFeatureFlags();
   const updated = {
     ...current,
-    permanent_mode: false,
     [key]: !current[key]
   };
   saveFeatureFlags(updated);
@@ -87,13 +86,15 @@ export const rollbackAllLabs = (): FeatureFlags => {
   const updated: FeatureFlags = {
     ...DEFAULT_FLAGS,
     labs_enabled: true,
-    permanent_mode: false,
+    permanent_mode: true,
   };
   saveFeatureFlags(updated);
   return updated;
 };
 
 export const isFeatureActive = (flags: FeatureFlags, featureKey: keyof FeatureFlags): boolean => {
-  // Direct reactivity: evaluate the exact state of the target feature flag
-  return Boolean(flags[featureKey]);
+  if (flags && typeof flags[featureKey] === 'boolean') {
+    return flags[featureKey];
+  }
+  return true;
 };
