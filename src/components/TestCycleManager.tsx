@@ -43,11 +43,11 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
 
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form State
-  const [cycleName, setCycleName] = useState(`Sprint 24 — ${moduleName} Execution`);
-  const [version, setVersion] = useState('v2.4.0');
+  // Form State (Defaulting to empty fields on creation)
+  const [cycleName, setCycleName] = useState('');
+  const [version, setVersion] = useState('');
   const [environment, setEnvironment] = useState<'Staging' | 'Production' | 'UAT' | 'QA-Dev'>('Staging');
-  const [assignedTester, setAssignedTester] = useState(currentUser.name);  // Multi-Module & Test Case Selection State
+  const [assignedTester, setAssignedTester] = useState('');
   const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>(['ALL']);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCaseKeys, setSelectedCaseKeys] = useState<string[]>([]);
@@ -96,8 +96,11 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
     return Object.values(allModuleCasesMap).flat().length;
   }, [allModuleCasesMap]);
 
-  // When opening creation drawer, select all cases in available pool by default
+  // When opening creation drawer, select all cases in available pool by default and clear inputs
   const handleOpenCreateDrawer = () => {
+    setCycleName('');
+    setVersion('');
+    setAssignedTester('');
     setSelectedModuleIds(['ALL']);
     const allKeys = Object.values(allModuleCasesMap).flat().map(c => c.key);
     setSelectedCaseKeys(allKeys);
@@ -195,7 +198,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
       version: version.trim(),
       environment,
       moduleName: targetModuleName,
-      assignedTester,
+      assignedTester: assignedTester.trim() || currentUser.name,
       createdBy: currentUser.name,
       createdAt: new Date().toLocaleString(),
       items: cycleItems
@@ -437,8 +440,9 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                 type="text"
                 value={cycleName}
                 onChange={e => setCycleName(e.target.value)}
+                placeholder="Enter Cycle Title (e.g. Sprint 24 Execution)..."
                 required
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400"
               />
             </div>
 
@@ -448,8 +452,9 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                 type="text"
                 value={version}
                 onChange={e => setVersion(e.target.value)}
+                placeholder="e.g. v2.4.0"
                 required
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400"
               />
             </div>
 
@@ -473,8 +478,8 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                 type="text"
                 value={assignedTester}
                 onChange={e => setAssignedTester(e.target.value)}
-                required
-                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+                placeholder={`Default: ${currentUser.name}`}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold placeholder:font-normal placeholder:text-slate-400"
               />
             </div>
           </div>
