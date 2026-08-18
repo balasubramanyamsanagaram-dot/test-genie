@@ -32,7 +32,7 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
   const [selectedCaseKey, setSelectedCaseKey] = useState('');
 
   // Form Fields
-  const [projectKey, setProjectKey] = useState('HRM');
+  const [projectKey, setProjectKey] = useState('HGA');
   const [summary, setSummary] = useState('');
   const [severity, setSeverity] = useState<'Blocker' | 'Critical' | 'Major' | 'Minor'>('Critical');
   const [assignedDeveloper, setAssignedDeveloper] = useState('');

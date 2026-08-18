@@ -36,7 +36,21 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
   const [reopenNotes, setReopenNotes] = useState('');
 
   // New Bug Form State
-  const [projectKey, setProjectKey] = useState(existingBugs[0]?.projectKey || 'HGA');
+  const defaultProjectKey = () => {
+    const firstKey = existingBugs[0]?.projectKey;
+    if (firstKey && firstKey.trim().length > 0 && firstKey.toUpperCase() !== 'HGM') {
+      return firstKey.toUpperCase();
+    }
+    if (testCase?.key && testCase.key.includes('-')) {
+      const parts = testCase.key.split('-');
+      if (parts[0] && parts[0] !== 'TC' && parts[0] !== 'AUT') {
+        return parts[0].toUpperCase();
+      }
+    }
+    return 'HGA';
+  };
+
+  const [projectKey, setProjectKey] = useState(defaultProjectKey);
   const [summary, setSummary] = useState(`[FAIL] ${testCase.name}`);
   const [severity, setSeverity] = useState<'Blocker' | 'Critical' | 'Major' | 'Minor'>('Critical');
   const [assignedDeveloper, setAssignedDeveloper] = useState('Bala Subramanyam');
