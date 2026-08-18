@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { JiraBug, TestCycle, TestCase, UserProfile } from '../types';
 import { X, Bug, Info, AlertTriangle } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
+import { fetchApi } from '../api/client';
 
 interface CreateEditBugModalProps {
   isOpen: boolean;
@@ -94,35 +95,44 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!summary.trim()) {
       alert('Bug summary is required.');
       return;
     }
 
+    const cleanProjectKey = projectKey.trim().toUpperCase() || 'HGA';
     let finalIssueKey = bugToEdit?.issueKey || '';
     let finalIssueUrl = bugToEdit?.issueUrl || '';
 
     if (!isEdit) {
-      const cleanKey = projectKey.trim().toUpperCase() || 'HRM';
-      let randomNum = Math.floor(1000 + Math.random() * 9000);
-      let candidateKey = `${cleanKey}-${randomNum}`;
+      try {
+        const liveBug = await fetchApi<JiraBug>('/jira/create-issue', {
+          method: 'POST',
+          body: JSON.stringify({
+            cycleItemId: selectedCaseKey || 'manual_bug',
+            projectKey: cleanProjectKey,
+            summary: summary.trim(),
+            description: description.trim(),
+            severity,
+            assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
+            raisedBy: currentUser.name
+          })
+        });
 
-      const existingBugKeys = new Set(
-        testCycles.flatMap(c => (c.items || []).flatMap(i => (i.jiraBugs || (i.jiraBug ? [i.jiraBug] : [])).map(b => b.issueKey?.toUpperCase()))).filter(Boolean)
-      );
-
-      while (existingBugKeys.has(candidateKey.toUpperCase())) {
-        randomNum = Math.floor(1000 + Math.random() * 9000);
-        candidateKey = `${cleanKey}-${randomNum}`;
+        if (liveBug && liveBug.issueKey) {
+          finalIssueKey = liveBug.issueKey;
+          finalIssueUrl = liveBug.issueUrl;
+        } else {
+          throw new Error('API offline');
+        }
+      } catch (err) {
+        let randomNum = Math.floor(1000 + Math.random() * 9000);
+        finalIssueKey = `${cleanProjectKey}-${randomNum}`;
+        finalIssueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${finalIssueKey}`;
       }
-
-      finalIssueKey = candidateKey;
-      finalIssueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${finalIssueKey}`;
     }
-
-    const cleanProjectKey = projectKey.trim().toUpperCase() || 'HRM';
 
     const savedBug: JiraBug = {
       issueKey: finalIssueKey,
