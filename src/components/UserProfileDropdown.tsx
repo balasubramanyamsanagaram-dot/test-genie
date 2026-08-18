@@ -147,36 +147,6 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
               </button>
             )}
 
-            {/* Export System Backup */}
-            {canManage && (
-              <button
-                onClick={handleExportBackup}
-                className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center transition-colors"
-              >
-                <Database className="w-4 h-4 mr-2.5 text-indigo-600" />
-                Export System Data Backup
-              </button>
-            )}
-
-            {/* Restore System Backup */}
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-100 text-slate-800 font-bold flex items-center transition-colors"
-                >
-                  <Upload className="w-4 h-4 mr-2.5 text-emerald-600" />
-                  Restore System Data Backup
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileRestore}
-                  accept=".json"
-                  className="hidden"
-                />
-              </>
-            )}
           </div>
 
           {/* Footer Logout Button (Matches Screenshot Log out style) */}
