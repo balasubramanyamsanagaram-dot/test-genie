@@ -2090,7 +2090,7 @@ export const App: React.FC = () => {
                       onBulkDeleteTestCases={handleBulkDeleteTestCases}
                       onAutomateTestCase={handleAutomateTestCase}
                       onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
-                      onRecordSteps={handleOpenRecorder}
+                      onRecordSteps={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? handleOpenRecorder : undefined}
                       canManageCases={canManageCases}
                     />
                   )}
