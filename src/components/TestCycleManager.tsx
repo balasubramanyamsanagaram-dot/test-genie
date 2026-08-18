@@ -40,24 +40,105 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   const [cycleName, setCycleName] = useState(`Sprint 24 — ${moduleName} Execution`);
   const [version, setVersion] = useState('v2.4.0');
   const [environment, setEnvironment] = useState<'Staging' | 'Production' | 'UAT' | 'QA-Dev'>('Staging');
-  const [assignedTester, setAssignedTester] = useState(currentUser.name);
-
-  // Selected Test Cases State
+  const [assignedTester, setAssignedTester] = useState(currentUser.name);  // Multi-Module & Test Case Selection State
+  const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>(['ALL']);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCaseKeys, setSelectedCaseKeys] = useState<string[]>([]);
 
   const canCreateCycle = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
 
-  // Combine all test cases across all modules into one pool mapped by module ID
+  // Compute all available cases across all modules
   const allAvailableCases: TestCase[] = React.useMemo(() => {
     return Object.values(allModuleCasesMap).flat();
   }, [allModuleCasesMap]);
 
-  // Handle Select All toggle
-  const handleSelectAllToggle = () => {
-    if (selectedCaseKeys.length === currentModuleCases.length) {
-      setSelectedCaseKeys([]);
+  // Compute available pool of test cases based on selected module scope
+  const availablePool = React.useMemo(() => {
+    const pool: { testCase: TestCase; moduleName: string; moduleId: string }[] = [];
+    const isAll = selectedModuleIds.includes('ALL');
+
+    allModules.forEach(mod => {
+      if (isAll || selectedModuleIds.includes(mod.id)) {
+        const cases = allModuleCasesMap[mod.id] || [];
+        cases.forEach(tc => {
+          pool.push({
+            testCase: tc,
+            moduleName: mod.name,
+            moduleId: mod.id
+          });
+        });
+      }
+    });
+
+    return pool;
+  }, [allModules, allModuleCasesMap, selectedModuleIds]);
+
+  // Filter pool by search query
+  const filteredPool = React.useMemo(() => {
+    if (!searchQuery.trim()) return availablePool;
+    const q = searchQuery.toLowerCase().trim();
+    return availablePool.filter(p =>
+      p.testCase.key.toLowerCase().includes(q) ||
+      p.testCase.name.toLowerCase().includes(q) ||
+      p.moduleName.toLowerCase().includes(q)
+    );
+  }, [availablePool, searchQuery]);
+
+  // Total available cases across all modules
+  const totalAllModulesCasesCount = React.useMemo(() => {
+    return Object.values(allModuleCasesMap).flat().length;
+  }, [allModuleCasesMap]);
+
+  // When opening creation drawer, select all cases in available pool by default
+  const handleOpenCreateDrawer = () => {
+    setSelectedModuleIds(['ALL']);
+    const allKeys = Object.values(allModuleCasesMap).flat().map(c => c.key);
+    setSelectedCaseKeys(allKeys);
+    setIsCreating(true);
+  };
+
+  // Toggle Module Scope Selection
+  const handleToggleModuleScope = (modId: string) => {
+    if (modId === 'ALL') {
+      setSelectedModuleIds(['ALL']);
+      const allKeys = Object.values(allModuleCasesMap).flat().map(c => c.key);
+      setSelectedCaseKeys(allKeys);
+      return;
+    }
+
+    let nextModuleIds: string[];
+    if (selectedModuleIds.includes('ALL')) {
+      nextModuleIds = [modId];
+    } else if (selectedModuleIds.includes(modId)) {
+      nextModuleIds = selectedModuleIds.filter(id => id !== modId);
+      if (nextModuleIds.length === 0) nextModuleIds = ['ALL'];
     } else {
-      setSelectedCaseKeys(currentModuleCases.map(c => c.key));
+      nextModuleIds = [...selectedModuleIds, modId];
+    }
+
+    setSelectedModuleIds(nextModuleIds);
+
+    // Auto-select keys belonging to selected modules
+    const nextPool: TestCase[] = [];
+    const isAll = nextModuleIds.includes('ALL');
+    allModules.forEach(m => {
+      if (isAll || nextModuleIds.includes(m.id)) {
+        const cases = allModuleCasesMap[m.id] || [];
+        nextPool.push(...cases);
+      }
+    });
+    setSelectedCaseKeys(nextPool.map(c => c.key));
+  };
+
+  // Handle Select All toggle for filtered scenarios
+  const handleSelectAllToggle = () => {
+    const visibleKeys = filteredPool.map(p => p.testCase.key);
+    const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every(k => selectedCaseKeys.includes(k));
+
+    if (allVisibleSelected) {
+      setSelectedCaseKeys(prev => prev.filter(k => !visibleKeys.includes(k)));
+    } else {
+      setSelectedCaseKeys(prev => Array.from(new Set([...prev, ...visibleKeys])));
     }
   };
 
@@ -80,21 +161,33 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
       return;
     }
 
-    const cycleItems: TestCycleItem[] = currentModuleCases
-      .filter(c => selectedCaseKeys.includes(c.key))
-      .map(c => ({
-        id: `item-${c.key}-${Date.now()}`,
-        testCase: c,
-        executionStatus: 'UNEXECUTED',
-        assignedTo: assignedTester
-      }));
+    const selectedPool = availablePool.filter(p => selectedCaseKeys.includes(p.testCase.key));
+
+    const cycleItems: TestCycleItem[] = selectedPool.map(p => ({
+      id: `item-${p.testCase.key}-${Date.now()}`,
+      testCase: p.testCase,
+      executionStatus: 'UNEXECUTED',
+      assignedTo: assignedTester
+    }));
+
+    // Compute Module Title for Cycle
+    let targetModuleName = moduleName;
+    if (selectedModuleIds.includes('ALL')) {
+      targetModuleName = `All Project Modules (${allModules.length} Modules)`;
+    } else if (selectedModuleIds.length > 1) {
+      const names = allModules.filter(m => selectedModuleIds.includes(m.id)).map(m => m.name);
+      targetModuleName = `Cross-Module (${names.join(', ')})`;
+    } else if (selectedModuleIds.length === 1) {
+      const single = allModules.find(m => m.id === selectedModuleIds[0]);
+      if (single) targetModuleName = single.name;
+    }
 
     const newCycle: TestCycle = {
       id: `cycle-${Date.now().toString().slice(-4)}`,
       name: cycleName.trim(),
       version: version.trim(),
       environment,
-      moduleName,
+      moduleName: targetModuleName,
       assignedTester,
       createdBy: currentUser.name,
       createdAt: new Date().toLocaleString(),
@@ -115,17 +208,14 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             <RotateCw className="w-5 h-5 text-indigo-600 mr-2" />
             Test Execution Cycles — {moduleName}
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 mt-1">
             Group test cases into release runs, assign QA testers, and sync newly uploaded test cases live.
           </p>
         </div>
 
         {canCreateCycle && (
           <button
-            onClick={() => {
-              setSelectedCaseKeys(currentModuleCases.map(c => c.key));
-              setIsCreating(true);
-            }}
+            onClick={handleOpenCreateDrawer}
             className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 mr-1.5" />
@@ -138,7 +228,10 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
       {isCreating && canCreateCycle && (
         <form onSubmit={handleCreateSubmit} className="bg-white rounded-3xl p-6 border border-indigo-200 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-base font-extrabold text-slate-900">Configure New Test Cycle Run</h3>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900">Configure New Test Cycle Run</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Select single module, multiple modules, or entire project suite for this execution run.</p>
+            </div>
             <button
               type="button"
               onClick={() => setIsCreating(false)}
@@ -197,61 +290,125 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             </div>
           </div>
 
-          {/* Test Case Selection Table */}
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-800">
-                Select Scenarios to Include ({selectedCaseKeys.length} of {currentModuleCases.length} Selected)
-              </span>
+          {/* Module Selector Filter Pills */}
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <label className="font-extrabold text-slate-800 text-xs block">
+              Target Module Scope (Select single module, multiple modules, or all project modules)
+            </label>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
               <button
                 type="button"
-                onClick={handleSelectAllToggle}
-                className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
+                onClick={() => handleToggleModuleScope('ALL')}
+                className={`px-3 py-1.5 rounded-xl font-extrabold border transition-all ${
+                  selectedModuleIds.includes('ALL')
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
               >
-                {selectedCaseKeys.length === currentModuleCases.length ? 'Deselect All' : 'Select All Scenarios'}
+                🌐 All Project Modules ({totalAllModulesCasesCount} Scenarios)
               </button>
-            </div>
 
-            <div className="max-h-56 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-slate-50/50">
-              {currentModuleCases.map(tc => {
-                const isSelected = selectedCaseKeys.includes(tc.key);
+              {allModules.map(mod => {
+                const count = (allModuleCasesMap[mod.id] || []).length;
+                const isSelected = selectedModuleIds.includes('ALL') || selectedModuleIds.includes(mod.id);
                 return (
-                  <label key={tc.key} className="flex items-center px-4 py-2.5 hover:bg-white transition-colors cursor-pointer text-xs">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleCase(tc.key)}
-                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                    />
-                    <span className="font-mono font-bold text-indigo-700 ml-3 mr-4 w-24 flex-shrink-0">{tc.key}</span>
-                    <span className="font-bold text-slate-900 flex-1 truncate">{tc.name}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
-                    }`}>
-                      {tc.type}
+                  <button
+                    key={mod.id}
+                    type="button"
+                    onClick={() => handleToggleModuleScope(mod.id)}
+                    className={`px-3 py-1.5 rounded-xl font-bold border transition-all flex items-center ${
+                      isSelected
+                        ? 'bg-indigo-50 text-indigo-800 border-indigo-300 font-extrabold'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="mr-1">{mod.name}</span>
+                    <span className="bg-white/80 text-indigo-700 px-1.5 py-0.2 rounded text-[10px] font-mono border border-indigo-200">
+                      {count}
                     </span>
-                  </label>
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-2">
+          {/* Test Case Selection Table */}
+          <div className="space-y-2 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span className="font-extrabold text-slate-800">
+                Select Scenarios to Include ({selectedCaseKeys.length} of {availablePool.length} Selected)
+              </span>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="text"
+                  placeholder="🔍 Search test cases by ID, name, or module..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1 text-slate-800 font-medium text-xs w-64"
+                />
+                <button
+                  type="button"
+                  onClick={handleSelectAllToggle}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 whitespace-nowrap"
+                >
+                  {filteredPool.length > 0 && filteredPool.every(p => selectedCaseKeys.includes(p.testCase.key)) ? 'Deselect Filtered' : 'Select All Filtered Scenarios'}
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-slate-50/50">
+              {filteredPool.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs font-bold">
+                  No matching test case scenarios found for the selected module scope or search query.
+                </div>
+              ) : (
+                filteredPool.map(p => {
+                  const tc = p.testCase;
+                  const isSelected = selectedCaseKeys.includes(tc.key);
+                  return (
+                    <label key={`${p.moduleId}-${tc.key}`} className="flex items-center px-4 py-2.5 hover:bg-white transition-colors cursor-pointer text-xs">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleCase(tc.key)}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                      />
+                      <span className="font-mono font-bold text-indigo-700 ml-3 mr-2 w-20 flex-shrink-0">{tc.key}</span>
+                      
+                      <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md text-[10px] font-extrabold mr-3 flex-shrink-0 border border-indigo-200">
+                        {p.moduleName}
+                      </span>
+
+                      <span className="font-bold text-slate-900 flex-1 truncate">{tc.name}</span>
+
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+                      }`}>
+                        {tc.type}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsCreating(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold"
+              className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md"
+              className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md active:scale-95 transition-all"
             >
-              Start Execution Cycle Run
+              Start Execution Cycle Run ({selectedCaseKeys.length} Scenarios)
             </button>
           </div>
-
         </form>
       )}
 
