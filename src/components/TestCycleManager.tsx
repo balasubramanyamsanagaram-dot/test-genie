@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { TestCycle, TestCase, UserProfile, TestCycleItem, ProjectModule } from '../types';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
+import { EditCycleModal } from './EditCycleModal';
 import { ConfirmModal } from './ConfirmModal';
-import { RotateCw, Plus, PlaySquare, Calendar, Layers, ShieldCheck, CheckCircle2, User, FileSpreadsheet, Lock, AlertCircle, RefreshCw, Trash2, Download, Upload, BarChart3, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { RotateCw, Plus, PlaySquare, Calendar, Layers, ShieldCheck, CheckCircle2, User, FileSpreadsheet, Lock, AlertCircle, RefreshCw, Trash2, Download, Upload, BarChart3, TrendingUp, ChevronDown, ChevronUp, Edit3, Pencil } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 
 interface TestCycleManagerProps {
@@ -19,6 +20,7 @@ interface TestCycleManagerProps {
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
   onToggleIgnoreSync?: (cycleId: string) => void;
   onImportCycleSnapshot?: (importedCycle: TestCycle) => void;
+  onUpdateCycle?: (cycleId: string, updates: Partial<TestCycle>) => void;
 }
 
 export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
@@ -34,11 +36,13 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   onDeleteCycle,
   onSyncEditedCasesToCycle,
   onToggleIgnoreSync,
-  onImportCycleSnapshot
+  onImportCycleSnapshot,
+  onUpdateCycle
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [targetCycleForAddModal, setTargetCycleForAddModal] = useState<TestCycle | null>(null);
   const [deletingCycle, setDeletingCycle] = useState<TestCycle | null>(null);
+  const [editingCycle, setEditingCycle] = useState<TestCycle | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
 
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
@@ -843,6 +847,15 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                         Add / Sync Cases
                       </button>
                     )}
+                    {canCreateCycle && onUpdateCycle && (
+                      <button
+                        onClick={() => setEditingCycle(cycle)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                        title="Edit Execution Cycle Details"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    )}
                     {canCreateCycle && onDeleteCycle && (
                       <button
                         onClick={() => setDeletingCycle(cycle)}
@@ -900,6 +913,19 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             setDeletingCycle(null);
           }}
           onCancel={() => setDeletingCycle(null)}
+        />
+      )}
+
+      {/* Edit Cycle Modal */}
+      {editingCycle && (
+        <EditCycleModal
+          cycle={editingCycle}
+          isOpen={true}
+          onClose={() => setEditingCycle(null)}
+          onSave={(cycleId, updates) => {
+            if (onUpdateCycle) onUpdateCycle(cycleId, updates);
+            setEditingCycle(null);
+          }}
         />
       )}
 

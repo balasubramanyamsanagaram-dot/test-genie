@@ -1290,6 +1290,18 @@ export const App: React.FC = () => {
     showToast(`Successfully imported cycle snapshot "${cleanCycle.name}" (${cleanCycle.items.length} items)!`, 'success');
   };
 
+  // Edit / Update Execution Cycle Details (Title, Version, Environment, Assignee)
+  const handleUpdateCycle = (cycleId: string, updates: Partial<TestCycle>) => {
+    setTestCycles(prev => prev.map(c => {
+      if (c.id !== cycleId) return c;
+      return {
+        ...c,
+        ...updates
+      };
+    }));
+    showToast(`Updated execution cycle details successfully!`, 'success');
+  };
+
   // Bulk Edit Test Cases
   const handleBulkEditTestCases = (keys: string[], updates: { priority?: string; type?: string; status?: string }) => {
     const keySet = new Set(keys.map(k => k.trim().toUpperCase()));
@@ -2205,6 +2217,7 @@ export const App: React.FC = () => {
                   onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
                   onToggleIgnoreSync={handleToggleIgnoreSync}
                   onImportCycleSnapshot={handleImportCycleSnapshot}
+                  onUpdateCycle={handleUpdateCycle}
                 />
               )
             )}
