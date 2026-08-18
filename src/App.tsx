@@ -1176,17 +1176,19 @@ export const App: React.FC = () => {
         seenKeys.add(keyUpper);
 
         const master = masterCaseMap.get(keyUpper);
+        const norm = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+
         if (master) {
           syncedCount++;
           updatedItems.push({
             ...item,
             testCase: {
               ...master,
-              name: master.name ? master.name.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
-              testSteps: master.testSteps ? master.testSteps.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
-              expectedResult: master.expectedResult ? master.expectedResult.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
-              objective: master.objective ? master.objective.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : '',
-              precondition: master.precondition ? master.precondition.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() : ''
+              name: norm(master.name),
+              testSteps: norm(master.testSteps),
+              expectedResult: norm(master.expectedResult),
+              objective: norm(master.objective),
+              precondition: norm(master.precondition)
             }
           });
         } else {

@@ -87,7 +87,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     const master = masterCaseMap.get(keyUpper);
     if (!master) return false;
 
-    const norm = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    const norm = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
     
     const isDifferent = (
       norm(master.name) !== norm(item.testCase.name) ||
