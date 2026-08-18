@@ -1156,10 +1156,7 @@ export const App: React.FC = () => {
 
   // Sync Edited Master Test Cases into Execution Cycle
   const handleSyncEditedCasesToCycle = (cycleId: string) => {
-    const allCases = [
-      ...(customModuleCases[selectedModuleId] || []),
-      ...testCases
-    ];
+    const allCases = Object.values(customModuleCases).flat();
     const masterCaseMap = new Map(allCases.map(c => [c.key?.trim().toUpperCase(), c]));
 
     let syncedCount = 0;
@@ -2131,7 +2128,7 @@ export const App: React.FC = () => {
                   <CycleExecutionBoard
                     cycle={activeCycle}
                     currentUser={currentUser}
-                    allAvailableCases={customModuleCases[selectedModuleId] || []}
+                    allAvailableCases={Object.values(customModuleCases).flat()}
                     isHydrated={isHydrated}
                     onUpdateStatus={handleUpdateExecutionStatus}
                     onAddCasesToCycle={handleAddCasesToCycle}
