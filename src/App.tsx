@@ -2156,6 +2156,10 @@ export const App: React.FC = () => {
                         ...prev,
                         [activeModule.id]: [newCase, ...(prev[activeModule.id] || [])]
                       }))}
+                      onAddTestCases={(newCases) => setCustomModuleCases(prev => ({
+                        ...prev,
+                        [activeModule.id]: [...newCases, ...(prev[activeModule.id] || [])]
+                      }))}
                       onSaveTestCase={handleSaveTestCase}
                       onLaunchRemoteRecorder={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? () => handleOpenRecorder(testCases[0] || null) : undefined}
                     />

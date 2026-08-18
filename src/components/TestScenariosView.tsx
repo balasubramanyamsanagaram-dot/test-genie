@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TestCase, UserProfile } from '../types';
 import { SearchableSelect } from './SearchableSelect';
 import { AutomateScenarioModal } from './AutomateScenarioModal';
-import { Plus, Search, Filter, Sparkles, Code2, CheckCircle2, AlertCircle, Bot, Monitor, ChevronRight, Layers, FileText } from 'lucide-react';
+import { Plus, Search, Filter, Sparkles, Code2, CheckCircle2, AlertCircle, Bot, Monitor, ChevronRight, Layers, FileText, Upload } from 'lucide-react';
+import Papa from 'papaparse';
 
 interface TestScenariosViewProps {
   moduleName: string;
   testCases: TestCase[];
   currentUser: UserProfile;
   onAddTestCase?: (newCase: TestCase) => void;
+  onAddTestCases?: (newCases: TestCase[]) => void;
   onSaveTestCase?: (updatedCase: TestCase) => void;
   onLaunchRemoteRecorder?: () => void;
 }
@@ -18,6 +20,7 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
   testCases,
   currentUser,
   onAddTestCase,
+  onAddTestCases,
   onSaveTestCase,
   onLaunchRemoteRecorder
 }) => {
@@ -26,6 +29,8 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
   const [selectedPriority, setSelectedPriority] = useState('ALL');
   const [isCreatingScenario, setIsCreatingScenario] = useState(false);
   const [automatingScenario, setAutomatingScenario] = useState<TestCase | null>(null);
+
+  const scenarioFileInputRef = useRef<HTMLInputElement>(null);
 
   // New Scenario Form State
   const [key, setKey] = useState('');
@@ -94,8 +99,76 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
     }
   };
 
+  const handleScenarioFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+    if (fileExt === '.json') {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target?.result as string);
+          const cases: TestCase[] = Array.isArray(parsed) ? parsed : (parsed.items || parsed.testCases || []);
+          if (cases.length > 0 && onAddTestCases) {
+            onAddTestCases(cases);
+          }
+        } catch (err) {
+          alert('Error parsing JSON scenario file.');
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const rows = results.data as any[];
+          const prefix = moduleName.substring(0, 3).toUpperCase();
+          const newCases: TestCase[] = rows.map((row, idx) => {
+            const scenarioNum = testCases.length + idx + 1;
+            const scenarioTitle = row['Scenario Title'] || row['Title'] || row['Name'] || row['Test Case Title'] || `Test Scenario ${scenarioNum}`;
+            const scenarioObj = row['Objective'] || row['Description'] || scenarioTitle;
+            const scenarioType = (row['Type'] || row['Test Type'] || (scenarioTitle.toLowerCase().includes('negative') || scenarioTitle.toLowerCase().includes('error') ? 'Negative' : 'Positive'));
+            
+            return {
+              key: row['Scenario Key'] || row['Key'] || `${prefix}-SCN-${scenarioNum.toString().padStart(2, '0')}`,
+              folder: `/Test Scenarios/${moduleName}`,
+              name: scenarioTitle,
+              objective: scenarioObj,
+              precondition: row['Precondition'] || 'User logged in',
+              testSteps: row['Test Steps'] || row['Steps'] || `Step 1: Perform user action for ${scenarioTitle}`,
+              testData: row['Test Data'] || 'Standard QA Payload',
+              expectedResult: row['Expected Result'] || 'System performs action cleanly',
+              status: 'Approved',
+              priority: (row['Priority'] || 'High') as any,
+              category: moduleName,
+              type: scenarioType as any,
+              sourceFile: file.name,
+              createdAt: new Date().toISOString()
+            };
+          });
+
+          if (newCases.length > 0 && onAddTestCases) {
+            onAddTestCases(newCases);
+          }
+        }
+      });
+    }
+
+    if (e.target) e.target.value = '';
+  };
+
   return (
     <div className="space-y-6">
+      <input
+        type="file"
+        ref={scenarioFileInputRef}
+        accept=".csv,.xlsx,.json"
+        onChange={handleScenarioFileUpload}
+        className="hidden"
+      />
       
       {/* Top Action & Filter Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
@@ -105,17 +178,27 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
             High-Level Test Scenarios & E2E Automation — {moduleName}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Define high-level user acceptance scenarios and instantly generate Playwright E2E automation tests or record live browser sessions.
+            Define high-level user acceptance scenarios, upload scenario spreadsheet files, and instantly generate Playwright E2E tests.
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreateDrawer}
-          className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-1.5" />
-          + Add Test Scenario
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => scenarioFileInputRef.current?.click()}
+            className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all active:scale-95 shrink-0"
+          >
+            <Upload className="w-4 h-4 mr-1.5 text-indigo-600" />
+            Upload Test Scenarios
+          </button>
+
+          <button
+            onClick={handleOpenCreateDrawer}
+            className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 shrink-0"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            + Add Test Scenario
+          </button>
+        </div>
       </div>
 
       {/* Search & Type Filters */}
