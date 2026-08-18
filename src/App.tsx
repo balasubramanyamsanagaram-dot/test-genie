@@ -24,6 +24,7 @@ import { getFeatureFlags, FeatureFlags, isFeatureActive } from './engine/feature
 import { LabsControlModal } from './components/LabsControlModal';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
+import { TestScenariosView } from './components/TestScenariosView';
 import { getIDBItem, setIDBItem } from './utils/idbStorage';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
@@ -119,6 +120,9 @@ export const App: React.FC = () => {
     itemKey: string;
     itemTitle: string;
   } | null>(null);
+
+  // Sub-view toggle in Test Cases tab ('table' | 'scenarios')
+  const [casesSubView, setCasesSubView] = useState<'table' | 'scenarios'>('table');
 
   // Synchronous-safe window.alert override for styled custom notifications
   useEffect(() => {
@@ -2117,79 +2121,121 @@ export const App: React.FC = () => {
                 renderEmptyModuleState()
               ) : (
                 <div className="space-y-4 animate-fadeIn">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900">
-                        [{activeProject.key}] {activeModule.name} ({testCases.length} Test Cases)
-                      </h2>
-                      <p className="text-xs text-slate-500">
-                        Manual QA repository with step-by-step execution instructions, positive/negative breakdown, and reference file importer.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
-                      {isFeatureActive(featureFlags, 'ai_story_generator') && (
-                        <button
-                          onClick={() => setIsStoryModalOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center shrink-0"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                          AI User Story Importer
-                        </button>
-                      )}
-
-                      {canManageCases && (
-                        <button
-                          onClick={handleAddAIDemoCase}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all shrink-0"
-                        >
-                          <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
-                          Add AI Automation Demo
-                        </button>
-                      )}
-
-                      {canImportExport && (
-                        <button
-                          onClick={() => setIsImporterOpen(true)}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all shrink-0"
-                        >
-                          <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
-                          Add / Import Test Cases
-                        </button>
-                      )}
-                    </div>
+                  {/* Segmented Sub-View Navigation (Detailed Test Cases vs High-Level Test Scenarios & Automation) */}
+                  <div className="flex items-center space-x-1 bg-slate-200/70 p-1 rounded-2xl w-fit border border-slate-300/60">
+                    <button
+                      onClick={() => setCasesSubView('table')}
+                      className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center ${
+                        casesSubView === 'table'
+                          ? 'bg-white text-indigo-700 shadow-md border border-slate-200'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5 mr-1.5" />
+                      📋 Detailed Test Cases ({testCases.length})
+                    </button>
+                    <button
+                      onClick={() => setCasesSubView('scenarios')}
+                      className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center ${
+                        casesSubView === 'scenarios'
+                          ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      🎯 High-Level Test Scenarios & Automation
+                    </button>
                   </div>
 
-                  {testCases.length === 0 ? (
-                    <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                      <Upload className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
-                      <h4 className="text-base font-extrabold text-slate-900">No Test Cases Stored Yet for {activeModule.name}</h4>
-                      <p className="text-xs text-slate-500 mt-1 mb-4">
-                        {canImportExport ? `Upload reference files (.csv, .xlsx, .json) or create manual test cases for ${activeModule.name}.` : `Only QA Lead or Admin roles can upload test cases.`}
-                      </p>
-                      {canImportExport && (
-                        <button
-                          onClick={() => setIsImporterOpen(true)}
-                          className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md mx-auto block"
-                        >
-                          + Add / Upload Test Cases Now
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <TestCaseTable
+                  {casesSubView === 'scenarios' ? (
+                    <TestScenariosView
+                      moduleName={activeModule.name}
                       testCases={testCases}
-                      externalSearchQuery={globalSearchQuery}
-                      onSearchChange={setGlobalSearchQuery}
+                      currentUser={currentUser}
+                      onAddTestCase={(newCase) => setCustomModuleCases(prev => ({
+                        ...prev,
+                        [activeModule.id]: [newCase, ...(prev[activeModule.id] || [])]
+                      }))}
                       onSaveTestCase={handleSaveTestCase}
-                      onDeleteTestCase={handleDeleteTestCase}
-                      onBulkEditTestCases={handleBulkEditTestCases}
-                      onBulkDeleteTestCases={handleBulkDeleteTestCases}
-                      onAutomateTestCase={handleAutomateTestCase}
-                      onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
-                      onRecordSteps={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? handleOpenRecorder : undefined}
-                      canManageCases={canManageCases}
+                      onLaunchRemoteRecorder={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? () => handleOpenRecorder(testCases[0] || null) : undefined}
                     />
+                  ) : (
+                    <>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <h2 className="text-xl font-bold text-slate-900">
+                            [{activeProject.key}] {activeModule.name} ({testCases.length} Test Cases)
+                          </h2>
+                          <p className="text-xs text-slate-500">
+                            Manual QA repository with step-by-step execution instructions, positive/negative breakdown, and reference file importer.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+                          {isFeatureActive(featureFlags, 'ai_story_generator') && (
+                            <button
+                              onClick={() => setIsStoryModalOpen(true)}
+                              className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center shrink-0"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                              AI User Story Importer
+                            </button>
+                          )}
+
+                          {canManageCases && (
+                            <button
+                              onClick={handleAddAIDemoCase}
+                              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all shrink-0"
+                            >
+                              <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
+                              Add AI Automation Demo
+                            </button>
+                          )}
+
+                          {canImportExport && (
+                            <button
+                              onClick={() => setIsImporterOpen(true)}
+                              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all shrink-0"
+                            >
+                              <Upload className="w-3.5 h-3.5 mr-1.5 inline" />
+                              Add / Import Test Cases
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {testCases.length === 0 ? (
+                        <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+                          <Upload className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
+                          <h4 className="text-base font-extrabold text-slate-900">No Test Cases Stored Yet for {activeModule.name}</h4>
+                          <p className="text-xs text-slate-500 mt-1 mb-4">
+                            {canImportExport ? `Upload reference files (.csv, .xlsx, .json) or create manual test cases for ${activeModule.name}.` : `Only QA Lead or Admin roles can upload test cases.`}
+                          </p>
+                          {canImportExport && (
+                            <button
+                              onClick={() => setIsImporterOpen(true)}
+                              className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md mx-auto block"
+                            >
+                              + Add / Upload Test Cases Now
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <TestCaseTable
+                          testCases={testCases}
+                          externalSearchQuery={globalSearchQuery}
+                          onSearchChange={setGlobalSearchQuery}
+                          onSaveTestCase={handleSaveTestCase}
+                          onDeleteTestCase={handleDeleteTestCase}
+                          onBulkEditTestCases={handleBulkEditTestCases}
+                          onBulkDeleteTestCases={handleBulkDeleteTestCases}
+                          onAutomateTestCase={handleAutomateTestCase}
+                          onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
+                          onRecordSteps={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? handleOpenRecorder : undefined}
+                          canManageCases={canManageCases}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               )
