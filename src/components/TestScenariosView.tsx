@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { TestCase, UserProfile } from '../types';
 import { SearchableSelect } from './SearchableSelect';
-import { AutomateScenarioModal } from './AutomateScenarioModal';
 import { TestCaseImporter } from './TestCaseImporter';
 import { Plus, Search, Filter, Sparkles, Code2, CheckCircle2, AlertCircle, Bot, Monitor, ChevronRight, Layers, FileText, Upload } from 'lucide-react';
 import Papa from 'papaparse';
@@ -13,6 +12,7 @@ interface TestScenariosViewProps {
   onAddTestCase?: (newCase: TestCase) => void;
   onAddTestCases?: (newCases: TestCase[]) => void;
   onSaveTestCase?: (updatedCase: TestCase) => void;
+  onAutomateTestCase?: (testCase: TestCase) => void;
   onLaunchRemoteRecorder?: () => void;
 }
 
@@ -23,6 +23,7 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
   onAddTestCase,
   onAddTestCases,
   onSaveTestCase,
+  onAutomateTestCase,
   onLaunchRemoteRecorder
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +31,6 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
   const [selectedPriority, setSelectedPriority] = useState('ALL');
   const [isCreatingScenario, setIsCreatingScenario] = useState(false);
   const [isImporterOpen, setIsImporterOpen] = useState(false);
-  const [automatingScenario, setAutomatingScenario] = useState<TestCase | null>(null);
 
   const scenarioFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -416,7 +416,13 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
                   </span>
 
                   <button
-                    onClick={() => setAutomatingScenario(sc)}
+                    onClick={() => {
+                      if (onAutomateTestCase) {
+                        onAutomateTestCase(sc);
+                      } else if (onLaunchRemoteRecorder) {
+                        onLaunchRemoteRecorder();
+                      }
+                    }}
                     className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95"
                   >
                     <Code2 className="w-3.5 h-3.5 mr-1.5" />
@@ -428,17 +434,6 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
           })
         )}
       </div>
-
-      {/* Automate Scenario Modal */}
-      {automatingScenario && (
-        <AutomateScenarioModal
-          testCase={automatingScenario}
-          isOpen={true}
-          onClose={() => setAutomatingScenario(null)}
-          onLaunchRemoteRecorder={onLaunchRemoteRecorder}
-          onMarkAutomated={handleMarkAutomated}
-        />
-      )}
 
       {/* Add / Import Test Scenarios Modal */}
       {isImporterOpen && (
