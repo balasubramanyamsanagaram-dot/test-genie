@@ -1230,13 +1230,35 @@ export const App: React.FC = () => {
                 existingBugs = [bug, ...existingBugs];
               }
 
+              const isAutomated = selectedAutomateCase?.key === options.itemKey;
+              const existingHistory = item.executionHistory || [];
+              const newRun: AgentExecutionRun = {
+                id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                agentName: isAutomated
+                  ? `BrowserAutomationAgent@${options.itemKey}`
+                  : (currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Manual QA Tester'),
+                testCaseKey: options.itemKey,
+                executionStatus: 'FAILED',
+                executionType: isAutomated ? 'Automated' : 'Manual',
+                executedBy: isAutomated ? 'Playwright Engine' : (currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Manual QA Tester'),
+                executedAt: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+                screenshotUrl: bug.screenshotUrl || item.evidenceScreenshotUrl,
+                videoUrl: bug.videoUrl || item.evidenceVideoUrl,
+                evidenceName: bug.evidenceName || item.evidenceName,
+                summaryLog: isAutomated
+                  ? `Automated step assertion failed during Playwright DOM execution. Linked Jira Defect: ${bug.issueKey}`
+                  : `Manual test step execution failed. Linked Jira Defect: ${bug.issueKey}`,
+                jiraBugKey: bug.issueKey
+              };
+
               return {
                 ...item,
                 executionStatus: 'FAILED',
                 jiraBug: bug,
                 jiraBugs: existingBugs,
                 defectId: bug.issueKey,
-                executedBy: currentUser?.name || 'QA Tester',
+                executionHistory: [newRun, ...existingHistory],
+                executedBy: isAutomated ? 'Playwright Engine' : (currentUser?.name || 'QA Tester'),
                 executedAt: new Date().toLocaleString()
               };
             })

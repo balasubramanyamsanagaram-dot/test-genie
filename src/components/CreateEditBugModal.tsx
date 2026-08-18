@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { JiraBug, TestCycle, TestCase, UserProfile } from '../types';
 import { X, Bug, Info, AlertTriangle } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
@@ -188,9 +189,15 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col font-sans">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col font-sans"
+        onClick={e => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className={`px-6 py-4 border-b flex items-center justify-between flex-shrink-0 ${isEdit ? 'bg-indigo-50 border-indigo-100' : 'bg-rose-50 border-rose-100'
@@ -205,7 +212,7 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
                 {isEdit ? `Edit Jira Defect [${bugToEdit?.issueKey}]` : 'Log New Jira Defect Ticket'}
               </h3>
               <p className="text-[10px] text-slate-500 font-medium">
-                {isEdit ? 'Modify ticket priority, details, or status' : 'Link a manual case to a Jira ticket'}
+                {isEdit ? 'Modify ticket priority, details, or status' : 'Log a defect ticket in Jira Cloud with step details & evidence attachments'}
               </p>
             </div>
           </div>
@@ -377,6 +384,7 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
 
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
