@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { TestCycle, TestCase, TestCycleItem } from '../types';
-import { X, Plus, CheckCircle2, Search, Filter, Layers, CheckSquare, Square } from 'lucide-react';
+import { TestCycle, TestCase } from '../types';
+import { X, Plus, Search, Filter, CheckSquare, Square, Layers, Globe } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 
 interface AddCasesToCycleModalProps {
@@ -16,22 +16,34 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
   onAddCasesToCycle,
   onClose
 }) => {
+  // Extract distinct module names / categories from available repository cases
+  const distinctModules = React.useMemo(() => {
+    const map = new Map<string, number>();
+    availableCases.forEach(tc => {
+      const cat = tc.category || 'General';
+      map.set(cat, (map.get(cat) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([name, total]) => ({ name, total }));
+  }, [availableCases]);
+
   // Existing case keys in cycle
   const existingKeys = new Set([
     ...cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean),
     ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
   ]);
 
-  // Cases belonging to this module that are NOT in the cycle yet
-  const unassignedCases = availableCases.filter(tc => 
-    (!cycle.moduleName || tc.category === cycle.moduleName || cycle.moduleName === 'ALL') &&
-    !existingKeys.has(tc.key?.trim().toUpperCase()) &&
-    !existingKeys.has(tc.name?.trim().toLowerCase())
-  );
+  // Cases across ALL modules in repository that are NOT in the cycle yet
+  const unassignedCases = React.useMemo(() => {
+    return availableCases.filter(tc => 
+      !existingKeys.has(tc.key?.trim().toUpperCase()) &&
+      !existingKeys.has(tc.name?.trim().toLowerCase())
+    );
+  }, [availableCases, existingKeys]);
 
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [selectedModuleScope, setSelectedModuleScope] = useState<string>('ALL');
 
   const filteredCases = unassignedCases.filter(tc => {
     const q = searchQuery.toLowerCase().trim();
@@ -39,10 +51,16 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
       !q ||
       tc.key.toLowerCase().includes(q) ||
       tc.name.toLowerCase().includes(q) ||
-      tc.objective.toLowerCase().includes(q);
+      tc.objective.toLowerCase().includes(q) ||
+      (tc.category && tc.category.toLowerCase().includes(q));
 
     const matchesType = typeFilter === 'ALL' || tc.type === typeFilter;
-    return matchesSearch && matchesType;
+
+    const matchesModule = 
+      selectedModuleScope === 'ALL' || 
+      tc.category === selectedModuleScope;
+
+    return matchesSearch && matchesType && matchesModule;
   });
 
   const handleToggleCase = (key: string) => {
@@ -53,7 +71,7 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
 
   const handleSelectAllFiltered = () => {
     const filteredKeys = filteredCases.map(c => c.key);
-    const allSelected = filteredKeys.every(k => selectedKeys.includes(k));
+    const allSelected = filteredKeys.length > 0 && filteredKeys.every(k => selectedKeys.includes(k));
 
     if (allSelected) {
       setSelectedKeys(prev => prev.filter(k => !filteredKeys.includes(k)));
@@ -75,26 +93,70 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col">
         
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
               <Plus className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base font-extrabold text-slate-900">
-                Add New Cases to Cycle — <span className="text-indigo-600">{cycle.name}</span>
+                Add Test Cases to Cycle — <span className="text-indigo-600">{cycle.name}</span>
               </h3>
-              <p className="text-xs text-slate-500">
-                Currently has {cycle.items.length} cases. {unassignedCases.length} unassigned repository cases available.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Currently has <strong>{cycle.items.length}</strong> cases. <strong>{unassignedCases.length}</strong> unassigned repository test cases available across all modules.
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 font-bold">
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 font-bold transition-all">
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Module Filter Scope Selector */}
+        <div className="px-6 py-2.5 bg-indigo-50/50 border-b border-indigo-100 flex items-center space-x-2 overflow-x-auto text-xs">
+          <span className="font-extrabold text-slate-700 flex items-center mr-1 flex-shrink-0">
+            <Globe className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+            Module Scope:
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setSelectedModuleScope('ALL')}
+            className={`px-3 py-1 rounded-xl font-extrabold text-xs transition-all flex-shrink-0 ${
+              selectedModuleScope === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            🌐 All Modules ({unassignedCases.length})
+          </button>
+
+          {distinctModules.map(mod => {
+            const countForMod = unassignedCases.filter(c => c.category === mod.name).length;
+            const isSelected = selectedModuleScope === mod.name;
+            return (
+              <button
+                key={mod.name}
+                type="button"
+                onClick={() => setSelectedModuleScope(mod.name)}
+                className={`px-3 py-1 rounded-xl font-bold text-xs transition-all flex items-center flex-shrink-0 ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{mod.name}</span>
+                <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                  isSelected ? 'bg-white/30 text-white' : 'bg-slate-100 text-indigo-700 border border-slate-200'
+                }`}>
+                  {countForMod}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter Bar */}
@@ -105,27 +167,27 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search newly uploaded cases by Key or Title..."
-              className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-1.5 text-slate-800 font-sans focus:outline-none focus:border-indigo-500"
+              placeholder="Search unassigned test cases by Key, Title, or Module..."
+              className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-1.5 text-slate-800 font-sans focus:outline-none focus:border-indigo-500 font-bold"
             />
           </div>
 
           <div className="flex items-center space-x-2">
-             <Filter className="w-3.5 h-3.5 text-slate-400" />
-             <SearchableSelect
-               options={[
-                 { value: 'ALL', label: 'All Types' },
-                 { value: 'Positive', label: 'Positive' },
-                 { value: 'Negative', label: 'Negative' }
-               ]}
-               value={typeFilter}
-               onChange={setTypeFilter}
-               className="w-32"
-             />
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <SearchableSelect
+              options={[
+                { value: 'ALL', label: 'All Types' },
+                { value: 'Positive', label: 'Positive' },
+                { value: 'Negative', label: 'Negative' }
+              ]}
+              value={typeFilter}
+              onChange={setTypeFilter}
+              className="w-32"
+            />
 
             <button
               onClick={handleSelectAllFiltered}
-              className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all"
+              className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all whitespace-nowrap"
             >
               {filteredCases.length > 0 && filteredCases.every(c => selectedKeys.includes(c.key)) ? 'Deselect All' : 'Select All Filtered'}
             </button>
@@ -135,12 +197,12 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
         {/* Unassigned Case List */}
         <div className="p-4 flex-1 overflow-y-auto space-y-2">
           {unassignedCases.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs">
-              All repository test cases for this module are already included in this cycle!
+            <div className="py-12 text-center text-slate-400 text-xs font-bold">
+              All repository test cases across all modules are already included in this cycle!
             </div>
           ) : filteredCases.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs">
-              No unassigned test cases matched your search filter.
+            <div className="py-12 text-center text-slate-400 text-xs font-bold">
+              No unassigned test cases matched your search or module filter.
             </div>
           ) : (
             filteredCases.map(tc => {
@@ -151,7 +213,7 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
                   onClick={() => handleToggleCase(tc.key)}
                   className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start space-x-3 text-xs ${
                     isSelected
-                      ? 'bg-indigo-50/80 border-indigo-300 ring-1 ring-indigo-500/20'
+                      ? 'bg-indigo-50/90 border-indigo-300 ring-1 ring-indigo-500/20 shadow-sm'
                       : 'bg-white border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -163,13 +225,19 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="font-mono font-bold text-indigo-700">{tc.key}</span>
+                        
+                        <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md text-[10px] font-extrabold border border-indigo-200">
+                          {tc.category || 'Module'}
+                        </span>
+
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
                         }`}>
                           {tc.type}
                         </span>
+
                         {tc.sourceFile && (
-                          <span className="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-mono">
+                          <span className="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-mono hidden sm:inline-block">
                             Source: {tc.sourceFile}
                           </span>
                         )}
@@ -188,8 +256,8 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
 
         {/* Modal Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
-          <span className="font-bold text-slate-700">
-            {selectedKeys.length} new test cases selected to add
+          <span className="font-extrabold text-slate-800">
+            {selectedKeys.length} test case{selectedKeys.length === 1 ? '' : 's'} selected across module scope
           </span>
 
           <div className="flex items-center space-x-2">
