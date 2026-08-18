@@ -1121,15 +1121,52 @@ export const App: React.FC = () => {
     }
   };
 
-  // Single Test Case Edit / Save in Master Repository (Triggers Sync alert in Execution Cycles)
+  // Single Test Case Edit / Save in Master Repository + 2-WAY SYNC to Execution Cycles
   const handleSaveTestCase = (updatedCase: TestCase) => {
     const keyUpper = updatedCase.key?.trim().toUpperCase();
+
+    // 1. Update in Master Repository across module map
     setCustomModuleCases(prev => {
-      const modCases = prev[selectedModuleId] || [];
-      const updatedModCases = modCases.map(c => c.key?.trim().toUpperCase() === keyUpper ? updatedCase : c);
-      return { ...prev, [selectedModuleId]: updatedModCases };
+      const newMap = { ...prev };
+      let found = false;
+
+      Object.keys(newMap).forEach(modId => {
+        const list = newMap[modId] || [];
+        if (list.some(c => c.key?.trim().toUpperCase() === keyUpper)) {
+          newMap[modId] = list.map(c => c.key?.trim().toUpperCase() === keyUpper ? updatedCase : c);
+          found = true;
+        }
+      });
+
+      if (!found) {
+        const list = newMap[selectedModuleId] || [];
+        newMap[selectedModuleId] = [...list, updatedCase];
+      }
+
+      return newMap;
     });
-    showToast(`Updated test case ${updatedCase.key} in Master Repository!`, 'success');
+
+    // 2. 2-WAY SYNC: Instantly update active execution cycle item snapshots
+    setTestCycles(prev => prev.map(cycle => ({
+      ...cycle,
+      items: cycle.items.map(item =>
+        item.testCase.key?.trim().toUpperCase() === keyUpper
+          ? { ...item, testCase: updatedCase }
+          : item
+      )
+    })));
+
+    showToast(`Updated test case ${updatedCase.key} in Master Repository and active Execution Cycles!`, 'success');
+  };
+
+  // Toggle Ignore / Dismiss Sync Notification for a Cycle
+  const handleToggleIgnoreSync = (cycleId: string) => {
+    setTestCycles(prev => prev.map(cycle => {
+      if (cycle.id !== cycleId) return cycle;
+      const nextIgnored = !cycle.ignoredSync;
+      showToast(nextIgnored ? 'Sync notification ignored for this cycle.' : 'Sync notifications re-enabled for this cycle.', 'info');
+      return { ...cycle, ignoredSync: nextIgnored };
+    }));
   };
 
   // Single Test Case Delete in Master Repository (Does NOT affect execution cycles)
@@ -2116,6 +2153,7 @@ export const App: React.FC = () => {
                     }}
                     onDeleteCycle={handleDeleteCycle}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
+                    onToggleIgnoreSync={handleToggleIgnoreSync}
                   />
                 )
               )}
@@ -2141,6 +2179,7 @@ export const App: React.FC = () => {
                     onBulkEditCycleItems={handleBulkEditCycleItems}
                     onBulkDeleteCycleItems={handleBulkDeleteCycleItems}
                     onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
+                    onToggleIgnoreSync={handleToggleIgnoreSync}
                     onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
                     onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
                     onOpenAgentConsoleTrace={handleOpenAgentConsoleTrace}

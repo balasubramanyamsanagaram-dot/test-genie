@@ -29,6 +29,7 @@ interface CycleExecutionBoardProps {
   onBulkEditCycleItems?: (cycleId: string, itemKeys: string[], updates: { priority?: string; type?: string; status?: string }) => void;
   onBulkDeleteCycleItems?: (cycleId: string, itemKeys: string[]) => void;
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
+  onToggleIgnoreSync?: (cycleId: string) => void;
   onViewCodeSpec?: (testCase: TestCase) => void;
   onAutomateTestCase?: (testCase: TestCase) => void;
   onOpenAgentConsoleTrace?: (testCase: TestCase, status?: TestExecutionStatus, screenshotUrl?: string, stepRuns?: any[]) => void;
@@ -49,6 +50,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   onBulkEditCycleItems,
   onBulkDeleteCycleItems,
   onSyncEditedCasesToCycle,
+  onToggleIgnoreSync,
   onViewCodeSpec,
   onAutomateTestCase,
   onOpenAgentConsoleTrace,
@@ -220,14 +222,25 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            {outdatedCasesCount > 0 && onSyncEditedCasesToCycle && canExecuteTests && (
-              <button
-                onClick={() => onSyncEditedCasesToCycle(cycle.id)}
-                className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition-all active:scale-95"
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin-slow" />
-                Sync {outdatedCasesCount} Edited Case{outdatedCasesCount > 1 ? 's' : ''}
-              </button>
+            {!cycle.ignoredSync && outdatedCasesCount > 0 && onSyncEditedCasesToCycle && canExecuteTests && (
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => onSyncEditedCasesToCycle(cycle.id)}
+                  className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition-all active:scale-95"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin-slow" />
+                  Sync {outdatedCasesCount} Edited Case{outdatedCasesCount > 1 ? 's' : ''}
+                </button>
+                {onToggleIgnoreSync && (
+                  <button
+                    onClick={() => onToggleIgnoreSync(cycle.id)}
+                    className="px-2.5 py-2.5 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 transition-all"
+                    title="Ignore sync warnings for this execution cycle"
+                  >
+                    ✕ Ignore
+                  </button>
+                )}
+              </div>
             )}
 
             {canExecuteTests && onAddCasesToCycle && (

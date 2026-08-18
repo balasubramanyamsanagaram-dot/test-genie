@@ -17,6 +17,7 @@ interface TestCycleManagerProps {
   onSelectCycleToExecute: (cycleId: string) => void;
   onDeleteCycle?: (cycleId: string) => void;
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
+  onToggleIgnoreSync?: (cycleId: string) => void;
 }
 
 export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
@@ -30,7 +31,8 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   onAddCasesToCycle,
   onSelectCycleToExecute,
   onDeleteCycle,
-  onSyncEditedCasesToCycle
+  onSyncEditedCasesToCycle,
+  onToggleIgnoreSync
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [targetCycleForAddModal, setTargetCycleForAddModal] = useState<TestCycle | null>(null);
@@ -503,38 +505,59 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                     </p>
                   </div>
 
-                  {/* New Uploaded Cases Available Badge Alert */}
-                  {newUnassignedCasesCount > 0 && (
-                    <div className="bg-indigo-50 p-2.5 rounded-2xl border border-indigo-200 flex items-center justify-between text-xs">
-                      <span className="text-indigo-900 font-bold flex items-center">
-                        <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-indigo-600 animate-spin-slow" />
-                        {newUnassignedCasesCount} newly uploaded test cases available in repository!
+                  {/* Sync Alert Banner for Edited/New Cases */}
+                  {!cycle.ignoredSync && (outdatedCasesCount > 0 || newUnassignedCasesCount > 0) && (
+                    <div className="bg-amber-50 p-2.5 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <span className="text-amber-900 font-bold flex items-center">
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-amber-600 animate-spin-slow flex-shrink-0" />
+                        {outdatedCasesCount > 0 && newUnassignedCasesCount > 0
+                          ? `${outdatedCasesCount} edited & ${newUnassignedCasesCount} new cases available!`
+                          : outdatedCasesCount > 0
+                          ? `${outdatedCasesCount} edited test case${outdatedCasesCount > 1 ? 's' : ''} ready to sync!`
+                          : `${newUnassignedCasesCount} newly uploaded test case${newUnassignedCasesCount > 1 ? 's' : ''} available!`}
                       </span>
-                      {canCreateCycle && (
-                        <button
-                          onClick={() => setTargetCycleForAddModal(cycle)}
-                          className="px-2.5 py-1 rounded-xl bg-indigo-600 text-white font-extrabold text-[11px] shadow-sm hover:bg-indigo-700 transition-all"
-                        >
-                          + Sync to Cycle
-                        </button>
-                      )}
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        {outdatedCasesCount > 0 && onSyncEditedCasesToCycle && canCreateCycle && (
+                          <button
+                            onClick={() => onSyncEditedCasesToCycle(cycle.id)}
+                            className="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] shadow-sm transition-all flex items-center active:scale-95"
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Sync {outdatedCasesCount} Cases
+                          </button>
+                        )}
+                        {newUnassignedCasesCount > 0 && canCreateCycle && (
+                          <button
+                            onClick={() => setTargetCycleForAddModal(cycle)}
+                            className="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] shadow-sm transition-all"
+                          >
+                            + Add New Cases
+                          </button>
+                        )}
+                        {onToggleIgnoreSync && (
+                          <button
+                            onClick={() => onToggleIgnoreSync(cycle.id)}
+                            className="px-2 py-1 rounded-xl bg-amber-200/60 hover:bg-amber-200 text-amber-900 font-bold text-[11px] transition-all"
+                            title="Ignore sync warnings for this execution cycle"
+                          >
+                            ✕ Ignore
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {/* Edited Cases Available for Sync Alert */}
-                  {outdatedCasesCount > 0 && (
-                    <div className="bg-amber-50 p-2.5 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
-                      <span className="text-amber-900 font-bold flex items-center">
-                        <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-amber-600 animate-spin-slow" />
-                        {outdatedCasesCount} edited test case{outdatedCasesCount > 1 ? 's' : ''} ready to sync!
+                  {cycle.ignoredSync && (outdatedCasesCount > 0 || newUnassignedCasesCount > 0) && (
+                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 font-medium italic">
+                        Sync notice ignored for this cycle ({outdatedCasesCount || newUnassignedCasesCount} updates available)
                       </span>
-                      {canCreateCycle && onSyncEditedCasesToCycle && (
+                      {onToggleIgnoreSync && (
                         <button
-                          onClick={() => onSyncEditedCasesToCycle(cycle.id)}
-                          className="px-2.5 py-1 rounded-xl bg-amber-600 text-white font-extrabold text-[11px] shadow-sm hover:bg-amber-700 transition-all flex items-center active:scale-95"
+                          onClick={() => onToggleIgnoreSync(cycle.id)}
+                          className="text-indigo-600 hover:text-indigo-800 font-bold"
                         >
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Sync Edited Cases
+                          Re-enable Sync
                         </button>
                       )}
                     </div>

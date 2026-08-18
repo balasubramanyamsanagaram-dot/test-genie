@@ -248,6 +248,7 @@ export interface TestCycle {
   createdBy?: string;
   createdAt: string;
   items: TestCycleItem[];
+  ignoredSync?: boolean;
 }
 
 export interface AuditCertificate {
