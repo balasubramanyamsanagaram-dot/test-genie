@@ -31,6 +31,7 @@ const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
 const STORAGE_KEY_SEL_MODULE = 'test_genie_selected_module_v2';
 const STORAGE_KEY_CASES = 'test_genie_custom_cases_v2';
+const STORAGE_KEY_SCENARIOS = 'test_genie_custom_scenarios_v2';
 const STORAGE_KEY_CYCLES = 'test_genie_test_cycles_v2';
 const STORAGE_KEY_USER = 'test_genie_authenticated_user_v1';
 const STORAGE_KEY_USERS = 'registered_enterprise_users_v2';
@@ -304,6 +305,18 @@ export const App: React.FC = () => {
     return casesMap;
   });
 
+  // Load Persisted Custom Test Scenarios per module from localStorage (Starts 100% EMPTY for all modules!)
+  const [customModuleScenarios, setCustomModuleScenarios] = useState<Record<string, TestCase[]>>(() => {
+    let scenariosMap: Record<string, TestCase[]> = {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SCENARIOS);
+      if (saved) {
+        scenariosMap = JSON.parse(saved);
+      }
+    } catch (e) { }
+    return scenariosMap;
+  });
+
   // Cycle Sanitizer: Deduplicates items by testCase.key (case-insensitive)
   function sanitizeTestCycle(cycle: TestCycle): TestCycle {
     if (!cycle || !cycle.items) return cycle;
@@ -528,6 +541,16 @@ export const App: React.FC = () => {
     } catch (e) { }
     broadcastSync('SYNC_RELOAD');
   }, [customModuleCases, broadcastSync]);
+
+  // Sync Custom Scenarios to IndexedDB + localStorage + Broadcast to Other Tabs
+  useEffect(() => {
+    if (!isHydratedRef.current) return;
+    setIDBItem(STORAGE_KEY_SCENARIOS, customModuleScenarios);
+    try {
+      localStorage.setItem(STORAGE_KEY_SCENARIOS, JSON.stringify(customModuleScenarios));
+    } catch (e) { }
+    broadcastSync('SYNC_RELOAD');
+  }, [customModuleScenarios, broadcastSync]);
 
   // Sync Test Cycles to IndexedDB + localStorage + Broadcast to Other Tabs
   useEffect(() => {
@@ -1040,6 +1063,48 @@ export const App: React.FC = () => {
     if (!selectedModuleId) return [];
     return customModuleCases[selectedModuleId] || [];
   }, [selectedModuleId, customModuleCases]);
+
+  // Active Test Scenarios array for selected module repository (Starts 100% EMPTY for all modules!)
+  const testScenarios: TestCase[] = useMemo(() => {
+    if (!selectedModuleId) return [];
+    return customModuleScenarios[selectedModuleId] || [];
+  }, [selectedModuleId, customModuleScenarios]);
+
+  // Handle Importing test scenarios into repository
+  const handleImportScenarios = (newScenarios: TestCase[]) => {
+    if (!selectedModuleId) return;
+    setCustomModuleScenarios(prev => {
+      const existingList = prev[selectedModuleId] || [];
+      const incomingKeyMap = new Map(newScenarios.map(c => [c.key?.trim().toUpperCase(), c]));
+      const incomingNameMap = new Map(newScenarios.map(c => [c.name?.trim().toLowerCase(), c]));
+
+      const updatedExisting = existingList.map(existing => {
+        const keyMatch = existing.key ? incomingKeyMap.get(existing.key.trim().toUpperCase()) : undefined;
+        const nameMatch = existing.name ? incomingNameMap.get(existing.name.trim().toLowerCase()) : undefined;
+        const match = keyMatch || nameMatch;
+        if (match) {
+          return { ...existing, ...match, key: existing.key };
+        }
+        return existing;
+      });
+
+      const existingKeys = new Set(existingList.map(c => c.key?.trim().toUpperCase()).filter(Boolean));
+      const existingNames = new Set(existingList.map(c => c.name?.trim().toLowerCase()).filter(Boolean));
+
+      const trulyNew = newScenarios.filter(c => {
+        const keyVal = c.key?.trim().toUpperCase();
+        const nameVal = c.name?.trim().toLowerCase();
+        return (!keyVal || !existingKeys.has(keyVal)) && (!nameVal || !existingNames.has(nameVal));
+      });
+
+      return {
+        ...prev,
+        [selectedModuleId]: [...trulyNew, ...updatedExisting]
+      };
+    });
+
+    showToast(`Successfully added ${newScenarios.length} Test Scenarios!`, 'success');
+  };
 
   // Handle Importing test cases into repository (Smart Upsert: Updates existing matching keys/titles in place, appends new ones)
   const handleImportCases = (newCases: TestCase[]) => {
@@ -2143,26 +2208,20 @@ export const App: React.FC = () => {
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                      🎯 High-Level Test Scenarios & Automation
+                      🎯 High-Level Test Scenarios & Automation ({testScenarios.length})
                     </button>
                   </div>
 
                   {casesSubView === 'scenarios' ? (
                     <TestScenariosView
                       moduleName={activeModule.name}
-                      testCases={testCases}
+                      testCases={testScenarios}
                       currentUser={currentUser}
-                      onAddTestCase={(newCase) => setCustomModuleCases(prev => ({
-                        ...prev,
-                        [activeModule.id]: [newCase, ...(prev[activeModule.id] || [])]
-                      }))}
-                      onAddTestCases={(newCases) => setCustomModuleCases(prev => ({
-                        ...prev,
-                        [activeModule.id]: [...newCases, ...(prev[activeModule.id] || [])]
-                      }))}
-                      onSaveTestCase={handleSaveTestCase}
+                      onAddTestCase={(newCase) => handleImportScenarios([newCase])}
+                      onAddTestCases={(newCases) => handleImportScenarios(newCases)}
+                      onSaveTestCase={(updatedCase) => handleImportScenarios([updatedCase])}
                       onAutomateTestCase={handleAutomateTestCase}
-                      onLaunchRemoteRecorder={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? () => handleOpenRecorder(testCases[0] || null) : undefined}
+                      onLaunchRemoteRecorder={isFeatureActive(featureFlags, 'reflect_remote_recorder') ? () => handleOpenRecorder(testScenarios[0] || null) : undefined}
                     />
                   ) : (
                     <>
