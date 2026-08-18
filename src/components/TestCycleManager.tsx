@@ -46,7 +46,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   // Form State (Defaulting to empty fields on creation)
   const [cycleName, setCycleName] = useState('');
   const [version, setVersion] = useState('');
-  const [environment, setEnvironment] = useState<'Staging' | 'Production' | 'UAT' | 'QA-Dev'>('Staging');
+  const [environment, setEnvironment] = useState<string>('');
   const [assignedTester, setAssignedTester] = useState('');
   const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>(['ALL']);
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,6 +100,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   const handleOpenCreateDrawer = () => {
     setCycleName('');
     setVersion('');
+    setEnvironment('');
     setAssignedTester('');
     setSelectedModuleIds(['ALL']);
     const allKeys = Object.values(allModuleCasesMap).flat().map(c => c.key);
@@ -196,7 +197,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
       id: `cycle-${Date.now().toString().slice(-4)}`,
       name: cycleName.trim(),
       version: version.trim(),
-      environment,
+      environment: (environment as any) || 'Staging',
       moduleName: targetModuleName,
       assignedTester: assignedTester.trim() || currentUser.name,
       createdBy: currentUser.name,
@@ -469,6 +470,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                 ]}
                 value={environment}
                 onChange={val => setEnvironment(val as any)}
+                placeholder="Select Target Environment..."
               />
             </div>
 
