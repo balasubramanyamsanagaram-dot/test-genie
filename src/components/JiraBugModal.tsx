@@ -38,14 +38,8 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
   // New Bug Form State
   const defaultProjectKey = () => {
     const firstKey = existingBugs[0]?.projectKey;
-    if (firstKey && firstKey.trim().length > 0 && firstKey.toUpperCase() !== 'HGM') {
-      return firstKey.toUpperCase();
-    }
-    if (testCase?.key && testCase.key.includes('-')) {
-      const parts = testCase.key.split('-');
-      if (parts[0] && parts[0] !== 'TC' && parts[0] !== 'AUT') {
-        return parts[0].toUpperCase();
-      }
+    if (firstKey && firstKey.trim().length > 0 && firstKey.toUpperCase() === 'HGA') {
+      return 'HGA';
     }
     return 'HGA';
   };
@@ -63,7 +57,8 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
   ]);
 
   React.useEffect(() => {
-    fetchApi<{ accountId?: string; displayName: string; emailAddress?: string }[]>(`/jira/users?projectKey=${projectKey || 'HGA'}`)
+    const fetchKey = (projectKey && projectKey.trim().length > 0) ? projectKey.trim() : 'HGA';
+    fetchApi<{ accountId?: string; displayName: string; emailAddress?: string }[]>(`/jira/users?projectKey=${fetchKey}`)
       .then(users => {
         if (users && Array.isArray(users) && users.length > 0) {
           const opts = users.map(u => ({
