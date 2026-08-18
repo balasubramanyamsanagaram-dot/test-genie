@@ -66,9 +66,13 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
     
     const stepsToSave = stepData || steps;
     const proofScreenshot = stepsToSave.find(s => s.screenshot)?.screenshot || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80';
-    const evidenceData = overrideEvidence || {
-      screenshotUrl: proofScreenshot,
-      evidenceName: `${testCase?.key || 'TestCase'}_Automated_${runStatus}_Proof.png`
+
+    const evidenceData = {
+      ...(overrideEvidence || {
+        screenshotUrl: proofScreenshot,
+        evidenceName: `${testCase?.key || 'TestCase'}_Automated_${runStatus}_Proof.png`
+      }),
+      isAutomated: true
     };
 
     onSaveToCycle(runStatus, evidenceData, stepsToSave);

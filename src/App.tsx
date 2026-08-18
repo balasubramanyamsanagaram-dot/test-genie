@@ -923,6 +923,8 @@ export const App: React.FC = () => {
     const cycle = activeProjectCycles.find(c => c.id === cycleId) || activeProjectCycles[0];
     if (cycle && selectedAutomateCase) {
       const itemToUpdate = cycle.items.find(i => i.testCase.key === selectedAutomateCase.key);
+      const autoEvidence = { ...(evidence || {}), isAutomated: true };
+
       if (itemToUpdate) {
         handleUpdateExecutionStatus(
           cycle.id,
@@ -931,22 +933,40 @@ export const App: React.FC = () => {
           undefined,
           undefined,
           undefined,
-          evidence,
+          autoEvidence,
           stepRuns
         );
-        showToast(`Automation execution (${status}): Stored evidence proof in cycle "${cycle.name}"!`, 'success');
+        showToast(`Automation execution (${status}): Stored Playwright evidence run in cycle "${cycle.name}"!`, 'success');
       } else {
+        const newExecutionRun: AgentExecutionRun = {
+          id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          agentName: `BrowserAutomationAgent@${selectedAutomateCase.key}`,
+          testCaseKey: selectedAutomateCase.key,
+          executionStatus: status,
+          executionType: 'Automated',
+          executedBy: 'Playwright Engine',
+          executedAt: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
+          screenshotUrl: evidence?.screenshotUrl,
+          videoUrl: evidence?.videoUrl,
+          evidenceName: evidence?.evidenceName || `${selectedAutomateCase.key}_Automated_Proof`,
+          summaryLog: status === 'PASSED' 
+            ? 'Automated Playwright browser assertion check passed. UI state verified with zero console errors.' 
+            : 'Step assertion check failed during DOM element evaluation.',
+          stepRuns: stepRuns ? JSON.parse(JSON.stringify(stepRuns)) : undefined
+        };
+
         const newItem: TestCycleItem = {
           id: `item-${Date.now().toString().slice(-4)}`,
           testCase: selectedAutomateCase,
           executionStatus: status,
-          executedBy: currentUser?.name || 'QA Tester',
+          executedBy: 'Playwright Engine',
           executedAt: new Date().toISOString(),
           executionType: 'Automated',
           evidenceScreenshotUrl: evidence?.screenshotUrl,
           evidenceVideoUrl: evidence?.videoUrl,
           evidenceName: evidence?.evidenceName || `${selectedAutomateCase.key}_Automated_Proof`,
           stepRuns: stepRuns,
+          executionHistory: [newExecutionRun],
           attachments: (evidence?.screenshotUrl || evidence?.videoUrl) ? [{
             id: `att-${Date.now()}`,
             name: evidence?.evidenceName || `${selectedAutomateCase.key}_Proof`,
@@ -964,7 +984,7 @@ export const App: React.FC = () => {
           };
         }));
 
-        showToast(`Added test case ${selectedAutomateCase.key} to cycle "${cycle.name}" (${status}) with media proof!`, 'success');
+        showToast(`Added automated test case ${selectedAutomateCase.key} to cycle "${cycle.name}" (${status}) with Playwright evidence!`, 'success');
       }
     }
   };
