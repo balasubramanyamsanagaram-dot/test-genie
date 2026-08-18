@@ -104,9 +104,30 @@ export async function createDirectJiraIssue(payload: DirectJiraPayload): Promise
       if (res.ok) {
         const data = await res.json();
         if (data && data.key) {
+          const createdKey = data.key;
+          if (assigneeAccountId) {
+            try {
+              const putUrl = endpoint.startsWith('/jira-proxy')
+                ? `/jira-proxy/rest/api/3/issue/${createdKey}/assignee`
+                : `${JIRA_CLOUD_HOST}/rest/api/3/issue/${createdKey}/assignee`;
+
+              await fetch(putUrl, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': authHeader,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({ accountId: assigneeAccountId })
+              });
+            } catch (e) {
+              console.warn('[Jira Assignee PUT Warning] Could not set assignee:', e);
+            }
+          }
+
           return {
-            issueKey: data.key,
-            issueUrl: `${JIRA_CLOUD_HOST}/browse/${data.key}`
+            issueKey: createdKey,
+            issueUrl: `${JIRA_CLOUD_HOST}/browse/${createdKey}`
           };
         }
       }
