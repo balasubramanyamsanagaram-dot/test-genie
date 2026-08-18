@@ -9,6 +9,7 @@ import { SearchableSelect } from './SearchableSelect';
 
 interface TestCaseTableProps {
   testCases: TestCase[];
+  mode?: 'cases' | 'scenarios';
   externalSearchQuery?: string;
   onSearchChange?: (query: string) => void;
   onSaveTestCase?: (updatedCase: TestCase) => void;
@@ -23,6 +24,7 @@ interface TestCaseTableProps {
 
 export const TestCaseTable: React.FC<TestCaseTableProps> = ({
   testCases,
+  mode = 'cases',
   externalSearchQuery = '',
   onSearchChange,
   onSaveTestCase,
@@ -225,7 +227,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
             type="text"
             value={activeSearch}
             onChange={e => handleInputChange(e.target.value)}
-            placeholder="Search by TC - ID, Manual Test Cases, or Test Steps..."
+            placeholder={mode === 'scenarios' ? "Search by Scenario Key, Title, or Test Steps..." : "Search by TC - ID, Manual Test Cases, or Test Steps..."}
             className="w-full bg-white text-slate-800 text-xs rounded-xl pl-10 pr-4 py-2.5 border border-slate-300 focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
           />
         </div>
@@ -234,11 +236,11 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
           <Filter className="w-3.5 h-3.5 text-slate-500" />
           <SearchableSelect
             options={[
-              { value: 'ALL', label: 'All Test Cases (Positive + Negative)' },
-              { value: 'Positive', label: 'Positive Test Cases' },
-              { value: 'Negative', label: 'Negative / Validation Test Cases' },
-              { value: 'Boundary', label: 'Boundary Test Cases' },
-              { value: 'Permission', label: 'RBAC Permission Test Cases' }
+              { value: 'ALL', label: mode === 'scenarios' ? 'All Test Scenarios (Positive + Negative)' : 'All Test Cases (Positive + Negative)' },
+              { value: 'Positive', label: mode === 'scenarios' ? 'Positive Scenarios' : 'Positive Test Cases' },
+              { value: 'Negative', label: mode === 'scenarios' ? 'Negative / Validation Scenarios' : 'Negative / Validation Test Cases' },
+              { value: 'Boundary', label: mode === 'scenarios' ? 'Boundary Scenarios' : 'Boundary Test Cases' },
+              { value: 'Permission', label: mode === 'scenarios' ? 'RBAC Permission Scenarios' : 'RBAC Permission Test Cases' }
             ]}
             value={selectedType}
             onChange={setSelectedType}
@@ -253,7 +255,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
         <div className="bg-indigo-900 text-white p-3 px-6 border-b border-indigo-800 flex items-center justify-between shadow-md animate-in slide-in-from-top-2 duration-150">
           <span className="text-xs font-extrabold flex items-center">
             <CheckSquare className="w-4 h-4 mr-2 text-indigo-300" />
-            {selectedKeys.length} Test Cases Selected
+            {selectedKeys.length} {mode === 'scenarios' ? 'Test Scenarios' : 'Test Cases'} Selected
           </span>
 
           <div className="flex items-center space-x-2">
@@ -296,8 +298,8 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
                   />
                 </th>
               )}
-              <th className="py-3.5 px-4 w-28">TC - ID</th>
-              <th className="py-3.5 px-4 max-w-xs">Manual Test Cases</th>
+              <th className="py-3.5 px-4 w-28">{mode === 'scenarios' ? 'SCENARIO KEY' : 'TC - ID'}</th>
+              <th className="py-3.5 px-4 max-w-xs">{mode === 'scenarios' ? 'TEST SCENARIOS' : 'MANUAL TEST CASES'}</th>
               <th className="py-3.5 px-4 w-32">Type</th>
               <th className="py-3.5 px-4">Test Steps</th>
               <th className="py-3.5 px-4 max-w-xs">Expected Result</th>
@@ -309,7 +311,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
             {sortedCases.length === 0 ? (
               <tr>
                 <td colSpan={canManageCases ? 7 : 5} className="py-12 text-center text-slate-400">
-                  No matching test cases found for "{activeSearch}".
+                  No matching {mode === 'scenarios' ? 'test scenarios' : 'test cases'} found for "{activeSearch}".
                 </td>
               </tr>
             ) : (
@@ -443,7 +445,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
         
         {/* Info */}
         <div className="flex items-center space-x-2 font-mono text-[11px] text-slate-500">
-          <span>Showing {totalCasesCount > 0 ? startIndex + 1 : 0} to {endIndex} of {totalCasesCount} Test Cases</span>
+          <span>Showing {totalCasesCount > 0 ? startIndex + 1 : 0} to {endIndex} of {totalCasesCount} {mode === 'scenarios' ? 'Test Scenarios' : 'Test Cases'}</span>
           {testCases.length > totalCasesCount && (
             <span className="text-slate-400 font-sans">(filtered from {testCases.length} total)</span>
           )}
@@ -505,9 +507,9 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
           <span className="text-[11px] text-slate-500 font-medium">Show</span>
           <SearchableSelect
             options={[
-              { value: '25', label: '25 Scenarios' },
-              { value: '50', label: '50 Scenarios' },
-              { value: '100', label: '100 Scenarios' },
+              { value: '25', label: mode === 'scenarios' ? '25 Test Scenarios' : '25 Test Cases' },
+              { value: '50', label: mode === 'scenarios' ? '50 Test Scenarios' : '50 Test Cases' },
+              { value: '100', label: mode === 'scenarios' ? '100 Test Scenarios' : '100 Test Cases' },
               { value: 'ALL', label: 'Show All' }
             ]}
             value={pageSize.toString()}
@@ -515,7 +517,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
               setPageSize(val === 'ALL' ? 'ALL' : parseInt(val, 10));
               setCurrentPage(1);
             }}
-            className="w-32"
+            className="w-36"
           />
         </div>
 
