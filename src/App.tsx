@@ -1121,11 +1121,11 @@ export const App: React.FC = () => {
     }
   };
 
-  // Single Test Case Edit / Save in Master Repository + 2-WAY SYNC to Execution Cycles
+  // Single Test Case Edit / Save in Master Repository (Triggers Sync notification on Cycle Cards and Execution Board)
   const handleSaveTestCase = (updatedCase: TestCase) => {
     const keyUpper = updatedCase.key?.trim().toUpperCase();
 
-    // 1. Update in Master Repository across module map
+    // Update in Master Repository across module map
     setCustomModuleCases(prev => {
       const newMap = { ...prev };
       let found = false;
@@ -1146,17 +1146,7 @@ export const App: React.FC = () => {
       return newMap;
     });
 
-    // 2. 2-WAY SYNC: Instantly update active execution cycle item snapshots
-    setTestCycles(prev => prev.map(cycle => ({
-      ...cycle,
-      items: cycle.items.map(item =>
-        item.testCase.key?.trim().toUpperCase() === keyUpper
-          ? { ...item, testCase: updatedCase }
-          : item
-      )
-    })));
-
-    showToast(`Updated test case ${updatedCase.key} in Master Repository and active Execution Cycles!`, 'success');
+    showToast(`Updated test case ${updatedCase.key} in Master Repository! Sync alert available on Execution Cycles.`, 'success');
   };
 
   // Toggle Ignore / Dismiss Sync Notification for a Cycle
