@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { TestCase, JiraBug } from '../types';
 import { Bug, AlertTriangle, CheckCircle, ExternalLink, X, ShieldAlert, User, RefreshCw, PlusCircle, Camera, Video, Trash2, StopCircle } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
@@ -8,6 +9,9 @@ interface JiraBugModalProps {
   testCase: TestCase;
   executedBy: string;
   existingBugs?: JiraBug[];
+  initialScreenshotUrl?: string;
+  initialVideoUrl?: string;
+  initialErrorTrace?: string;
   onSaveBug: (jiraBug: JiraBug) => void;
   onReopenBug?: (bugKey: string, notes: string, screenshotUrl?: string, videoUrl?: string) => void;
   onClose: () => void;
@@ -17,6 +21,9 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
   testCase,
   executedBy,
   existingBugs = [],
+  initialScreenshotUrl,
+  initialVideoUrl,
+  initialErrorTrace,
   onSaveBug,
   onReopenBug,
   onClose
@@ -59,14 +66,14 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
   }, [projectKey]);
   
   // Defect Evidence State (Base64 data URLs for both New and Re-open flows)
-  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
-  const [videoUrl, setVideoUrl] = useState<string>('');
+  const [screenshotUrl, setScreenshotUrl] = useState<string>(initialScreenshotUrl || '');
+  const [videoUrl, setVideoUrl] = useState<string>(initialVideoUrl || '');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
   const [description, setDescription] = useState(
-    `*Test Case Key*: ${testCase.key}\n*Scenario*: ${testCase.name}\n\n*Steps to Reproduce*:\n${testCase.testSteps}\n\n*Expected Outcome*: ${testCase.expectedResult}\n\n*Actual Outcome*: Validation failed during execution by ${executedBy || 'QA Tester'}.`
+    `*Test Case Key*: ${testCase.key}\n*Scenario*: ${testCase.name}\n\n*Steps to Reproduce*:\n${testCase.testSteps}\n\n*Expected Outcome*: ${testCase.expectedResult}\n\n*Actual Outcome*: ${initialErrorTrace || `Validation failed during execution by ${executedBy || 'QA Tester'}.`}`
   );
 
   // Handle Screenshot Upload File
@@ -236,9 +243,15 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col font-sans"
+        onClick={e => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-rose-100 bg-rose-50 flex items-center justify-between flex-shrink-0">
@@ -625,6 +638,7 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

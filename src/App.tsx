@@ -10,6 +10,7 @@ import { ModuleCardsGrid } from './components/ModuleCardsGrid';
 import { LoginGateway } from './components/LoginGateway';
 import { NewProjectModal } from './components/NewProjectModal';
 import { CreateEditBugModal } from './components/CreateEditBugModal';
+import { JiraBugModal } from './components/JiraBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES, normalizeTestCase, cleanTestCaseTitle } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
 import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight, Sun, Moon } from 'lucide-react';
@@ -459,6 +460,14 @@ export const App: React.FC = () => {
 
   const [isBugCreateEditModalOpen, setIsBugCreateEditModalOpen] = useState(false);
   const [bugToEdit, setBugToEdit] = useState<(JiraBug & { cycleId?: string; itemKey?: string; cycleName?: string }) | undefined>(undefined);
+  const [automationBugModalConfig, setAutomationBugModalConfig] = useState<{
+    isOpen: boolean;
+    cycleId: string;
+    testCase: TestCase;
+    existingBugs?: JiraBug[];
+    screenshotUrl?: string;
+    failedStep?: string;
+  } | null>(null);
 
   const [activeCycleId, setActiveCycleId] = useState<string>(() => {
     try {
@@ -1005,9 +1014,15 @@ export const App: React.FC = () => {
           screenshotUrl
         );
       } else {
-        setBugToEdit(undefined);
-        setIsBugCreateEditModalOpen(true);
-        showToast(`Automation failed at step: "${failedStep}". Opening Jira Bug creation drawer...`, "error");
+        setAutomationBugModalConfig({
+          isOpen: true,
+          cycleId: cycle.id,
+          testCase: selectedAutomateCase,
+          existingBugs,
+          screenshotUrl,
+          failedStep
+        });
+        showToast(`Automation failed at step: "${failedStep}". Opening Jira Defect & Evidence Management modal...`, "error");
       }
     }
   };
@@ -2712,6 +2727,37 @@ export const App: React.FC = () => {
             isZeroGapCertified: true
           }}
         />
+
+        {/* Mandatory Jira Defect & Evidence Management Modal (Opened when an automated test fails) */}
+        {automationBugModalConfig?.isOpen && (
+          <JiraBugModal
+            testCase={automationBugModalConfig.testCase}
+            executedBy={currentUser?.name || 'QA Tester'}
+            existingBugs={automationBugModalConfig.existingBugs}
+            initialScreenshotUrl={automationBugModalConfig.screenshotUrl}
+            initialErrorTrace={automationBugModalConfig.failedStep ? `Automation step validation failed at: ${automationBugModalConfig.failedStep}` : undefined}
+            onSaveBug={(bug) => {
+              handleCreateOrUpdateBugRegistry(bug, {
+                cycleId: automationBugModalConfig.cycleId,
+                itemKey: automationBugModalConfig.testCase.key,
+                isEdit: false
+              });
+              setAutomationBugModalConfig(null);
+            }}
+            onReopenBug={(bugKey, notes, screenshotUrl, videoUrl) => {
+              handleReopenJiraBug(
+                automationBugModalConfig.cycleId,
+                automationBugModalConfig.testCase.key,
+                bugKey,
+                notes,
+                screenshotUrl,
+                videoUrl
+              );
+              setAutomationBugModalConfig(null);
+            }}
+            onClose={() => setAutomationBugModalConfig(null)}
+          />
+        )}
 
         {/* Create / Edit Defect Ticket Modal */}
         {isBugCreateEditModalOpen && (
