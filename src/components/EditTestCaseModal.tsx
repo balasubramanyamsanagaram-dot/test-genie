@@ -65,7 +65,7 @@ export const EditTestCaseModal: React.FC<EditTestCaseModalProps> = ({
               <h3 className="text-base font-extrabold text-slate-900">
                 Edit Test Case — <span className="font-mono text-indigo-600">{testCase.key}</span>
               </h3>
-              <p className="text-xs text-slate-500">Update scenario details, 4-step instructions, and expected result.</p>
+              <p className="text-xs text-slate-500">Update test case details, step-by-step instructions, and expected result.</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 font-bold">

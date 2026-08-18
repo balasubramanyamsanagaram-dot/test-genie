@@ -116,9 +116,9 @@ export const StoryToTestCaseModal: React.FC<StoryToTestCaseModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white">AI Story-to-Test Case Generator</h2>
+              <h2 className="text-lg font-black text-white">AI User Story & Requirement Importer</h2>
               <p className="text-xs text-purple-200">
-                Paste Jira User Stories or Acceptance Criteria to auto-generate 4-step manual test cases.
+                Paste Jira User Stories, Epics, or Acceptance Criteria to auto-generate complete step-by-step manual test cases.
               </p>
             </div>
           </div>

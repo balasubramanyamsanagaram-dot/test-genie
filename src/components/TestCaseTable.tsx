@@ -443,7 +443,7 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
         
         {/* Info */}
         <div className="flex items-center space-x-2 font-mono text-[11px] text-slate-500">
-          <span>Showing {totalCasesCount > 0 ? startIndex + 1 : 0} to {endIndex} of {totalCasesCount} Scenarios</span>
+          <span>Showing {totalCasesCount > 0 ? startIndex + 1 : 0} to {endIndex} of {totalCasesCount} Test Cases</span>
           {testCases.length > totalCasesCount && (
             <span className="text-slate-400 font-sans">(filtered from {testCases.length} total)</span>
           )}

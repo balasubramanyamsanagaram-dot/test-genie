@@ -2120,10 +2120,10 @@ export const App: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">
-                        [{activeProject.key}] {activeModule.name} ({testCases.length} Scenarios)
+                        [{activeProject.key}] {activeModule.name} ({testCases.length} Test Cases)
                       </h2>
                       <p className="text-xs text-slate-500">
-                        Manual QA repository with 4-step instructions, positive/negative breakdown, and reference file importer.
+                        Manual QA repository with step-by-step execution instructions, positive/negative breakdown, and reference file importer.
                       </p>
                     </div>
 
@@ -2134,7 +2134,7 @@ export const App: React.FC = () => {
                           className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center shrink-0"
                         >
                           <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                          AI Story Importer
+                          AI User Story Importer
                         </button>
                       )}
 

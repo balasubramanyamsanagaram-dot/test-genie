@@ -71,7 +71,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Import 100% formatted test cases with 4-step instructions, priorities, and status into Jira Zephyr Scale.
+                Import 100% formatted test cases with step-by-step instructions, priorities, and status into Jira Zephyr Scale.
               </p>
             </div>
           </button>
@@ -94,7 +94,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Export stubbed Playwright TypeScript test cases with numbered 4-step action hooks for automated test execution.
+                Export stubbed Playwright TypeScript test cases with numbered action hooks for automated test execution.
               </p>
             </div>
           </button>

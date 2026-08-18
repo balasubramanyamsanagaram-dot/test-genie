@@ -384,7 +384,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                🌐 All Project Modules ({totalAllModulesCasesCount} Scenarios)
+                🌐 All Project Modules ({totalAllModulesCasesCount} Test Cases)
               </button>
 
               {allModules.map(mod => {
@@ -415,7 +415,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
           <div className="space-y-2 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="font-extrabold text-slate-800">
-                Select Scenarios to Include ({selectedCaseKeys.length} of {availablePool.length} Selected)
+                Select Test Cases to Include ({selectedCaseKeys.length} of {availablePool.length} Selected)
               </span>
 
               <div className="flex items-center space-x-3">
@@ -431,7 +431,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                   onClick={handleSelectAllToggle}
                   className="text-xs font-bold text-indigo-600 hover:text-indigo-800 whitespace-nowrap"
                 >
-                  {filteredPool.length > 0 && filteredPool.every(p => selectedCaseKeys.includes(p.testCase.key)) ? 'Deselect Filtered' : 'Select All Filtered Scenarios'}
+                  {filteredPool.length > 0 && filteredPool.every(p => selectedCaseKeys.includes(p.testCase.key)) ? 'Deselect Filtered' : 'Select All Filtered Test Cases'}
                 </button>
               </div>
             </div>
@@ -439,32 +439,35 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-slate-50/50">
               {filteredPool.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs font-bold">
-                  No matching test case scenarios found for the selected module scope or search query.
+                  No matching test cases found for the selected module scope or search query.
                 </div>
               ) : (
                 filteredPool.map(p => {
-                  const tc = p.testCase;
-                  const isSelected = selectedCaseKeys.includes(tc.key);
+                  const isSelected = selectedCaseKeys.includes(p.testCase.key);
                   return (
-                    <label key={`${p.moduleId}-${tc.key}`} className="flex items-center px-4 py-2.5 hover:bg-white transition-colors cursor-pointer text-xs">
+                    <label
+                      key={`${p.moduleName}-${p.testCase.key}`}
+                      className="flex items-center space-x-3 p-2.5 hover:bg-white transition-colors cursor-pointer text-xs"
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => handleToggleCase(tc.key)}
-                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                        onChange={() => handleToggleCase(p.testCase.key)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                       />
-                      <span className="font-mono font-bold text-indigo-700 ml-3 mr-2 w-20 flex-shrink-0">{tc.key}</span>
-                      
-                      <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md text-[10px] font-extrabold mr-3 flex-shrink-0 border border-indigo-200">
+                      <span className="font-mono text-[10px] font-extrabold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200">
+                        {p.testCase.key}
+                      </span>
+                      <span className="font-bold text-slate-800 flex-1 truncate">
+                        {p.testCase.name}
+                      </span>
+                      <span className="bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md">
                         {p.moduleName}
                       </span>
-
-                      <span className="font-bold text-slate-900 flex-1 truncate">{tc.name}</span>
-
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        p.testCase.type === 'Positive' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                       }`}>
-                        {tc.type}
+                        {p.testCase.type}
                       </span>
                     </label>
                   );
@@ -473,11 +476,11 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsCreating(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200"
+              className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold transition-all"
             >
               Cancel
             </button>
@@ -485,7 +488,7 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
               type="submit"
               className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-extrabold shadow-md active:scale-95 transition-all"
             >
-              Start Execution Cycle Run ({selectedCaseKeys.length} Scenarios)
+              Start Execution Cycle Run ({selectedCaseKeys.length} Test Cases)
             </button>
           </div>
         </form>
