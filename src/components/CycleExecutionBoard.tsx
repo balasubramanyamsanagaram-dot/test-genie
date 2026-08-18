@@ -12,6 +12,7 @@ interface CycleExecutionBoardProps {
   cycle: TestCycle;
   currentUser: UserProfile;
   allAvailableCases?: TestCase[];
+  isHydrated?: boolean;
   onUpdateStatus: (
     cycleId: string,
     itemKey: string,
@@ -38,6 +39,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   cycle,
   currentUser,
   allAvailableCases = [],
+  isHydrated = false,
   onUpdateStatus,
   onAddCasesToCycle,
   onReopenBug,
@@ -81,7 +83,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
   });
 
   const masterCaseMap = new Map((allAvailableCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
-  const outdatedCasesCount = (!allAvailableCases || allAvailableCases.length === 0) ? 0 : cycle.items.filter(item => {
+  const outdatedCasesCount = (!isHydrated || !allAvailableCases || allAvailableCases.length === 0) ? 0 : cycle.items.filter(item => {
     const keyUpper = item.testCase.key?.trim().toUpperCase();
     if (!keyUpper) return false;
     const master = masterCaseMap.get(keyUpper);

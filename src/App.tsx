@@ -315,10 +315,7 @@ export const App: React.FC = () => {
         seen.add(keyUpper);
         dedupedItems.push({
           ...item,
-          testCase: {
-            ...item.testCase,
-            key: rawKey.trim()
-          }
+          testCase: normalizeTestCase(item.testCase)
         });
       }
     }
@@ -391,6 +388,7 @@ export const App: React.FC = () => {
 
   // Hydration status guard to prevent initial fallback state from overwriting IndexedDB on page refresh
   const isHydratedRef = React.useRef(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Asynchronously hydrate state from IndexedDB on startup (survives browser refresh & large base64 screenshot payloads)
   useEffect(() => {
@@ -427,6 +425,7 @@ export const App: React.FC = () => {
       } finally {
         if (isMounted) {
           isHydratedRef.current = true;
+          setIsHydrated(true);
         }
       }
     }
@@ -2133,6 +2132,7 @@ export const App: React.FC = () => {
                     cycle={activeCycle}
                     currentUser={currentUser}
                     allAvailableCases={customModuleCases[selectedModuleId] || []}
+                    isHydrated={isHydrated}
                     onUpdateStatus={handleUpdateExecutionStatus}
                     onAddCasesToCycle={handleAddCasesToCycle}
                     onReopenBug={(itemKey, bugKey, notes, screenshotUrl, videoUrl) => 
