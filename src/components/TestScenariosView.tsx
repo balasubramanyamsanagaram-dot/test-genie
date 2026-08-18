@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { TestCase, UserProfile } from '../types';
 import { SearchableSelect } from './SearchableSelect';
 import { AutomateScenarioModal } from './AutomateScenarioModal';
+import { TestCaseImporter } from './TestCaseImporter';
 import { Plus, Search, Filter, Sparkles, Code2, CheckCircle2, AlertCircle, Bot, Monitor, ChevronRight, Layers, FileText, Upload } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -28,6 +29,7 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
   const [selectedType, setSelectedType] = useState('ALL');
   const [selectedPriority, setSelectedPriority] = useState('ALL');
   const [isCreatingScenario, setIsCreatingScenario] = useState(false);
+  const [isImporterOpen, setIsImporterOpen] = useState(false);
   const [automatingScenario, setAutomatingScenario] = useState<TestCase | null>(null);
 
   const scenarioFileInputRef = useRef<HTMLInputElement>(null);
@@ -184,19 +186,11 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
-            onClick={() => scenarioFileInputRef.current?.click()}
-            className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all active:scale-95 shrink-0"
-          >
-            <Upload className="w-4 h-4 mr-1.5 text-indigo-600" />
-            Upload Test Scenarios
-          </button>
-
-          <button
-            onClick={handleOpenCreateDrawer}
+            onClick={() => setIsImporterOpen(true)}
             className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95 shrink-0"
           >
-            <Plus className="w-4 h-4 mr-1.5" />
-            + Add Test Scenario
+            <Upload className="w-4 h-4 mr-1.5" />
+            Add / Import Test Scenarios
           </button>
         </div>
       </div>
@@ -443,6 +437,21 @@ export const TestScenariosView: React.FC<TestScenariosViewProps> = ({
           onClose={() => setAutomatingScenario(null)}
           onLaunchRemoteRecorder={onLaunchRemoteRecorder}
           onMarkAutomated={handleMarkAutomated}
+        />
+      )}
+
+      {/* Add / Import Test Scenarios Modal */}
+      {isImporterOpen && (
+        <TestCaseImporter
+          moduleName={moduleName}
+          currentUser={currentUser}
+          existingCases={testCases}
+          mode="scenarios"
+          onImportCases={(newCases) => {
+            if (onAddTestCases) onAddTestCases(newCases);
+            setIsImporterOpen(false);
+          }}
+          onClose={() => setIsImporterOpen(false)}
         />
       )}
 

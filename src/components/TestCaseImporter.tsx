@@ -9,6 +9,7 @@ interface TestCaseImporterProps {
   moduleName: string;
   currentUser: UserProfile;
   existingCases?: TestCase[];
+  mode?: 'cases' | 'scenarios';
   onImportCases: (newCases: TestCase[]) => void;
   onClose: () => void;
 }
@@ -87,6 +88,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
   moduleName,
   currentUser,
   existingCases = [],
+  mode = 'cases',
   onImportCases,
   onClose
 }) => {
@@ -284,8 +286,12 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-extrabold text-slate-900">Add / Upload Test Cases — {moduleName}</h3>
-            <p className="text-xs text-slate-500">Upload CSV/XLSX reference files or add manual test cases.</p>
+            <h3 className="text-base font-extrabold text-slate-900">
+              {mode === 'scenarios' ? `Add / Upload Test Scenarios — ${moduleName}` : `Add / Upload Test Cases — ${moduleName}`}
+            </h3>
+            <p className="text-xs text-slate-500">
+              {mode === 'scenarios' ? `Upload CSV/XLSX reference files or add manual test scenarios.` : `Upload CSV/XLSX reference files or add manual test cases.`}
+            </p>
           </div>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 font-bold">
             <X className="w-5 h-5" />
@@ -353,7 +359,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
             }`}
           >
-            ✍️ Add Manual Test Case
+            {mode === 'scenarios' ? `✍️ Add Manual Test Scenario` : `✍️ Add Manual Test Case`}
           </button>
         </div>
 
@@ -401,7 +407,9 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Manual Test Cases *</label>
+              <label className="font-bold text-slate-700 block mb-1">
+                {mode === 'scenarios' ? 'Scenario Title *' : 'Manual Test Cases *'}
+              </label>
               <input
                 type="text"
                 value={name}
@@ -458,7 +466,7 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
                 type="submit"
                 className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md"
               >
-                Save Manual Test Case
+                {mode === 'scenarios' ? 'Save Manual Test Scenario' : 'Save Manual Test Case'}
               </button>
             </div>
           </form>
