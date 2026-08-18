@@ -1184,7 +1184,6 @@ export const App: React.FC = () => {
   // Sync Edited Master Test Cases into Execution Cycle
   const handleSyncEditedCasesToCycle = (cycleId: string) => {
     const allCases = Object.values(customModuleCases).flat();
-    const masterCaseMap = new Map(allCases.map(c => [c.key?.trim().toUpperCase(), c]));
 
     let syncedCount = 0;
     setTestCycles(prev => prev.map(cycle => {
@@ -1194,11 +1193,19 @@ export const App: React.FC = () => {
       const updatedItems: TestCycleItem[] = [];
 
       for (const item of cycle.items) {
-        const keyUpper = item.testCase.key?.trim().toUpperCase();
-        if (!keyUpper || seenKeys.has(keyUpper)) continue; // Drop any duplicates
-        seenKeys.add(keyUpper);
+        const itemKeyUpper = item.testCase.key?.trim().toUpperCase();
+        const itemCatNorm = (item.testCase.category || '').trim().toLowerCase();
+        const scopedKey = `${itemCatNorm}:${itemKeyUpper}`;
 
-        const master = masterCaseMap.get(keyUpper);
+        if (!itemKeyUpper || seenKeys.has(scopedKey)) continue; // Drop any duplicates
+        seenKeys.add(scopedKey);
+
+        const master = (
+          (item.testCase.id && allCases.find(c => c.id === item.testCase.id)) ||
+          (itemCatNorm && allCases.find(c => (c.category || '').trim().toLowerCase() === itemCatNorm && c.key?.trim().toUpperCase() === itemKeyUpper)) ||
+          allCases.find(c => c.key?.trim().toUpperCase() === itemKeyUpper)
+        );
+
         const norm = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
         if (master) {

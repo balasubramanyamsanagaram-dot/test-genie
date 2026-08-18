@@ -449,28 +449,39 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             const executedTotal = passed + failed + blocked;
             const execPercent = total > 0 ? Math.round((executedTotal / total) * 100) : 0;
 
-            // Filter master repository cases specifically for this card's module
-            const targetModuleCases = (allModuleCasesMap[cycle.moduleName] || currentModuleCases || []).filter(c => 
-              !cycle.moduleName || c.category === cycle.moduleName || cycle.moduleName === moduleName
+            // Filter all master repository cases across all modules
+            const allCasesPool = Object.values(allModuleCasesMap).flat();
+
+            // Check if there are newly uploaded cases in the repository NOT in this cycle (scoped by Category + Key)
+            const existingScopedKeys = new Set(
+              cycle.items.map(i => {
+                const cat = (i.testCase.category || cycle.moduleName || '').trim().toLowerCase();
+                const key = (i.testCase.key || '').trim().toUpperCase();
+                return `${cat}:${key}`;
+              })
             );
+            const existingIds = new Set(cycle.items.map(i => i.testCase.id).filter(Boolean));
 
-            // Check if there are newly uploaded cases in the repository NOT in this cycle
-            const existingCycleKeys = new Set([
-              ...cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean),
-              ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
-            ]);
-
-            const newUnassignedCasesCount = targetModuleCases.filter(c => 
-              !existingCycleKeys.has(c.key?.trim().toUpperCase()) &&
-              !existingCycleKeys.has(c.name?.trim().toLowerCase())
-            ).length;
+            const newUnassignedCasesCount = allCasesPool.filter(c => {
+              if (c.id && existingIds.has(c.id)) return false;
+              const cat = (c.category || '').trim().toLowerCase();
+              const key = (c.key || '').trim().toUpperCase();
+              return !existingScopedKeys.has(`${cat}:${key}`);
+            }).length;
 
             // Check if any test cases in this cycle have been edited in the master repository
-            const masterCaseMap = new Map((targetModuleCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
             const outdatedCasesCount = cycle.items.filter(item => {
-              const keyUpper = item.testCase.key?.trim().toUpperCase();
-              if (!keyUpper) return false;
-              const master = masterCaseMap.get(keyUpper);
+              const itemKeyUpper = item.testCase.key?.trim().toUpperCase();
+              if (!itemKeyUpper) return false;
+
+              const itemCatNorm = (item.testCase.category || '').trim().toLowerCase();
+
+              const master = (
+                (item.testCase.id && allCasesPool.find(c => c.id === item.testCase.id)) ||
+                (itemCatNorm && allCasesPool.find(c => (c.category || '').trim().toLowerCase() === itemCatNorm && c.key?.trim().toUpperCase() === itemKeyUpper)) ||
+                allCasesPool.find(c => c.key?.trim().toUpperCase() === itemKeyUpper)
+              );
+
               if (!master) return false;
 
               const normalize = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();

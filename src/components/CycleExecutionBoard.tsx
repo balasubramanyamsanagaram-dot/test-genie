@@ -84,15 +84,23 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     );
   });
 
-  const masterCaseMap = new Map((allAvailableCases || []).map(c => [c.key?.trim().toUpperCase(), c]));
   const outdatedCasesCount = (!isHydrated || !allAvailableCases || allAvailableCases.length === 0) ? 0 : cycle.items.filter(item => {
-    const keyUpper = item.testCase.key?.trim().toUpperCase();
-    if (!keyUpper) return false;
-    const master = masterCaseMap.get(keyUpper);
+    const itemKeyUpper = item.testCase.key?.trim().toUpperCase();
+    if (!itemKeyUpper) return false;
+
+    const itemCatNorm = (item.testCase.category || '').trim().toLowerCase();
+
+    // Match master case strictly by ID or Category + Key to avoid cross-module collisions
+    const master = (
+      (item.testCase.id && allAvailableCases.find(c => c.id === item.testCase.id)) ||
+      (itemCatNorm && allAvailableCases.find(c => (c.category || '').trim().toLowerCase() === itemCatNorm && c.key?.trim().toUpperCase() === itemKeyUpper)) ||
+      allAvailableCases.find(c => c.key?.trim().toUpperCase() === itemKeyUpper)
+    );
+
     if (!master) return false;
 
     const norm = (str?: string) => (str || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-    
+
     const isDifferent = (
       norm(master.name) !== norm(item.testCase.name) ||
       norm(master.testSteps) !== norm(item.testCase.testSteps) ||
@@ -197,7 +205,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
   return (
     <div className="space-y-6">
-      
+
       {/* Top Header & Metrics Bar */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -301,7 +309,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
       {/* Main Execution Workspace (List + Details Panel) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Left Side: Test Cases List (4 Cols) */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col max-h-[700px]">
           <div className="p-3 bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-700 flex items-center justify-between">
@@ -373,106 +381,104 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
               </div>
             ) : (
               filteredItems.map(item => {
-              const isSelected = item.testCase.key === selectedItemKey;
-              const isChecked = selectedItemKeys.includes(item.testCase.key);
-              const bugsCount = (item.jiraBugs || (item.jiraBug ? [item.jiraBug] : [])).length;
-              
-              return (
-                <div
-                  key={item.testCase.key}
-                  className={`w-full text-left p-2.5 rounded-xl transition-all flex items-start space-x-2 ${
-                    isSelected
-                      ? 'bg-indigo-50 border border-indigo-200 shadow-2xs'
-                      : 'hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      setSelectedItemKeys(prev => 
-                        prev.includes(item.testCase.key)
-                          ? prev.filter(k => k !== item.testCase.key)
-                          : [...prev, item.testCase.key]
-                      );
-                    }}
-                    className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer mt-1 flex-shrink-0"
-                  />
+                const isSelected = item.testCase.key === selectedItemKey;
+                const isChecked = selectedItemKeys.includes(item.testCase.key);
+                const bugsCount = (item.jiraBugs || (item.jiraBug ? [item.jiraBug] : [])).length;
 
-                  <div 
-                    onClick={() => setSelectedItemKey(item.testCase.key)}
-                    className="flex-1 cursor-pointer space-y-1"
+                return (
+                  <div
+                    key={item.testCase.key}
+                    className={`w-full text-left p-2.5 rounded-xl transition-all flex items-start space-x-2 ${isSelected
+                        ? 'bg-indigo-50 border border-indigo-200 shadow-2xs'
+                        : 'hover:bg-slate-50'
+                      }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center space-x-1">
-                        <span className="font-mono text-xs font-bold text-indigo-700">
-                          {item.testCase.key}
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setSelectedItemKeys(prev =>
+                          prev.includes(item.testCase.key)
+                            ? prev.filter(k => k !== item.testCase.key)
+                            : [...prev, item.testCase.key]
+                        );
+                      }}
+                      className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer mt-1 flex-shrink-0"
+                    />
+
+                    <div
+                      onClick={() => setSelectedItemKey(item.testCase.key)}
+                      className="flex-1 cursor-pointer space-y-1"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-1">
+                          <span className="font-mono text-xs font-bold text-indigo-700">
+                            {item.testCase.key}
+                          </span>
+                          {canExecuteTests && (
+                            <div className="inline-flex items-center space-x-0.5 ml-1">
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingTestCase(item.testCase);
+                                }}
+                                className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer"
+                                title="Edit Test Case"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </span>
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingItemKey(item.testCase.key);
+                                }}
+                                className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                                title="Delete Test Case from Cycle"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <span
+                          className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all ${item.executionStatus === 'PASSED'
+                              ? 'bg-emerald-100/60 text-emerald-800 border-emerald-300/80 glow-passed'
+                              : item.executionStatus === 'FAILED'
+                                ? 'bg-rose-100/60 text-rose-800 border-rose-300/80 glow-failed'
+                                : item.executionStatus === 'BLOCKED'
+                                  ? 'bg-amber-100/60 text-amber-800 border-amber-300/80 glow-blocked'
+                                  : 'bg-slate-100/60 text-slate-600 border-slate-300/80 glow-unexecuted'
+                            }`}
+                        >
+                          {item.executionStatus}
                         </span>
-                        {canExecuteTests && (
-                          <div className="inline-flex items-center space-x-0.5 ml-1">
-                            <span
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingTestCase(item.testCase);
-                              }}
-                              className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 cursor-pointer"
-                              title="Edit Test Case"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </span>
-                            <span
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingItemKey(item.testCase.key);
-                              }}
-                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                              title="Delete Test Case from Cycle"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </span>
-                          </div>
-                        )}
                       </div>
 
-                       <span
-                        className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all ${
-                          item.executionStatus === 'PASSED'
-                            ? 'bg-emerald-100/60 text-emerald-800 border-emerald-300/80 glow-passed'
-                            : item.executionStatus === 'FAILED'
-                            ? 'bg-rose-100/60 text-rose-800 border-rose-300/80 glow-failed'
-                            : item.executionStatus === 'BLOCKED'
-                            ? 'bg-amber-100/60 text-amber-800 border-amber-300/80 glow-blocked'
-                            : 'bg-slate-100/60 text-slate-600 border-slate-300/80 glow-unexecuted'
-                        }`}
-                      >
-                        {item.executionStatus}
-                      </span>
-                    </div>
+                      <p className="text-xs font-semibold text-slate-900 line-clamp-1">
+                        {item.testCase.name}
+                      </p>
 
-                    <p className="text-xs font-semibold text-slate-900 line-clamp-1">
-                      {item.testCase.name}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
-                      <span>Assigned: {item.assignedTo || item.testCase.assignedTo || 'Unassigned'}</span>
-                      {bugsCount > 0 && (
-                        <span className="font-mono font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                          {bugsCount} Jira Bug{bugsCount > 1 ? 's' : ''}
-                        </span>
-                      )}
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
+                        <span>Assigned: {item.assignedTo || item.testCase.assignedTo || 'Unassigned'}</span>
+                        {bugsCount > 0 && (
+                          <span className="font-mono font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                            {bugsCount} Jira Bug{bugsCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            }))}
+                );
+              }))}
           </div>
         </div>
 
         {/* Right Side: Active Test Step & Execution Form (8 Cols) */}
         {activeItem && (
           <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-            
+
             {/* Status Marking Action Bar */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -500,11 +506,10 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                   <>
                     <button
                       onClick={() => handleStatusChange('PASSED')}
-                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${
-                        activeItem.executionStatus === 'PASSED'
+                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${activeItem.executionStatus === 'PASSED'
                           ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20 glow-passed'
                           : 'bg-emerald-50/70 text-emerald-700 border border-emerald-300 hover:bg-emerald-100/80'
-                      }`}
+                        }`}
                     >
                       <CheckCircle2 className="w-4 h-4 mr-1.5" />
                       PASSED ✅
@@ -512,11 +517,10 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
                     <button
                       onClick={() => handleStatusChange('FAILED')}
-                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${
-                        activeItem.executionStatus === 'FAILED'
+                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${activeItem.executionStatus === 'FAILED'
                           ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20 glow-failed'
                           : 'bg-rose-50/70 text-rose-700 border border-rose-300 hover:bg-rose-100/80'
-                      }`}
+                        }`}
                     >
                       <XCircle className="w-4 h-4 mr-1.5" />
                       FAILED 🛑 (Raise / Re-open Bug)
@@ -524,11 +528,10 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
                     <button
                       onClick={() => handleStatusChange('BLOCKED')}
-                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${
-                        activeItem.executionStatus === 'BLOCKED'
+                      className={`inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-200 active:scale-95 ${activeItem.executionStatus === 'BLOCKED'
                           ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20 glow-blocked'
                           : 'bg-amber-50/70 text-amber-700 border border-amber-300 hover:bg-amber-100/80'
-                      }`}
+                        }`}
                     >
                       <AlertTriangle className="w-4 h-4 mr-1.5" />
                       BLOCKED ⚠️
@@ -560,19 +563,18 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
 
             {/* Test Case Details */}
             <div className="space-y-4 text-xs">
-              
+
               {/* Executive Scenario Header Card */}
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
-                
+
                 {/* Top Row: Meta Badges + Actions Toolbar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
                   <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                     <span className="font-mono text-xs font-extrabold text-indigo-700 bg-indigo-100/90 px-3 py-1 rounded-xl border border-indigo-200 shadow-2xs whitespace-nowrap">
                       {activeItem.testCase.key}
                     </span>
-                    <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl border whitespace-nowrap ${
-                      activeItem.testCase.type === 'Positive' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'
-                    }`}>
+                    <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-xl border whitespace-nowrap ${activeItem.testCase.type === 'Positive' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'
+                      }`}>
                       {activeItem.testCase.type}
                     </span>
                     <span className="text-[10px] font-bold text-slate-600 bg-slate-200/70 px-2.5 py-1 rounded-xl border border-slate-300/60 whitespace-nowrap">
@@ -655,7 +657,7 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                   <div className="flex items-center justify-between">
                     <h4 className="font-extrabold text-slate-900 flex items-center text-xs">
                       <Bot className="w-4 h-4 text-indigo-600 mr-1.5" />
-                      BrowserAutomationAgent Execution Audit & Evidence History ({ activeItem.executionHistory?.length || (activeItem.attachments || []).length || 1 } Runs)
+                      BrowserAutomationAgent Execution Audit & Evidence History ({activeItem.executionHistory?.length || (activeItem.attachments || []).length || 1} Runs)
                     </h4>
                     <span className="font-mono text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
                       BrowserAutomationAgent@{activeItem.testCase.key}
@@ -667,13 +669,12 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                       activeItem.executionHistory.map((run, rIdx) => (
                         <div
                           key={run.id}
-                          className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                            run.executionStatus === 'PASSED'
+                          className={`p-4 rounded-2xl border transition-all space-y-3 ${run.executionStatus === 'PASSED'
                               ? 'bg-emerald-50/50 border-emerald-200/80 hover:bg-emerald-50'
                               : run.executionStatus === 'FAILED'
-                              ? 'bg-rose-50/50 border-rose-200/80 hover:bg-rose-50'
-                              : 'bg-amber-50/50 border-amber-200/80 hover:bg-amber-50'
-                          }`}
+                                ? 'bg-rose-50/50 border-rose-200/80 hover:bg-rose-50'
+                                : 'bg-amber-50/50 border-amber-200/80 hover:bg-amber-50'
+                            }`}
                         >
                           {/* Top Run Header */}
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
@@ -682,13 +683,12 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                                 {run.agentName || `BrowserAutomationAgent@${activeItem.testCase.key}`}
                               </span>
 
-                              <span className={`text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border ${
-                                run.executionStatus === 'PASSED'
+                              <span className={`text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border ${run.executionStatus === 'PASSED'
                                   ? 'bg-emerald-600 text-white border-emerald-700'
                                   : run.executionStatus === 'FAILED'
-                                  ? 'bg-rose-600 text-white border-rose-700'
-                                  : 'bg-amber-600 text-white border-amber-700'
-                              }`}>
+                                    ? 'bg-rose-600 text-white border-rose-700'
+                                    : 'bg-amber-600 text-white border-amber-700'
+                                }`}>
                                 {run.executionStatus === 'PASSED' ? 'PASSED ✅' : run.executionStatus === 'FAILED' ? 'FAILED 🛑' : 'BLOCKED ⚠️'}
                               </span>
 
@@ -794,13 +794,12 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                     {allItemBugs.map((bug, bIdx) => (
                       <div
                         key={bug.issueKey}
-                        className={`border rounded-2xl p-4 space-y-2 transition-all ${
-                          bug.status === 'Re-opened'
+                        className={`border rounded-2xl p-4 space-y-2 transition-all ${bug.status === 'Re-opened'
                             ? 'bg-rose-100/60 border-rose-300'
                             : bug.status === 'Resolved'
-                            ? 'bg-emerald-50/80 border-emerald-200'
-                            : 'bg-rose-50/80 border-rose-200'
-                        }`}
+                              ? 'bg-emerald-50/80 border-emerald-200'
+                              : 'bg-rose-50/80 border-rose-200'
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
@@ -808,13 +807,12 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                             <span className="font-mono font-bold text-rose-800 bg-white px-2 py-0.5 rounded border border-rose-200">
                               {bug.issueKey}
                             </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                              bug.status === 'Re-opened'
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${bug.status === 'Re-opened'
                                 ? 'bg-rose-600 text-white border-rose-700 animate-pulse'
                                 : bug.status === 'Resolved'
-                                ? 'bg-emerald-600 text-white border-emerald-700'
-                                : 'bg-rose-200 text-rose-900 border-rose-300'
-                            }`}>
+                                  ? 'bg-emerald-600 text-white border-emerald-700'
+                                  : 'bg-rose-200 text-rose-900 border-rose-300'
+                              }`}>
                               {bug.status === 'Re-opened' ? '🔄 RE-OPENED' : bug.status === 'Resolved' ? '🟢 RESOLVED' : '🔴 OPEN'}
                             </span>
                           </div>

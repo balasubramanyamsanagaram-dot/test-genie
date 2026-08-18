@@ -131,6 +131,7 @@ export const DEFAULT_ENTERPRISE_PROJECTS: EnterpriseProject[] = [
 ];
 
 export interface TestCase {
+  id?: string;
   key: string;
   folder: string;
   name: string;

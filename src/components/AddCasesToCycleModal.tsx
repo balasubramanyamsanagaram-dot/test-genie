@@ -32,13 +32,29 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
     ...cycle.items.map(i => i.testCase.name?.trim().toLowerCase()).filter(Boolean)
   ]);
 
-  // Cases across ALL modules in repository that are NOT in the cycle yet
+  // Cases across ALL modules in repository that are NOT in the cycle yet (Scoped by Category + Key to prevent cross-module key collision)
   const unassignedCases = React.useMemo(() => {
-    return availableCases.filter(tc => 
-      !existingKeys.has(tc.key?.trim().toUpperCase()) &&
-      !existingKeys.has(tc.name?.trim().toLowerCase())
+    const existingIds = new Set(cycle.items.map(i => i.testCase.id).filter(Boolean));
+    const existingScopedKeys = new Set(
+      cycle.items.map(i => {
+        const cat = (i.testCase.category || cycle.moduleName || '').trim().toLowerCase();
+        const key = (i.testCase.key || '').trim().toUpperCase();
+        return `${cat}:${key}`;
+      })
     );
-  }, [availableCases, existingKeys]);
+
+    return availableCases.filter(tc => {
+      if (tc.id && existingIds.has(tc.id)) return false;
+
+      const tcCat = (tc.category || '').trim().toLowerCase();
+      const tcKey = (tc.key || '').trim().toUpperCase();
+      const scopedKey = `${tcCat}:${tcKey}`;
+
+      if (existingScopedKeys.has(scopedKey)) return false;
+
+      return true;
+    });
+  }, [availableCases, cycle.items, cycle.moduleName]);
 
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,8 +72,8 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
 
     const matchesType = typeFilter === 'ALL' || tc.type === typeFilter;
 
-    const matchesModule = 
-      selectedModuleScope === 'ALL' || 
+    const matchesModule =
+      selectedModuleScope === 'ALL' ||
       tc.category === selectedModuleScope;
 
     return matchesSearch && matchesType && matchesModule;
@@ -94,7 +110,7 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-4xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col">
-        
+
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -125,11 +141,10 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
           <button
             type="button"
             onClick={() => setSelectedModuleScope('ALL')}
-            className={`px-3 py-1 rounded-xl font-extrabold text-xs transition-all flex-shrink-0 ${
-              selectedModuleScope === 'ALL'
+            className={`px-3 py-1 rounded-xl font-extrabold text-xs transition-all flex-shrink-0 ${selectedModuleScope === 'ALL'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-            }`}
+              }`}
           >
             🌐 All Modules ({unassignedCases.length})
           </button>
@@ -142,16 +157,14 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
                 key={mod.name}
                 type="button"
                 onClick={() => setSelectedModuleScope(mod.name)}
-                className={`px-3 py-1 rounded-xl font-bold text-xs transition-all flex items-center flex-shrink-0 ${
-                  isSelected
+                className={`px-3 py-1 rounded-xl font-bold text-xs transition-all flex items-center flex-shrink-0 ${isSelected
                     ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
                     : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-                }`}
+                  }`}
               >
                 <span>{mod.name}</span>
-                <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-mono ${
-                  isSelected ? 'bg-white/30 text-white' : 'bg-slate-100 text-indigo-700 border border-slate-200'
-                }`}>
+                <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-mono ${isSelected ? 'bg-white/30 text-white' : 'bg-slate-100 text-indigo-700 border border-slate-200'
+                  }`}>
                   {countForMod}
                 </span>
               </button>
@@ -211,11 +224,10 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
                 <div
                   key={tc.key}
                   onClick={() => handleToggleCase(tc.key)}
-                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start space-x-3 text-xs ${
-                    isSelected
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start space-x-3 text-xs ${isSelected
                       ? 'bg-indigo-50/90 border-indigo-300 ring-1 ring-indigo-500/20 shadow-sm'
                       : 'bg-white border-slate-200 hover:border-slate-300'
-                  }`}
+                    }`}
                 >
                   <div className="pt-0.5 text-indigo-600">
                     {isSelected ? <CheckSquare className="w-4 h-4 fill-indigo-600 text-white" /> : <Square className="w-4 h-4 text-slate-400" />}
@@ -225,14 +237,13 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="font-mono font-bold text-indigo-700">{tc.key}</span>
-                        
+
                         <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md text-[10px] font-extrabold border border-indigo-200">
                           {tc.category || 'Module'}
                         </span>
 
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tc.type === 'Positive' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                          }`}>
                           {tc.type}
                         </span>
 
@@ -270,9 +281,8 @@ export const AddCasesToCycleModal: React.FC<AddCasesToCycleModalProps> = ({
             <button
               onClick={handleConfirmAdd}
               disabled={selectedKeys.length === 0}
-              className={`px-5 py-2 rounded-xl text-white font-extrabold shadow-md transition-all ${
-                selectedKeys.length > 0 ? 'bg-indigo-600 hover:bg-indigo-700 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
-              }`}
+              className={`px-5 py-2 rounded-xl text-white font-extrabold shadow-md transition-all ${selectedKeys.length > 0 ? 'bg-indigo-600 hover:bg-indigo-700 active:scale-95' : 'bg-slate-300 cursor-not-allowed'
+                }`}
             >
               Add {selectedKeys.length} Cases to Cycle
             </button>
