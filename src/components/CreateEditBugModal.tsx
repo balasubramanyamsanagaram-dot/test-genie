@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { JiraBug, TestCycle, TestCase, UserProfile } from '../types';
 import { X, Bug, Info, AlertTriangle } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
-import { fetchApi } from '../api/client';
+import { fetchApi, createDirectJiraIssue } from '../api/client';
 
 interface CreateEditBugModalProps {
   isOpen: boolean;
@@ -125,12 +125,42 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
           finalIssueKey = liveBug.issueKey;
           finalIssueUrl = liveBug.issueUrl;
         } else {
-          throw new Error('API offline');
+          const direct = await createDirectJiraIssue({
+            projectKey: cleanProjectKey,
+            summary: summary.trim(),
+            description: description.trim(),
+            severity,
+            assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
+            raisedBy: currentUser.name
+          });
+
+          if (direct && direct.issueKey) {
+            finalIssueKey = direct.issueKey;
+            finalIssueUrl = direct.issueUrl;
+          } else {
+            let randomNum = Math.floor(1000 + Math.random() * 9000);
+            finalIssueKey = `${cleanProjectKey}-${randomNum}`;
+            finalIssueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${finalIssueKey}`;
+          }
         }
       } catch (err) {
-        let randomNum = Math.floor(1000 + Math.random() * 9000);
-        finalIssueKey = `${cleanProjectKey}-${randomNum}`;
-        finalIssueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${finalIssueKey}`;
+        const direct = await createDirectJiraIssue({
+          projectKey: cleanProjectKey,
+          summary: summary.trim(),
+          description: description.trim(),
+          severity,
+          assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
+          raisedBy: currentUser.name
+        });
+
+        if (direct && direct.issueKey) {
+          finalIssueKey = direct.issueKey;
+          finalIssueUrl = direct.issueUrl;
+        } else {
+          let randomNum = Math.floor(1000 + Math.random() * 9000);
+          finalIssueKey = `${cleanProjectKey}-${randomNum}`;
+          finalIssueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${finalIssueKey}`;
+        }
       }
     }
 

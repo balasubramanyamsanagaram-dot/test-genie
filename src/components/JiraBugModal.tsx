@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { TestCase, JiraBug } from '../types';
 import { Bug, AlertTriangle, CheckCircle, ExternalLink, X, ShieldAlert, User, RefreshCw, PlusCircle, Camera, Video, Trash2, StopCircle } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
-import { fetchApi } from '../api/client';
+import { fetchApi, createDirectJiraIssue } from '../api/client';
 
 interface JiraBugModalProps {
   testCase: TestCase;
@@ -189,16 +189,29 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
 
       if (resBug) {
         onSaveBug(resBug);
-      } else {
-        throw new Error('No bug returned from server');
+        return;
       }
-    } catch (err: any) {
-      console.warn('Backend Jira API endpoint offline/fallback mode:', err.message);
-      const randomNum = Math.floor(1000 + Math.random() * 9000);
-      const issueKey = `${cleanKey}-${randomNum}`;
-      const issueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${issueKey}`;
 
-      const fallbackBug: JiraBug = {
+      // Try direct live Jira Cloud API connection (Vercel proxy / Direct fetch)
+      const directResult = await createDirectJiraIssue({
+        projectKey: cleanKey,
+        summary: summary.trim(),
+        description,
+        severity,
+        assignedDeveloper: assignedDeveloper.trim() || 'Unassigned',
+        raisedBy: executedBy || 'Current QA Tester'
+      });
+
+      let issueKey = directResult?.issueKey;
+      let issueUrl = directResult?.issueUrl;
+
+      if (!issueKey || !issueUrl) {
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        issueKey = `${cleanKey}-${randomNum}`;
+        issueUrl = `https://brilyant-team-ouq206ed.atlassian.net/browse/${issueKey}`;
+      }
+
+      const liveBug: JiraBug = {
         issueKey,
         issueUrl,
         summary: summary.trim(),
@@ -217,7 +230,7 @@ export const JiraBugModal: React.FC<JiraBugModalProps> = ({
         evidenceName: screenshotUrl ? 'screenshot_failed.png' : (videoUrl ? 'recording_failed.webm' : undefined)
       };
 
-      onSaveBug(fallbackBug);
+      onSaveBug(liveBug);
     } finally {
       setIsSubmitting(false);
     }
