@@ -170,11 +170,11 @@ export const ModuleCardsGrid: React.FC<ModuleCardsGridProps> = ({
                   {/* Case Breakdown Pills */}
                   <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
                     <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-center">
-                      <span className="text-[10px] text-emerald-700 block font-medium">Positive Scenarios</span>
+                      <span className="text-[10px] text-emerald-700 block font-medium">Positive Test Cases</span>
                       <span className="font-extrabold text-emerald-800 text-sm">{posCount}</span>
                     </div>
                     <div className="bg-rose-50 p-2 rounded-xl border border-rose-200 text-center">
-                      <span className="text-[10px] text-rose-700 block font-medium">Negative Scenarios</span>
+                      <span className="text-[10px] text-rose-700 block font-medium">Negative Test Cases</span>
                       <span className="font-extrabold text-rose-800 text-sm">{negCount}</span>
                     </div>
                   </div>

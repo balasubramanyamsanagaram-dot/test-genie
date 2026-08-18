@@ -234,11 +234,11 @@ export const TestCaseTable: React.FC<TestCaseTableProps> = ({
           <Filter className="w-3.5 h-3.5 text-slate-500" />
           <SearchableSelect
             options={[
-              { value: 'ALL', label: 'All Scenarios (Positive + Negative)' },
-              { value: 'Positive', label: 'Positive Scenarios' },
-              { value: 'Negative', label: 'Negative / Validation Scenarios' },
-              { value: 'Boundary', label: 'Boundary Scenarios' },
-              { value: 'Permission', label: 'RBAC Permission Scenarios' }
+              { value: 'ALL', label: 'All Test Cases (Positive + Negative)' },
+              { value: 'Positive', label: 'Positive Test Cases' },
+              { value: 'Negative', label: 'Negative / Validation Test Cases' },
+              { value: 'Boundary', label: 'Boundary Test Cases' },
+              { value: 'Permission', label: 'RBAC Permission Test Cases' }
             ]}
             value={selectedType}
             onChange={setSelectedType}
