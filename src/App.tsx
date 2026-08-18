@@ -41,14 +41,14 @@ export const App: React.FC = () => {
       if (saved && ['dashboard', 'matrix', 'repository', 'cycles', 'execution', 'bugs', 'settings'].includes(saved)) {
         return saved as any;
       }
-    } catch (e) {}
+    } catch (e) { }
     return 'dashboard';
   });
 
   useEffect(() => {
     try {
       localStorage.setItem('test_genie_active_tab', activeTab);
-    } catch (e) {}
+    } catch (e) { }
   }, [activeTab]);
   const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
 
@@ -67,7 +67,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const isCmdShiftL = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL');
-      
+
       if (isCmdShiftL) {
         e.preventDefault();
         setIsLabsModalOpen(prev => !prev);
@@ -136,7 +136,7 @@ export const App: React.FC = () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_USERS);
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
     return REGISTERED_ENTERPRISE_USERS;
   });
 
@@ -146,7 +146,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(registeredUsers));
-    } catch (e) {}
+    } catch (e) { }
   }, [registeredUsers]);
 
   const handleAddUser = (newUser: UserProfile) => {
@@ -170,7 +170,7 @@ export const App: React.FC = () => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_USER);
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
     return null; // Require login gateway by default if no session exists
   });
 
@@ -178,7 +178,7 @@ export const App: React.FC = () => {
     setCurrentUser(user);
     try {
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleLogout = () => {
@@ -195,7 +195,7 @@ export const App: React.FC = () => {
         parsed = parsed.filter(p => p.id !== 'proj-mobile' && p.id !== 'proj-fintech');
         return parsed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return DEFAULT_ENTERPRISE_PROJECTS;
   });
 
@@ -233,7 +233,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
-    } catch (e) {}
+    } catch (e) { }
   }, [projects]);
 
   useEffect(() => {
@@ -254,7 +254,7 @@ export const App: React.FC = () => {
       if (savedModuleId && activeProject.modules.some(m => m.id === savedModuleId)) {
         return savedModuleId;
       }
-    } catch (e) {}
+    } catch (e) { }
     const activeMod = activeProject.modules[0];
     return activeMod ? activeMod.id : '';
   });
@@ -290,7 +290,7 @@ export const App: React.FC = () => {
           hasSavedData = true;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // First time initializing (no localStorage key set at all)
     if (!hasSavedData) {
@@ -310,7 +310,7 @@ export const App: React.FC = () => {
       if (!item || !item.testCase) continue;
       const rawKey = item.testCase.key || '';
       const keyUpper = rawKey.trim().toUpperCase();
-      
+
       if (keyUpper && !seen.has(keyUpper)) {
         seen.add(keyUpper);
         dedupedItems.push({
@@ -354,8 +354,8 @@ export const App: React.FC = () => {
           cyclesRaw = JSON.parse(savedV1);
         }
       }
-    } catch (e) {}
-    
+    } catch (e) { }
+
     return cyclesRaw.map(c => sanitizeTestCycle(c));
   });
 
@@ -363,7 +363,7 @@ export const App: React.FC = () => {
     try {
       const saved = localStorage.getItem('test_genie_defect_registry_v1');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
     return [
       {
         issueKey: 'BUG-3412',
@@ -438,7 +438,7 @@ export const App: React.FC = () => {
     setIDBItem('test_genie_defect_registry_v1', defectRegistry);
     try {
       localStorage.setItem('test_genie_defect_registry_v1', JSON.stringify(defectRegistry));
-    } catch (e) {}
+    } catch (e) { }
   }, [defectRegistry]);
 
   const [isBugCreateEditModalOpen, setIsBugCreateEditModalOpen] = useState(false);
@@ -448,7 +448,7 @@ export const App: React.FC = () => {
     try {
       const saved = localStorage.getItem('test_genie_active_cycle_id');
       if (saved) return saved;
-    } catch (e) {}
+    } catch (e) { }
     return '';
   });
 
@@ -457,7 +457,7 @@ export const App: React.FC = () => {
       if (activeCycleId) {
         localStorage.setItem('test_genie_active_cycle_id', activeCycleId);
       }
-    } catch (e) {}
+    } catch (e) { }
   }, [activeCycleId]);
 
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
@@ -479,16 +479,53 @@ export const App: React.FC = () => {
     }
   }, [toast]);
 
-  // Sync Custom Cases to IndexedDB + localStorage
+  // Cross-Tab Synchronization via BroadcastChannel API
+  const syncChannel = useMemo(() => {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      return new BroadcastChannel('testgenie_sync');
+    }
+    return null;
+  }, []);
+
+  const broadcastSync = React.useCallback((type: string) => {
+    if (syncChannel) {
+      try {
+        syncChannel.postMessage({ type, timestamp: Date.now() });
+      } catch (e) {}
+    }
+  }, [syncChannel]);
+
+  useEffect(() => {
+    if (!syncChannel) return;
+    const handleMessage = async (event: MessageEvent) => {
+      const { type } = event.data || {};
+      if (type === 'SYNC_RELOAD') {
+        const savedCycles = await getIDBItem<TestCycle[]>(STORAGE_KEY_CYCLES);
+        if (savedCycles && savedCycles.length > 0) {
+          setTestCycles(savedCycles);
+        }
+        const savedCases = await getIDBItem<Record<string, TestCase[]>>(STORAGE_KEY_CASES);
+        if (savedCases) {
+          setCustomModuleCases(savedCases);
+        }
+      }
+    };
+
+    syncChannel.addEventListener('message', handleMessage);
+    return () => syncChannel.removeEventListener('message', handleMessage);
+  }, [syncChannel]);
+
+  // Sync Custom Cases to IndexedDB + localStorage + Broadcast to Other Tabs
   useEffect(() => {
     if (!isHydratedRef.current) return;
     setIDBItem(STORAGE_KEY_CASES, customModuleCases);
     try {
       localStorage.setItem(STORAGE_KEY_CASES, JSON.stringify(customModuleCases));
-    } catch (e) {}
-  }, [customModuleCases]);
+    } catch (e) { }
+    broadcastSync('SYNC_RELOAD');
+  }, [customModuleCases, broadcastSync]);
 
-  // Sync Test Cycles to IndexedDB + localStorage
+  // Sync Test Cycles to IndexedDB + localStorage + Broadcast to Other Tabs
   useEffect(() => {
     if (!isHydratedRef.current) return;
     setIDBItem(STORAGE_KEY_CYCLES, testCycles);
@@ -498,23 +535,24 @@ export const App: React.FC = () => {
     } catch (e) {
       console.warn('[LocalStorage] Quota warning (data safely preserved in IndexedDB):', e);
     }
-  }, [testCycles]);
+    broadcastSync('SYNC_RELOAD');
+  }, [testCycles, broadcastSync]);
 
   // Sum up counts across all modules
   const dashboardStats = useMemo(() => {
     const modules = activeProject.modules;
     const totalModules = modules.length;
-    
+
     let totalCases = 0;
     let totalPositive = 0;
     let totalNegative = 0;
     let totalBoundary = 0;
     let totalPermission = 0;
-    
+
     modules.forEach(m => {
       const cases = customModuleCases[m.id] || [];
       totalCases += cases.length;
-      
+
       cases.forEach(c => {
         const text = `${c.name} ${c.objective} ${c.testSteps}`.toLowerCase();
         if (c.type) {
@@ -538,7 +576,7 @@ export const App: React.FC = () => {
       });
     });
 
-    const averageCoverage = totalModules > 0 
+    const averageCoverage = totalModules > 0
       ? Math.round(modules.reduce((acc, m) => acc + (m.coveragePercentage || 100), 0) / totalModules)
       : 100;
 
@@ -561,7 +599,7 @@ export const App: React.FC = () => {
     const passedCount = executedItems.filter(item => item.executionStatus === 'PASSED').length;
     const failedCount = executedItems.filter(item => item.executionStatus === 'FAILED').length;
     const blockedCount = executedItems.filter(item => item.executionStatus === 'BLOCKED').length;
-    
+
     const passRate = totalExecuted > 0 ? Math.round((passedCount / totalExecuted) * 100) : 0;
     const executionsToday = totalExecuted;
 
@@ -578,13 +616,13 @@ export const App: React.FC = () => {
     const low = allBugs.filter(b => b.severity === 'Minor').length;
 
     // Dynamic recent runs
-    const recentRuns = projCycles.flatMap(c => 
+    const recentRuns = projCycles.flatMap(c =>
       (c.items || []).map(item => ({
         runId: item.testCase.key.replace(/\D/g, '') || '131011',
         title: item.testCase.name,
         status: item.executionStatus,
         executedBy: item.executedBy || 'Suresh Kumar',
-        executedAt: item.executedAt ? new Date(item.executedAt).toLocaleDateString(undefined, {month: '2-digit', day: '2-digit'}) : '28/03',
+        executedAt: item.executedAt ? new Date(item.executedAt).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }) : '28/03',
         isAutomated: item.executionType === 'Automated'
       }))
     ).filter(r => r.status !== 'UNEXECUTED').slice(0, 4);
@@ -596,7 +634,7 @@ export const App: React.FC = () => {
       const modExecItems = projCycles
         .filter(c => c.moduleName?.toLowerCase() === mod.name?.toLowerCase())
         .flatMap(c => c.items || []);
-      
+
       const modExecuted = modExecItems.filter(i => i.executionStatus !== 'UNEXECUTED').length;
       const modPassed = modExecItems.filter(i => i.executionStatus === 'PASSED').length;
       const modFailed = modExecItems.filter(i => i.executionStatus === 'FAILED').length;
@@ -702,10 +740,10 @@ export const App: React.FC = () => {
         label: executionsToday > 0 ? 'vs yesterday' : 'no executions logged'
       },
       passRate: {
-        value: passRate > 0 
+        value: passRate > 0
           ? (passRateTrendVal >= 0 ? `▲ +${passRateTrendVal.toFixed(1)}%` : `▼ ${passRateTrendVal.toFixed(1)}%`)
           : '0.0%',
-        colorClass: passRate > 0 
+        colorClass: passRate > 0
           ? (passRateTrendVal >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50')
           : 'text-slate-400 bg-slate-50',
         label: passRate > 0 ? 'vs target average (90%)' : 'no execution runs'
@@ -769,7 +807,7 @@ export const App: React.FC = () => {
         modules: [newModule, ...p.modules]
       };
     }));
-    
+
     setSelectedModuleId(newId);
     handleTabChange('matrix');
     setIsImporterOpen(true);
@@ -891,7 +929,7 @@ export const App: React.FC = () => {
             uploadedAt: new Date().toLocaleTimeString()
           }] : []
         };
-        
+
         setTestCycles(prev => prev.map(c => {
           if (c.id !== cycle.id) return c;
           return {
@@ -899,7 +937,7 @@ export const App: React.FC = () => {
             items: [newItem, ...c.items]
           };
         }));
-        
+
         showToast(`Added test case ${selectedAutomateCase.key} to cycle "${cycle.name}" (${status}) with media proof!`, 'success');
       }
     }
@@ -1060,7 +1098,7 @@ export const App: React.FC = () => {
     if (options.isEdit) {
       // 1. Update in static defectRegistry
       setDefectRegistry(prev => prev.map(b => b.issueKey === bug.issueKey ? bug : b));
-      
+
       // 2. Update inside cycles execution items
       setTestCycles(prev => prev.map(cycle => ({
         ...cycle,
@@ -1235,6 +1273,23 @@ export const App: React.FC = () => {
     showToast(`Successfully synced updated test cases into cycle!`, 'success');
   };
 
+  // Import Cycle Snapshot (.json)
+  const handleImportCycleSnapshot = (importedCycle: TestCycle) => {
+    if (!importedCycle || !importedCycle.name || !Array.isArray(importedCycle.items)) {
+      showToast('Import Error: Invalid cycle snapshot format.', 'error');
+      return;
+    }
+
+    const cleanCycle: TestCycle = {
+      ...importedCycle,
+      id: `cycle-import-${Date.now().toString().slice(-4)}`,
+      createdAt: new Date().toLocaleString()
+    };
+
+    setTestCycles(prev => [cleanCycle, ...prev]);
+    showToast(`Successfully imported cycle snapshot "${cleanCycle.name}" (${cleanCycle.items.length} items)!`, 'success');
+  };
+
   // Bulk Edit Test Cases
   const handleBulkEditTestCases = (keys: string[], updates: { priority?: string; type?: string; status?: string }) => {
     const keySet = new Set(keys.map(k => k.trim().toUpperCase()));
@@ -1337,7 +1392,7 @@ export const App: React.FC = () => {
   const handleAddCasesToCycle = (cycleId: string, newCases: TestCase[]) => {
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
-      
+
       const existingKeys = new Set(cycle.items.map(i => i.testCase.key?.trim().toUpperCase()).filter(Boolean));
       const newItems: TestCycleItem[] = newCases
         .filter(c => c.key && !existingKeys.has(c.key.trim().toUpperCase()))
@@ -1361,7 +1416,7 @@ export const App: React.FC = () => {
   }, [testCycles, activeProject.id]);
 
   const allBugsCombined = useMemo(() => {
-    const dynamicBugs = activeProjectCycles.flatMap(c => 
+    const dynamicBugs = activeProjectCycles.flatMap(c =>
       (c.items || []).flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []))
     );
     const regKeys = new Set(defectRegistry.map(b => b.issueKey));
@@ -1586,7 +1641,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex selection:bg-indigo-500 selection:text-white font-sans antialiased">
-      
+
       {/* Left Sidebar Navigation & Module Manager */}
       <Sidebar
         modules={activeProject.modules}
@@ -1604,7 +1659,7 @@ export const App: React.FC = () => {
 
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        
+
         {/* Top Header with Multi-Project Dropdown, Session Info & Logout */}
         <Header
           activeTab={activeTab}
@@ -1624,434 +1679,432 @@ export const App: React.FC = () => {
 
         {/* Main Content Body */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          
+
           <>
-              {/* Tab 1: Dashboard Overview (Mockup Layout 1-to-1) */}
-              {activeTab === 'dashboard' && (
-                <div className="space-y-6 animate-fadeIn font-sans">
-                  
-                  {/* Top Row: Page Title & Active Project Selector */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight font-sans">Dashboard</h2>
-                    
-                    <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Active project:</span>
-                      <span className="text-xs font-extrabold text-slate-900">{activeProject.name} v2.1</span>
+            {/* Tab 1: Dashboard Overview (Mockup Layout 1-to-1) */}
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6 animate-fadeIn font-sans">
+
+                {/* Top Row: Page Title & Active Project Selector */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight font-sans">Dashboard</h2>
+
+                  <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Active project:</span>
+                    <span className="text-xs font-extrabold text-slate-900">{activeProject.name} v2.1</span>
+                  </div>
+                </div>
+
+                {/* Key Metrics Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+                  {/* Metric 1 */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Total Test Cases</span>
+                        <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.totalCases}</h3>
+                      </div>
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <Layers className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                      <span className={`${computedTrends.cases.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.cases.value}</span>
+                      <span className="text-slate-400 font-medium">{computedTrends.cases.label}</span>
                     </div>
                   </div>
 
-                  {/* Key Metrics Row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                    
-                    {/* Metric 1 */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Total Test Cases</span>
-                          <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.totalCases}</h3>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                          <Layers className="w-4 h-4" />
-                        </div>
+                  {/* Metric 2: Failed Test Cases */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all border-l-4 border-l-rose-500">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Failed Test Cases</span>
+                        <h3 className="text-2xl font-black text-rose-600 mt-1">{dashboardStats.failedItems.length}</h3>
                       </div>
-                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
-                        <span className={`${computedTrends.cases.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.cases.value}</span>
-                        <span className="text-slate-400 font-medium">{computedTrends.cases.label}</span>
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 font-bold">
+                        <XCircle className="w-4 h-4" />
                       </div>
                     </div>
-
-                    {/* Metric 2: Failed Test Cases */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all border-l-4 border-l-rose-500">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Failed Test Cases</span>
-                          <h3 className="text-2xl font-black text-rose-600 mt-1">{dashboardStats.failedItems.length}</h3>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600 font-bold">
-                          <XCircle className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
-                        <span className={`px-2 py-0.5 rounded-full mr-1.5 font-mono border ${
-                          dashboardStats.failedItems.length > 0
-                            ? 'bg-rose-100 text-rose-800 border-rose-300'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                      <span className={`px-2 py-0.5 rounded-full mr-1.5 font-mono border ${dashboardStats.failedItems.length > 0
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         }`}>
-                          {dashboardStats.failedItems.length > 0 ? `🛑 ${dashboardStats.failedItems.length} Failures` : '✅ 0 Failures'}
-                        </span>
-                        <span className="text-slate-400 font-medium">In active execution cycles</span>
-                      </div>
+                        {dashboardStats.failedItems.length > 0 ? `🛑 ${dashboardStats.failedItems.length} Failures` : '✅ 0 Failures'}
+                      </span>
+                      <span className="text-slate-400 font-medium">In active execution cycles</span>
                     </div>
-
-                    {/* Metric 3 */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Passed Rate</span>
-                          <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.passRate}%</h3>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                          <FileCheck2 className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
-                        <span className={`${computedTrends.passRate.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.passRate.value}</span>
-                        <span className="text-slate-400 font-medium">{computedTrends.passRate.label}</span>
-                      </div>
-                    </div>
-
-                    {/* Metric 4 */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Active Bugs</span>
-                          <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.totalDefects}</h3>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                          <Bug className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-4 text-[10px] font-extrabold">
-                        <span className={`${computedTrends.bugs.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.bugs.value}</span>
-                        <span className="text-slate-400 font-medium">{computedTrends.bugs.label}</span>
-                      </div>
-                    </div>
-
                   </div>
 
-                  {/* Middle Row: Line Chart + Doughnut Chart */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    {/* Line Chart Panel */}
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm lg:col-span-2 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-extrabold text-slate-900 font-sans">Test Execution Overview</h3>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3 text-[10px] font-bold">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
-                            <span className="text-slate-500">Passed</span>
-                          </div>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                            <span className="text-slate-500">Failed</span>
-                          </div>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                            <span className="text-slate-500">Blocked</span>
-                          </div>
-                        </div>
+                  {/* Metric 3 */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Passed Rate</span>
+                        <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.passRate}%</h3>
+                      </div>
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <FileCheck2 className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                      <span className={`${computedTrends.passRate.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.passRate.value}</span>
+                      <span className="text-slate-400 font-medium">{computedTrends.passRate.label}</span>
+                    </div>
+                  </div>
+
+                  {/* Metric 4 */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Active Bugs</span>
+                        <h3 className="text-2xl font-black text-slate-900 mt-1">{dashboardStats.totalDefects}</h3>
+                      </div>
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <Bug className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="flex items-center mt-4 text-[10px] font-extrabold">
+                      <span className={`${computedTrends.bugs.colorClass} px-2 py-0.5 rounded-full mr-1.5 font-mono`}>{computedTrends.bugs.value}</span>
+                      <span className="text-slate-400 font-medium">{computedTrends.bugs.label}</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Middle Row: Line Chart + Doughnut Chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                  {/* Line Chart Panel */}
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm lg:col-span-2 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-extrabold text-slate-900 font-sans">Test Execution Overview</h3>
                       </div>
 
-                      {/* Line Chart Vector SVG */}
-                      <div className="h-48 w-full relative pt-2">
-                        <svg className="w-full h-full" viewBox="0 0 400 160" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="passGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.15" />
-                              <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.0" />
-                            </linearGradient>
-                          </defs>
-                          
-                          {/* Grid Lines */}
-                          <line x1="0" y1="40" x2="400" y2="40" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-                          <line x1="0" y1="80" x2="400" y2="80" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-                          <line x1="0" y1="120" x2="400" y2="120" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-                          
-                          {/* Passed Line */}
-                          <path d={dashboardStats.passLinePath} fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" />
-                          <path d={dashboardStats.passAreaPath} fill="url(#passGrad)" />
-                          
-                          {/* Failed Line */}
-                          <path d={dashboardStats.failLinePath} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
-                          
-                          {/* Blocked Line */}
-                          <path d={dashboardStats.blockLinePath} fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                        
-                        {/* X Axis Labels */}
-                        <div className="flex justify-between text-[9px] font-mono text-slate-400 mt-2">
-                          <span>1</span>
-                          <span>3</span>
-                          <span>5</span>
-                          <span>7</span>
-                          <span>9</span>
-                          <span>11</span>
-                          <span>13</span>
-                          <span>15</span>
-                          <span>17</span>
-                          <span>19</span>
+                      <div className="flex items-center space-x-3 text-[10px] font-bold">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                          <span className="text-slate-500">Passed</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                          <span className="text-slate-500">Failed</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                          <span className="text-slate-500">Blocked</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Donut Chart Panel */}
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Bug Priority Distribution</h3>
-                      
-                      <div className="flex flex-col items-center justify-center py-2">
-                        <div className="relative w-32 h-32">
-                          {(() => {
-                            const totalBugs = dashboardStats.critical + dashboardStats.high + dashboardStats.medium + dashboardStats.low;
-                            if (totalBugs === 0) {
-                              return (
-                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
-                                </svg>
-                              );
-                            }
-                            const lowPct = (dashboardStats.low / totalBugs) * 251.2;
-                            const medPct = (dashboardStats.medium / totalBugs) * 251.2;
-                            const highPct = (dashboardStats.high / totalBugs) * 251.2;
+                    {/* Line Chart Vector SVG */}
+                    <div className="h-48 w-full relative pt-2">
+                      <svg className="w-full h-full" viewBox="0 0 400 160" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="passGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.15" />
+                            <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Grid Lines */}
+                        <line x1="0" y1="40" x2="400" y2="40" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                        <line x1="0" y1="80" x2="400" y2="80" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                        <line x1="0" y1="120" x2="400" y2="120" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+
+                        {/* Passed Line */}
+                        <path d={dashboardStats.passLinePath} fill="none" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round" />
+                        <path d={dashboardStats.passAreaPath} fill="url(#passGrad)" />
+
+                        {/* Failed Line */}
+                        <path d={dashboardStats.failLinePath} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+
+                        {/* Blocked Line */}
+                        <path d={dashboardStats.blockLinePath} fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+
+                      {/* X Axis Labels */}
+                      <div className="flex justify-between text-[9px] font-mono text-slate-400 mt-2">
+                        <span>1</span>
+                        <span>3</span>
+                        <span>5</span>
+                        <span>7</span>
+                        <span>9</span>
+                        <span>11</span>
+                        <span>13</span>
+                        <span>15</span>
+                        <span>17</span>
+                        <span>19</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Donut Chart Panel */}
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                    <h3 className="text-sm font-extrabold text-slate-900 font-sans">Bug Priority Distribution</h3>
+
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <div className="relative w-32 h-32">
+                        {(() => {
+                          const totalBugs = dashboardStats.critical + dashboardStats.high + dashboardStats.medium + dashboardStats.low;
+                          if (totalBugs === 0) {
                             return (
                               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                {/* Low - Green */}
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={0} />
-                                {/* Medium - Yellow */}
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={lowPct} />
-                                {/* High - Orange */}
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f97316" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={lowPct + medPct} />
-                                {/* Critical - Red */}
-                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={lowPct + medPct + highPct} />
+                                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
                               </svg>
                             );
-                          })()}
-                          
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                            <span className="text-xl font-black text-slate-900 leading-none">{dashboardStats.totalDefects}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Active</span>
-                          </div>
-                        </div>
+                          }
+                          const lowPct = (dashboardStats.low / totalBugs) * 251.2;
+                          const medPct = (dashboardStats.medium / totalBugs) * 251.2;
+                          const highPct = (dashboardStats.high / totalBugs) * 251.2;
+                          return (
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                              {/* Low - Green */}
+                              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={0} />
+                              {/* Medium - Yellow */}
+                              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={lowPct} />
+                              {/* High - Orange */}
+                              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f97316" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={lowPct + medPct} />
+                              {/* Critical - Red */}
+                              <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset={lowPct + medPct + highPct} />
+                            </svg>
+                          );
+                        })()}
 
-                        {/* Legend */}
-                        <div className="grid grid-cols-2 gap-3 mt-6 text-[10px] font-bold w-full px-2">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                            <span className="text-slate-600">Critical ({dashboardStats.critical})</span>
-                          </div>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                            <span className="text-slate-600">High ({dashboardStats.high})</span>
-                          </div>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            <span className="text-slate-600">Medium ({dashboardStats.medium})</span>
-                          </div>
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span className="text-slate-600">Low ({dashboardStats.low})</span>
-                          </div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span className="text-xl font-black text-slate-900 leading-none">{dashboardStats.totalDefects}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">Active</span>
+                        </div>
+                      </div>
+
+                      {/* Legend */}
+                      <div className="grid grid-cols-2 gap-3 mt-6 text-[10px] font-bold w-full px-2">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                          <span className="text-slate-600">Critical ({dashboardStats.critical})</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                          <span className="text-slate-600">High ({dashboardStats.high})</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          <span className="text-slate-600">Medium ({dashboardStats.medium})</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <span className="text-slate-600">Low ({dashboardStats.low})</span>
                         </div>
                       </div>
                     </div>
-
                   </div>
 
-                  {/* Failed Test Cases Breakdown Panel */}
-                  {dashboardStats.failedItems.length > 0 && (
-                    <div className="bg-white p-6 rounded-3xl border border-rose-200 shadow-xs space-y-4 bg-rose-50/20">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 font-bold">
-                            <XCircle className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-extrabold text-slate-900">Failed Test Cases ({dashboardStats.failedItems.length})</h3>
-                            <p className="text-xs text-slate-500">Failed scenarios requiring immediate QA review & re-execution.</p>
-                          </div>
+                </div>
+
+                {/* Failed Test Cases Breakdown Panel */}
+                {dashboardStats.failedItems.length > 0 && (
+                  <div className="bg-white p-6 rounded-3xl border border-rose-200 shadow-xs space-y-4 bg-rose-50/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 font-bold">
+                          <XCircle className="w-4 h-4" />
                         </div>
-                        <button
-                          onClick={() => handleTabChange('execution')}
-                          className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center"
-                        >
-                          Open Execution Board <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                        </button>
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900">Failed Test Cases ({dashboardStats.failedItems.length})</h3>
+                          <p className="text-xs text-slate-500">Failed scenarios requiring immediate QA review & re-execution.</p>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => handleTabChange('execution')}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center"
+                      >
+                        Open Execution Board <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                      </button>
+                    </div>
 
-                      <div className="divide-y divide-rose-100 bg-white rounded-2xl border border-rose-100 overflow-hidden shadow-2xs">
-                        {dashboardStats.failedItems.map(({ cycleId, cycleName, item }) => (
-                          <div key={`${cycleId}-${item.testCase.key}`} className="p-3.5 flex items-center justify-between hover:bg-rose-50/60 transition-colors">
-                            <div className="flex items-center space-x-3">
-                              <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-200">
-                                {item.testCase.key}
-                              </span>
-                              <div>
-                                <h4 className="text-xs font-bold text-slate-900">{cleanTestCaseTitle(item.testCase.name)}</h4>
-                                <p className="text-[11px] text-slate-500">Cycle: {cycleName} • Priority: {item.testCase.priority}</p>
-                              </div>
+                    <div className="divide-y divide-rose-100 bg-white rounded-2xl border border-rose-100 overflow-hidden shadow-2xs">
+                      {dashboardStats.failedItems.map(({ cycleId, cycleName, item }) => (
+                        <div key={`${cycleId}-${item.testCase.key}`} className="p-3.5 flex items-center justify-between hover:bg-rose-50/60 transition-colors">
+                          <div className="flex items-center space-x-3">
+                            <span className="font-mono text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-200">
+                              {item.testCase.key}
+                            </span>
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">{cleanTestCaseTitle(item.testCase.name)}</h4>
+                              <p className="text-[11px] text-slate-500">Cycle: {cycleName} • Priority: {item.testCase.priority}</p>
                             </div>
-                            <button
-                              onClick={() => {
-                                setActiveCycleId(cycleId);
-                                handleTabChange('execution');
-                              }}
-                              className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95 flex items-center"
-                            >
-                              Inspect Failure
-                            </button>
                           </div>
-                        ))}
-                      </div>
+                          <button
+                            onClick={() => {
+                              setActiveCycleId(cycleId);
+                              handleTabChange('execution');
+                            }}
+                            className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold shadow-2xs transition-all active:scale-95 flex items-center"
+                          >
+                            Inspect Failure
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Bottom Row: Bar Chart + Recent Test Runs Table */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    {/* Vertical Bar Chart Panel */}
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-extrabold text-slate-900 font-sans">Test Case Coverage</h3>
-                        <span className="text-[9px] font-mono text-slate-400">Class chart by modules</span>
-                      </div>
+                {/* Bottom Row: Bar Chart + Recent Test Runs Table */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                      <div className="flex items-end justify-around h-44 pt-4 px-2">
-                        {dashboardStats.moduleCoverageList.slice(0, 5).map(mod => {
-                          const heightPx = Math.max(12, Math.round((mod.repoCoveragePct / 100) * 144));
-                          const execHeightPx = Math.round((mod.execCoveragePct / 100) * heightPx);
-                          return (
-                            <div key={mod.id} className="flex flex-col items-center space-y-2 flex-grow min-w-0">
-                              <div className="text-[9px] font-mono font-bold text-slate-600">
-                                {mod.totalCases}
-                              </div>
-                              <div 
-                                className="w-5 bg-indigo-100 rounded-t-lg relative overflow-hidden transition-all duration-500 border border-indigo-200/60" 
-                                style={{ height: `${heightPx}px` }}
-                                title={`${mod.name}: ${mod.totalCases} Manual Test Cases (${mod.executed} executed: ${mod.passed} passed, ${mod.failed} failed)`}
-                              >
-                                <div 
-                                  className="w-full bg-gradient-to-t from-indigo-600 to-purple-600 absolute bottom-0 left-0 transition-all duration-500"
-                                  style={{ height: `${execHeightPx}px` }}
-                                />
-                              </div>
-                              <span className="text-[9px] font-mono font-bold text-slate-600 truncate w-16 text-center" title={mod.name}>
-                                {mod.name.length > 7 ? `${mod.name.substring(0, 6)}..` : mod.name}
-                              </span>
+                  {/* Vertical Bar Chart Panel */}
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Test Case Coverage</h3>
+                      <span className="text-[9px] font-mono text-slate-400">Class chart by modules</span>
+                    </div>
+
+                    <div className="flex items-end justify-around h-44 pt-4 px-2">
+                      {dashboardStats.moduleCoverageList.slice(0, 5).map(mod => {
+                        const heightPx = Math.max(12, Math.round((mod.repoCoveragePct / 100) * 144));
+                        const execHeightPx = Math.round((mod.execCoveragePct / 100) * heightPx);
+                        return (
+                          <div key={mod.id} className="flex flex-col items-center space-y-2 flex-grow min-w-0">
+                            <div className="text-[9px] font-mono font-bold text-slate-600">
+                              {mod.totalCases}
                             </div>
-                          );
-                        })}
-                      </div>
+                            <div
+                              className="w-5 bg-indigo-100 rounded-t-lg relative overflow-hidden transition-all duration-500 border border-indigo-200/60"
+                              style={{ height: `${heightPx}px` }}
+                              title={`${mod.name}: ${mod.totalCases} Manual Test Cases (${mod.executed} executed: ${mod.passed} passed, ${mod.failed} failed)`}
+                            >
+                              <div
+                                className="w-full bg-gradient-to-t from-indigo-600 to-purple-600 absolute bottom-0 left-0 transition-all duration-500"
+                                style={{ height: `${execHeightPx}px` }}
+                              />
+                            </div>
+                            <span className="text-[9px] font-mono font-bold text-slate-600 truncate w-16 text-center" title={mod.name}>
+                              {mod.name.length > 7 ? `${mod.name.substring(0, 6)}..` : mod.name}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
 
-                    {/* Table Panel */}
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm lg:col-span-2 space-y-4">
-                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">Recent Test Runs</h3>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-slate-700">
-                          <thead>
-                            <tr className="border-b border-slate-100 text-[10px] uppercase font-mono font-bold text-slate-400 pb-2">
-                              <th className="py-2 w-20">Run ID</th>
-                              <th className="py-2">Title</th>
-                              <th className="py-2 w-28">Status</th>
-                              <th className="py-2 w-24">Tester</th>
-                              <th className="py-2 w-28">Date/Time</th>
-                              <th className="py-2 w-16 text-center">Auto</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 font-sans text-xs">
-                            {dashboardStats.recentRuns.map((run, index) => (
-                              <tr key={index}>
-                                <td className="py-3 font-mono font-bold text-slate-500">{run.runId}</td>
-                                <td className="py-3 font-bold text-slate-950 truncate max-w-[150px]" title={run.title}>{run.title}</td>
-                                <td className="py-3">
-                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border inline-block ${
-                                    run.status === 'PASSED'
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 glow-passed'
-                                      : run.status === 'FAILED'
+                  {/* Table Panel */}
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm lg:col-span-2 space-y-4">
+                    <h3 className="text-sm font-extrabold text-slate-900 font-sans">Recent Test Runs</h3>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-[10px] uppercase font-mono font-bold text-slate-400 pb-2">
+                            <th className="py-2 w-20">Run ID</th>
+                            <th className="py-2">Title</th>
+                            <th className="py-2 w-28">Status</th>
+                            <th className="py-2 w-24">Tester</th>
+                            <th className="py-2 w-28">Date/Time</th>
+                            <th className="py-2 w-16 text-center">Auto</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                          {dashboardStats.recentRuns.map((run, index) => (
+                            <tr key={index}>
+                              <td className="py-3 font-mono font-bold text-slate-500">{run.runId}</td>
+                              <td className="py-3 font-bold text-slate-950 truncate max-w-[150px]" title={run.title}>{run.title}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border inline-block ${run.status === 'PASSED'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 glow-passed'
+                                    : run.status === 'FAILED'
                                       ? 'bg-rose-50 text-rose-700 border-rose-200 glow-failed'
                                       : run.status === 'BLOCKED'
-                                      ? 'bg-amber-50 text-amber-700 border-amber-200 glow-blocked'
-                                      : 'bg-slate-50 text-slate-600 border-slate-200 glow-unexecuted'
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200 glow-blocked'
+                                        : 'bg-slate-50 text-slate-600 border-slate-200 glow-unexecuted'
                                   }`}>
-                                    {run.status === 'PASSED' ? 'Pass' : run.status === 'FAILED' ? 'Fail' : run.status === 'BLOCKED' ? 'Blocked' : 'Unexecuted'}
-                                  </span>
-                                </td>
-                                <td className="py-3">
-                                  <div className="flex items-center space-x-1.5">
-                                    <div className="w-5 h-5 rounded-full bg-indigo-600 text-[9px] text-white flex items-center justify-center font-bold">
-                                      {run.executedBy.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
-                                    </div>
-                                    <span className="text-slate-600 font-medium">{run.executedBy.split(' ')[0]}</span>
+                                  {run.status === 'PASSED' ? 'Pass' : run.status === 'FAILED' ? 'Fail' : run.status === 'BLOCKED' ? 'Blocked' : 'Unexecuted'}
+                                </span>
+                              </td>
+                              <td className="py-3">
+                                <div className="flex items-center space-x-1.5">
+                                  <div className="w-5 h-5 rounded-full bg-indigo-600 text-[9px] text-white flex items-center justify-center font-bold">
+                                    {run.executedBy.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
                                   </div>
-                                </td>
-                                <td className="py-3 text-slate-400 font-medium">{run.executedAt}</td>
-                                <td className="py-3 text-center">
-                                  <input type="checkbox" checked={run.isAutomated} readOnly className="rounded border-slate-300 text-indigo-600" />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-              )}
-
-              {/* Tab 2: Module Repositories Selector Landing Page (Test Repositories) */}
-              {activeTab === 'matrix' && (
-                <div className="space-y-6 animate-fadeIn">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900">
-                        [{activeProject.key}] Module Repositories ({activeProject.modules.length})
-                      </h2>
-                      <p className="text-xs text-slate-500">
-                        Create, delete, or browse individual module repositories below. Click any card to manage its test cases.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      {canManageCases && (
-                        <button
-                          onClick={triggerCreateModulePrompt}
-                          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all flex items-center"
-                        >
-                          <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
-                          Create Module Repository
-                        </button>
-                      )}
+                                  <span className="text-slate-600 font-medium">{run.executedBy.split(' ')[0]}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-slate-400 font-medium">{run.executedAt}</td>
+                              <td className="py-3 text-center">
+                                <input type="checkbox" checked={run.isAutomated} readOnly className="rounded border-slate-300 text-indigo-600" />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
-                  {/* Module Cards Grid with Navigation and Ingest Controls */}
-                  <ModuleCardsGrid
-                    modules={activeProject.modules}
-                    customModuleCases={customModuleCases}
-                    selectedModuleId={selectedModuleId}
-                    currentUser={currentUser}
-                    searchQuery={globalSearchQuery}
-                    onSelectModule={handleSelectModuleSmart}
-                    onOpenImporter={(modId) => {
-                      if (!canManageCases) {
-                        alert(`Role Restriction: User role '${currentUser.role}' cannot add or upload test cases.`);
-                        return;
-                      }
-                      setSelectedModuleId(modId);
-                      setIsImporterOpen(true);
-                    }}
-                    onNavigateToRepository={(modId) => {
-                      setSelectedModuleId(modId);
-                      handleTabChange('repository');
-                    }}
-                    onEditModule={handleEditModule}
-                    onDeleteModule={handleDeleteModule}
-                    onRenameModule={triggerRenameModulePrompt}
-                  />
                 </div>
-              )}
 
-              {/* Tab 2.5: Specific Module Repository Test Case Table (Active Repository View) */}
-              {activeTab === 'repository' && (
-                !activeModule ? (
-                  renderEmptyModuleState()
-                ) : (
-                  <div className="space-y-4 animate-fadeIn">
+              </div>
+            )}
+
+            {/* Tab 2: Module Repositories Selector Landing Page (Test Repositories) */}
+            {activeTab === 'matrix' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      [{activeProject.key}] Module Repositories ({activeProject.modules.length})
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Create, delete, or browse individual module repositories below. Click any card to manage its test cases.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    {canManageCases && (
+                      <button
+                        onClick={triggerCreateModulePrompt}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all flex items-center"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
+                        Create Module Repository
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Module Cards Grid with Navigation and Ingest Controls */}
+                <ModuleCardsGrid
+                  modules={activeProject.modules}
+                  customModuleCases={customModuleCases}
+                  selectedModuleId={selectedModuleId}
+                  currentUser={currentUser}
+                  searchQuery={globalSearchQuery}
+                  onSelectModule={handleSelectModuleSmart}
+                  onOpenImporter={(modId) => {
+                    if (!canManageCases) {
+                      alert(`Role Restriction: User role '${currentUser.role}' cannot add or upload test cases.`);
+                      return;
+                    }
+                    setSelectedModuleId(modId);
+                    setIsImporterOpen(true);
+                  }}
+                  onNavigateToRepository={(modId) => {
+                    setSelectedModuleId(modId);
+                    handleTabChange('repository');
+                  }}
+                  onEditModule={handleEditModule}
+                  onDeleteModule={handleDeleteModule}
+                  onRenameModule={triggerRenameModulePrompt}
+                />
+              </div>
+            )}
+
+            {/* Tab 2.5: Specific Module Repository Test Case Table (Active Repository View) */}
+            {activeTab === 'repository' && (
+              !activeModule ? (
+                renderEmptyModuleState()
+              ) : (
+                <div className="space-y-4 animate-fadeIn">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">
@@ -2094,7 +2147,7 @@ export const App: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   {testCases.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                       <Upload className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
@@ -2127,224 +2180,224 @@ export const App: React.FC = () => {
                     />
                   )}
                 </div>
-                )
-              )}
+              )
+            )}
 
-              {/* Tab 3: Test Cycle Manager */}
-              {activeTab === 'cycles' && (
-                !activeModule ? (
-                  renderEmptyModuleState()
-                ) : (
-                  <TestCycleManager
-                    moduleName={activeModule.name}
-                    allModules={activeProject.modules}
-                    allModuleCasesMap={customModuleCases}
-                    currentModuleCases={testCases}
-                    testCycles={activeProjectCycles}
-                    currentUser={currentUser}
-                    onCreateCycle={handleCreateCycle}
-                    onAddCasesToCycle={handleAddCasesToCycle}
-                    onSelectCycleToExecute={(cycleId) => {
-                      setActiveCycleId(cycleId);
-                      handleTabChange('execution');
-                    }}
-                    onDeleteCycle={handleDeleteCycle}
-                    onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
-                    onToggleIgnoreSync={handleToggleIgnoreSync}
-                  />
-                )
-              )}
+            {/* Tab 3: Test Cycle Manager */}
+            {activeTab === 'cycles' && (
+              !activeModule ? (
+                renderEmptyModuleState()
+              ) : (
+                <TestCycleManager
+                  moduleName={activeModule.name}
+                  allModules={activeProject.modules}
+                  allModuleCasesMap={customModuleCases}
+                  currentModuleCases={testCases}
+                  testCycles={activeProjectCycles}
+                  currentUser={currentUser}
+                  onCreateCycle={handleCreateCycle}
+                  onAddCasesToCycle={handleAddCasesToCycle}
+                  onSelectCycleToExecute={(cycleId) => {
+                    setActiveCycleId(cycleId);
+                    handleTabChange('execution');
+                  }}
+                  onDeleteCycle={handleDeleteCycle}
+                  onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
+                  onToggleIgnoreSync={handleToggleIgnoreSync}
+                  onImportCycleSnapshot={handleImportCycleSnapshot}
+                />
+              )
+            )}
 
-              {/* Tab 4: Live Execution Board with Active User Role Guarding */}
-              {activeTab === 'execution' && (
-                !activeModule ? (
-                  renderEmptyModuleState()
-                ) : activeCycle ? (
-                  <CycleExecutionBoard
-                    cycle={activeCycle}
-                    currentUser={currentUser}
-                    allAvailableCases={Object.values(customModuleCases).flat()}
-                    isHydrated={isHydrated}
-                    onUpdateStatus={handleUpdateExecutionStatus}
-                    onAddCasesToCycle={handleAddCasesToCycle}
-                    onReopenBug={(itemKey, bugKey, notes, screenshotUrl, videoUrl) => 
-                      handleReopenJiraBug(activeCycle.id, itemKey, bugKey, notes, screenshotUrl, videoUrl)
-                    }
-                    onRequestPassEvidence={(cycleId, itemKey, itemTitle) => setPassEvidenceModalConfig({ isOpen: true, cycleId, itemKey, itemTitle })}
-                    onSaveTestCase={handleSaveTestCase}
-                    onDeleteCycleItem={handleDeleteCycleItem}
-                    onBulkEditCycleItems={handleBulkEditCycleItems}
-                    onBulkDeleteCycleItems={handleBulkDeleteCycleItems}
-                    onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
-                    onToggleIgnoreSync={handleToggleIgnoreSync}
-                    onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
-                    onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
-                    onOpenAgentConsoleTrace={handleOpenAgentConsoleTrace}
-                    onBackToCycles={() => handleTabChange('cycles')}
-                  />
-                ) : (
-                  <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                    <RotateCw className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <h4 className="text-base font-extrabold text-slate-900">No Active Test Cycles Found for {activeModule?.name || 'this module'}</h4>
-                    <p className="text-xs text-slate-500 mt-1 mb-4">
-                      Create a test cycle first to execute test cases on the live board.
+            {/* Tab 4: Live Execution Board with Active User Role Guarding */}
+            {activeTab === 'execution' && (
+              !activeModule ? (
+                renderEmptyModuleState()
+              ) : activeCycle ? (
+                <CycleExecutionBoard
+                  cycle={activeCycle}
+                  currentUser={currentUser}
+                  allAvailableCases={Object.values(customModuleCases).flat()}
+                  isHydrated={isHydrated}
+                  onUpdateStatus={handleUpdateExecutionStatus}
+                  onAddCasesToCycle={handleAddCasesToCycle}
+                  onReopenBug={(itemKey, bugKey, notes, screenshotUrl, videoUrl) =>
+                    handleReopenJiraBug(activeCycle.id, itemKey, bugKey, notes, screenshotUrl, videoUrl)
+                  }
+                  onRequestPassEvidence={(cycleId, itemKey, itemTitle) => setPassEvidenceModalConfig({ isOpen: true, cycleId, itemKey, itemTitle })}
+                  onSaveTestCase={handleSaveTestCase}
+                  onDeleteCycleItem={handleDeleteCycleItem}
+                  onBulkEditCycleItems={handleBulkEditCycleItems}
+                  onBulkDeleteCycleItems={handleBulkDeleteCycleItems}
+                  onSyncEditedCasesToCycle={handleSyncEditedCasesToCycle}
+                  onToggleIgnoreSync={handleToggleIgnoreSync}
+                  onViewCodeSpec={(tc) => setSelectedCodeCase(tc)}
+                  onAutomateTestCase={(tc) => handleAutomateTestCase(tc, activeCycle.id)}
+                  onOpenAgentConsoleTrace={handleOpenAgentConsoleTrace}
+                  onBackToCycles={() => handleTabChange('cycles')}
+                />
+              ) : (
+                <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+                  <RotateCw className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h4 className="text-base font-extrabold text-slate-900">No Active Test Cycles Found for {activeModule?.name || 'this module'}</h4>
+                  <p className="text-xs text-slate-500 mt-1 mb-4">
+                    Create a test cycle first to execute test cases on the live board.
+                  </p>
+                  <button
+                    onClick={() => handleTabChange('cycles')}
+                    className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 text-white shadow-md"
+                  >
+                    Go to Test Cycles
+                  </button>
+                </div>
+              )
+            )}
+
+            {/* Tab 5: Bugs Telemetry (Mockup/Telemetry) */}
+            {activeTab === 'bugs' && (
+              <div className="space-y-6 animate-fadeIn font-sans">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Jira Defect Tracker</h2>
+                    <p className="text-xs text-slate-500">
+                      Central registry of all bugs raised across test execution runs and cycles.
                     </p>
+                  </div>
+                  {canManageCases && (
                     <button
-                      onClick={() => handleTabChange('cycles')}
-                      className="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 text-white shadow-md"
+                      onClick={() => {
+                        setBugToEdit(undefined);
+                        setIsBugCreateEditModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20 transition-all flex items-center"
                     >
-                      Go to Test Cycles
+                      <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
+                      Log Defect / Create Bug
+                    </button>
+                  )}
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-[10px] uppercase font-mono font-bold text-slate-400 pb-2">
+                          <th className="py-2">Bug ID</th>
+                          <th className="py-2">Summary</th>
+                          <th className="py-2">Priority</th>
+                          <th className="py-2">Status</th>
+                          <th className="py-2 font-mono">Reported At</th>
+                          <th className="py-2 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                        {allBugsCombined.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-slate-400 font-medium font-sans">
+                              No defect tickets logged in Jira.
+                            </td>
+                          </tr>
+                        ) : (
+                          allBugsCombined.map(bug => {
+                            let badgeColor = 'bg-slate-50 text-slate-700 border-slate-200';
+                            const sev = bug.severity.toLowerCase();
+                            if (sev.includes('critical') || sev.includes('blocker')) {
+                              badgeColor = 'bg-red-50 text-red-700 border-red-200';
+                            } else if (sev.includes('major') || sev.includes('high')) {
+                              badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
+                            } else if (sev.includes('minor') || sev.includes('low')) {
+                              badgeColor = 'bg-slate-100 text-slate-750 border-slate-200';
+                            } else {
+                              badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                            }
+
+                            return (
+                              <tr key={bug.issueKey}>
+                                <td className="py-3 font-mono font-bold text-indigo-600">{bug.issueKey}</td>
+                                <td className="py-3 font-bold text-slate-950">{bug.summary}</td>
+                                <td className="py-3">
+                                  <span className={`${badgeColor} border px-2.5 py-0.5 rounded-full text-[9px] font-extrabold inline-block`}>
+                                    {bug.severity}
+                                  </span>
+                                </td>
+                                <td className="py-3">
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${bug.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    }`}>
+                                    {bug.status}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-slate-400 font-medium">Just now</td>
+                                <td className="py-3 text-center space-x-1">
+                                  <button
+                                    onClick={() => {
+                                      let cycleId = '';
+                                      let itemKey = '';
+                                      let cycleName = '';
+                                      for (const cycle of activeProjectCycles) {
+                                        const found = cycle.items.find(i =>
+                                          (i.jiraBugs || (i.jiraBug ? [i.jiraBug] : [])).some(b => b.issueKey === bug.issueKey)
+                                        );
+                                        if (found) {
+                                          cycleId = cycle.id;
+                                          cycleName = cycle.name;
+                                          itemKey = found.testCase.key;
+                                          break;
+                                        }
+                                      }
+
+                                      setBugToEdit({ ...bug, cycleId, itemKey, cycleName });
+                                      setIsBugCreateEditModalOpen(true);
+                                    }}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all inline-block"
+                                    title="Edit Defect Ticket"
+                                  >
+                                    <Settings className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteBug(bug.issueKey)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline-block"
+                                    title="Delete Defect Ticket"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 6: Settings & User Config */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6 animate-fadeIn font-sans">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Workspace Settings</h2>
+                    <p className="text-xs text-slate-500">
+                      Manage roles, teams, project configuration, and import defaults.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 className="text-sm font-extrabold text-slate-900 font-sans">User Management</h3>
+                    <p className="text-xs text-slate-500 font-medium">Configure roles and permissions for your team mates.</p>
+                    <button
+                      onClick={() => setIsUserManagementOpen(true)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"
+                    >
+                      Manage Users &amp; Roles
                     </button>
                   </div>
-                )
-              )}
-
-              {/* Tab 5: Bugs Telemetry (Mockup/Telemetry) */}
-              {activeTab === 'bugs' && (
-                <div className="space-y-6 animate-fadeIn font-sans">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900">Jira Defect Tracker</h2>
-                      <p className="text-xs text-slate-500">
-                        Central registry of all bugs raised across test execution runs and cycles.
-                      </p>
-                    </div>
-                    {canManageCases && (
-                      <button
-                        onClick={() => {
-                          setBugToEdit(undefined);
-                          setIsBugCreateEditModalOpen(true);
-                        }}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20 transition-all flex items-center"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1.5 inline" />
-                        Log Defect / Create Bug
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs text-slate-700">
-                        <thead>
-                          <tr className="border-b border-slate-100 text-[10px] uppercase font-mono font-bold text-slate-400 pb-2">
-                            <th className="py-2">Bug ID</th>
-                            <th className="py-2">Summary</th>
-                            <th className="py-2">Priority</th>
-                            <th className="py-2">Status</th>
-                            <th className="py-2 font-mono">Reported At</th>
-                            <th className="py-2 text-center">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 font-sans text-xs">
-                          {allBugsCombined.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="py-8 text-center text-slate-400 font-medium font-sans">
-                                No defect tickets logged in Jira.
-                              </td>
-                            </tr>
-                          ) : (
-                            allBugsCombined.map(bug => {
-                              let badgeColor = 'bg-slate-50 text-slate-700 border-slate-200';
-                              const sev = bug.severity.toLowerCase();
-                              if (sev.includes('critical') || sev.includes('blocker')) {
-                                badgeColor = 'bg-red-50 text-red-700 border-red-200';
-                              } else if (sev.includes('major') || sev.includes('high')) {
-                                badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
-                              } else if (sev.includes('minor') || sev.includes('low')) {
-                                badgeColor = 'bg-slate-100 text-slate-750 border-slate-200';
-                              } else {
-                                badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                              }
-
-                              return (
-                                <tr key={bug.issueKey}>
-                                  <td className="py-3 font-mono font-bold text-indigo-600">{bug.issueKey}</td>
-                                  <td className="py-3 font-bold text-slate-950">{bug.summary}</td>
-                                  <td className="py-3">
-                                    <span className={`${badgeColor} border px-2.5 py-0.5 rounded-full text-[9px] font-extrabold inline-block`}>
-                                      {bug.severity}
-                                    </span>
-                                  </td>
-                                  <td className="py-3">
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                                      bug.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                    }`}>
-                                      {bug.status}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 text-slate-400 font-medium">Just now</td>
-                                  <td className="py-3 text-center space-x-1">
-                                    <button
-                                      onClick={() => {
-                                        let cycleId = '';
-                                        let itemKey = '';
-                                        let cycleName = '';
-                                        for (const cycle of activeProjectCycles) {
-                                          const found = cycle.items.find(i => 
-                                            (i.jiraBugs || (i.jiraBug ? [i.jiraBug] : [])).some(b => b.issueKey === bug.issueKey)
-                                          );
-                                          if (found) {
-                                            cycleId = cycle.id;
-                                            cycleName = cycle.name;
-                                            itemKey = found.testCase.key;
-                                            break;
-                                          }
-                                        }
-
-                                        setBugToEdit({ ...bug, cycleId, itemKey, cycleName });
-                                        setIsBugCreateEditModalOpen(true);
-                                      }}
-                                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all inline-block"
-                                      title="Edit Defect Ticket"
-                                    >
-                                      <Settings className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteBug(bug.issueKey)}
-                                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all inline-block"
-                                      title="Delete Defect Ticket"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 </div>
-              )}
-
-              {/* Tab 6: Settings & User Config */}
-              {activeTab === 'settings' && (
-                <div className="space-y-6 animate-fadeIn font-sans">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-900">Workspace Settings</h2>
-                      <p className="text-xs text-slate-500">
-                        Manage roles, teams, project configuration, and import defaults.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                      <h3 className="text-sm font-extrabold text-slate-900 font-sans">User Management</h3>
-                      <p className="text-xs text-slate-500 font-medium">Configure roles and permissions for your team mates.</p>
-                      <button
-                        onClick={() => setIsUserManagementOpen(true)}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"
-                      >
-                        Manage Users &amp; Roles
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
+            )}
           </>
         </main>
 
@@ -2411,250 +2464,248 @@ export const App: React.FC = () => {
           />
         )}
 
-      {/* Import Success Confirm Modal */}
-      {importSuccessCount !== null && (
-        <ConfirmModal
-          isOpen={true}
-          title="Import Successful"
-          message={`Successfully imported ${importSuccessCount} manual test cases into the repository!`}
-          type="success"
-          confirmText="Dismiss"
-          onConfirm={() => setImportSuccessCount(null)}
-          onCancel={() => setImportSuccessCount(null)}
-        />
-      )}
+        {/* Import Success Confirm Modal */}
+        {importSuccessCount !== null && (
+          <ConfirmModal
+            isOpen={true}
+            title="Import Successful"
+            message={`Successfully imported ${importSuccessCount} manual test cases into the repository!`}
+            type="success"
+            confirmText="Dismiss"
+            onConfirm={() => setImportSuccessCount(null)}
+            onCancel={() => setImportSuccessCount(null)}
+          />
+        )}
 
-      {/* Delete Defect Confirmation Modal */}
-      {deletingBugKey && (
-        <ConfirmModal
-          isOpen={true}
-          type="danger"
-          title={`Delete Defect Ticket ${deletingBugKey}`}
-          message={`Are you sure you want to delete defect ticket "${deletingBugKey}"? This will permanently remove it from Jira integration and executive telemetry.`}
-          confirmText="Delete Defect"
-          cancelText="Cancel"
-          onConfirm={() => {
-            const bugKey = deletingBugKey;
-            setDefectRegistry(prev => prev.filter(b => b.issueKey !== bugKey));
-            
-            setTestCycles(prev => prev.map(cycle => ({
-              ...cycle,
-              items: cycle.items.map(item => {
-                let updatedBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
-                updatedBugs = updatedBugs.filter(b => b.issueKey !== bugKey);
-                
-                let primaryBug = item.jiraBug;
-                if (primaryBug?.issueKey === bugKey) {
-                  primaryBug = updatedBugs[0] || undefined;
-                }
-                
-                return {
-                  ...item,
-                  jiraBug: primaryBug,
-                  jiraBugs: updatedBugs,
-                  defectId: primaryBug?.issueKey || undefined,
-                  executionStatus: updatedBugs.length > 0 ? 'FAILED' : (item.executionStatus === 'FAILED' ? 'UNEXECUTED' : item.executionStatus)
-                };
-              })
-            })));
-            showToast(`Defect ticket "${bugKey}" deleted successfully!`);
-            setDeletingBugKey(null);
-          }}
-          onCancel={() => setDeletingBugKey(null)}
-        />
-      )}
+        {/* Delete Defect Confirmation Modal */}
+        {deletingBugKey && (
+          <ConfirmModal
+            isOpen={true}
+            type="danger"
+            title={`Delete Defect Ticket ${deletingBugKey}`}
+            message={`Are you sure you want to delete defect ticket "${deletingBugKey}"? This will permanently remove it from Jira integration and executive telemetry.`}
+            confirmText="Delete Defect"
+            cancelText="Cancel"
+            onConfirm={() => {
+              const bugKey = deletingBugKey;
+              setDefectRegistry(prev => prev.filter(b => b.issueKey !== bugKey));
 
-      {/* Global Custom Alert Modal Interceptor */}
-      {globalAlert?.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn" onClick={() => setGlobalAlert(null)}>
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 border border-slate-200/80 shadow-xl space-y-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                <ShieldCheck className="w-5 h-5 text-indigo-600" />
+              setTestCycles(prev => prev.map(cycle => ({
+                ...cycle,
+                items: cycle.items.map(item => {
+                  let updatedBugs = item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []);
+                  updatedBugs = updatedBugs.filter(b => b.issueKey !== bugKey);
+
+                  let primaryBug = item.jiraBug;
+                  if (primaryBug?.issueKey === bugKey) {
+                    primaryBug = updatedBugs[0] || undefined;
+                  }
+
+                  return {
+                    ...item,
+                    jiraBug: primaryBug,
+                    jiraBugs: updatedBugs,
+                    defectId: primaryBug?.issueKey || undefined,
+                    executionStatus: updatedBugs.length > 0 ? 'FAILED' : (item.executionStatus === 'FAILED' ? 'UNEXECUTED' : item.executionStatus)
+                  };
+                })
+              })));
+              showToast(`Defect ticket "${bugKey}" deleted successfully!`);
+              setDeletingBugKey(null);
+            }}
+            onCancel={() => setDeletingBugKey(null)}
+          />
+        )}
+
+        {/* Global Custom Alert Modal Interceptor */}
+        {globalAlert?.isOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn" onClick={() => setGlobalAlert(null)}>
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 border border-slate-200/80 shadow-xl space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-indigo-600" />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">System Notification</h3>
               </div>
-              <h3 className="text-sm font-extrabold text-slate-900">System Notification</h3>
-            </div>
-            
-            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-              {globalAlert.message}
-            </p>
-            
-            <div className="pt-2 flex justify-end">
-              <button
-                onClick={() => setGlobalAlert(null)}
-                className="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
-              >
-                Dismiss
-              </button>
+
+              <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                {globalAlert.message}
+              </p>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setGlobalAlert(null)}
+                  className="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Playwright Browser Automation Drawer */}
-      <AutomationDrawer
-        isOpen={isAutomationDrawerOpen}
-        onClose={() => setIsAutomationDrawerOpen(false)}
-        testCase={selectedAutomateCase}
-        onStartAutomation={handleStartAutomationRun}
-      />
-
-      {/* Live Automation Browser Trace Simulator Console */}
-      {automationParams?.isOpen && selectedAutomateCase && (
-        <AutomationSimulator
-          isOpen={automationParams.isOpen}
-          onClose={() => {
-            setAutomationParams(null);
-            setAutomateCycleId(undefined);
-          }}
+        {/* Playwright Browser Automation Drawer */}
+        <AutomationDrawer
+          isOpen={isAutomationDrawerOpen}
+          onClose={() => setIsAutomationDrawerOpen(false)}
           testCase={selectedAutomateCase}
-          startingUrl={automationParams.startingUrl}
-          deviceProfile={automationParams.deviceProfile}
-          browser={automationParams.browser}
-          isHeaded={automationParams.isHeaded}
-          readOnlyMode={automationParams.readOnlyMode}
-          initialStatus={automationParams.initialStatus}
-          initialScreenshotUrl={automationParams.initialScreenshotUrl}
-          initialStepRuns={automationParams.initialStepRuns}
-          onSaveToCycle={(automationParams.cycleId && !automationParams.readOnlyMode) ? (status, evidence, stepRuns) => {
-            handleSaveAutomationResultToCycle(automationParams.cycleId!, status, evidence, stepRuns);
-          } : undefined}
-          onRaiseBug={(automationParams.cycleId && !automationParams.readOnlyMode) ? (failedStep, screenshotUrl) => {
-            handleRaiseBugFromAutomation(automationParams.cycleId!, failedStep, screenshotUrl);
-          } : undefined}
+          onStartAutomation={handleStartAutomationRun}
         />
-      )}
 
-      {/* Global Custom Text Prompt Modal */}
-      {promptConfig?.isOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn" onClick={() => setPromptConfig(null)}>
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200/80 shadow-xl space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-extrabold text-slate-900">{promptConfig.title}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed font-normal">{promptConfig.message}</p>
-            
-            <input
-              type="text"
-              defaultValue={promptConfig.defaultValue}
-              placeholder={promptConfig.placeholder}
-              id="custom-prompt-input"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-950 focus:outline-none focus:border-indigo-500 font-sans"
-              autoFocus
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  const val = (document.getElementById('custom-prompt-input') as HTMLInputElement)?.value || '';
-                  promptConfig.onConfirm(val);
-                  setPromptConfig(null);
-                }
-              }}
-            />
-            
-            <div className="flex items-center justify-end space-x-2 pt-2">
-              <button
-                onClick={() => setPromptConfig(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const val = (document.getElementById('custom-prompt-input') as HTMLInputElement)?.value || '';
-                  promptConfig.onConfirm(val);
-                  setPromptConfig(null);
+        {/* Live Automation Browser Trace Simulator Console */}
+        {automationParams?.isOpen && selectedAutomateCase && (
+          <AutomationSimulator
+            isOpen={automationParams.isOpen}
+            onClose={() => {
+              setAutomationParams(null);
+              setAutomateCycleId(undefined);
+            }}
+            testCase={selectedAutomateCase}
+            startingUrl={automationParams.startingUrl}
+            deviceProfile={automationParams.deviceProfile}
+            browser={automationParams.browser}
+            isHeaded={automationParams.isHeaded}
+            readOnlyMode={automationParams.readOnlyMode}
+            initialStatus={automationParams.initialStatus}
+            initialScreenshotUrl={automationParams.initialScreenshotUrl}
+            initialStepRuns={automationParams.initialStepRuns}
+            onSaveToCycle={(automationParams.cycleId && !automationParams.readOnlyMode) ? (status, evidence, stepRuns) => {
+              handleSaveAutomationResultToCycle(automationParams.cycleId!, status, evidence, stepRuns);
+            } : undefined}
+            onRaiseBug={(automationParams.cycleId && !automationParams.readOnlyMode) ? (failedStep, screenshotUrl) => {
+              handleRaiseBugFromAutomation(automationParams.cycleId!, failedStep, screenshotUrl);
+            } : undefined}
+          />
+        )}
+
+        {/* Global Custom Text Prompt Modal */}
+        {promptConfig?.isOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 animate-fadeIn" onClick={() => setPromptConfig(null)}>
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full mx-4 border border-slate-200/80 shadow-xl space-y-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-sm font-extrabold text-slate-900">{promptConfig.title}</h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-normal">{promptConfig.message}</p>
+
+              <input
+                type="text"
+                defaultValue={promptConfig.defaultValue}
+                placeholder={promptConfig.placeholder}
+                id="custom-prompt-input"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-950 focus:outline-none focus:border-indigo-500 font-sans"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const val = (document.getElementById('custom-prompt-input') as HTMLInputElement)?.value || '';
+                    promptConfig.onConfirm(val);
+                    setPromptConfig(null);
+                  }
                 }}
-                className="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
-              >
-                Submit
-              </button>
+              />
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <button
+                  onClick={() => setPromptConfig(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const val = (document.getElementById('custom-prompt-input') as HTMLInputElement)?.value || '';
+                    promptConfig.onConfirm(val);
+                    setPromptConfig(null);
+                  }}
+                  className="px-5 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all"
+                >
+                  Submit
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Premium Toast Notification System */}
-      {toast && (
-        <div 
-          className={`fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-4 py-3.5 rounded-2xl border shadow-xl transition-all duration-300 transform ${
-            toast.visible 
-              ? 'translate-y-0 opacity-100 scale-100' 
-              : 'translate-y-4 opacity-0 scale-95 pointer-events-none'
-          } ${
-            toast.type === 'success' 
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-              : toast.type === 'error'
-                ? 'bg-rose-50 border-rose-200 text-rose-800'
-                : 'bg-indigo-50 border-indigo-200 text-indigo-800'
-          }`}
-        >
-          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
-          {toast.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
-          {toast.type === 'info' && <RefreshCw className="w-5 h-5 text-indigo-600 flex-shrink-0 animate-spin-slow" />}
-          <span className="text-xs font-bold font-sans">{toast.message}</span>
-        </div>
-      )}
+        {/* Premium Toast Notification System */}
+        {toast && (
+          <div
+            className={`fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-4 py-3.5 rounded-2xl border shadow-xl transition-all duration-300 transform ${toast.visible
+                ? 'translate-y-0 opacity-100 scale-100'
+                : 'translate-y-4 opacity-0 scale-95 pointer-events-none'
+              } ${toast.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : toast.type === 'error'
+                  ? 'bg-rose-50 border-rose-200 text-rose-800'
+                  : 'bg-indigo-50 border-indigo-200 text-indigo-800'
+              }`}
+          >
+            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
+            {toast.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
+            {toast.type === 'info' && <RefreshCw className="w-5 h-5 text-indigo-600 flex-shrink-0 animate-spin-slow" />}
+            <span className="text-xs font-bold font-sans">{toast.message}</span>
+          </div>
+        )}
 
-      {/* Stealth Labs Controls Modal (Cmd + Shift + L) */}
-      {isLabsModalOpen && (
-        <LabsControlModal
-          flags={featureFlags}
-          onFlagsUpdated={setFeatureFlags}
-          onClose={() => setIsLabsModalOpen(false)}
-          onLaunchCodeSpec={() => {
-            setIsLabsModalOpen(false);
-            if (testCases.length > 0) setSelectedCodeCase(testCases[0]);
-          }}
-          onLaunchAutomate={() => {
-            setIsLabsModalOpen(false);
-            if (testCases.length > 0) handleAutomateTestCase(testCases[0]);
-          }}
+        {/* Stealth Labs Controls Modal (Cmd + Shift + L) */}
+        {isLabsModalOpen && (
+          <LabsControlModal
+            flags={featureFlags}
+            onFlagsUpdated={setFeatureFlags}
+            onClose={() => setIsLabsModalOpen(false)}
+            onLaunchCodeSpec={() => {
+              setIsLabsModalOpen(false);
+              if (testCases.length > 0) setSelectedCodeCase(testCases[0]);
+            }}
+            onLaunchAutomate={() => {
+              setIsLabsModalOpen(false);
+              if (testCases.length > 0) handleAutomateTestCase(testCases[0]);
+            }}
+          />
+        )}
+
+
+
+        {/* AI Story to Test Case Modal */}
+        {isStoryModalOpen && activeModule && (
+          <StoryToTestCaseModal
+            moduleName={activeModule.name}
+            onAddTestCases={(newCases) => {
+              setCustomModuleCases(prev => ({
+                ...prev,
+                [selectedModuleId]: [...(prev[selectedModuleId] || []), ...newCases]
+              }));
+              showToast(`Added ${newCases.length} AI generated test cases to ${activeModule.name}!`, 'success');
+            }}
+            onClose={() => setIsStoryModalOpen(false)}
+          />
+        )}
+
+        {/* Mandatory Pass Evidence Upload Modal */}
+        {passEvidenceModalConfig?.isOpen && (
+          <PassEvidenceUploadModal
+            testCaseKey={passEvidenceModalConfig.itemKey}
+            testCaseName={passEvidenceModalConfig.itemTitle}
+            onConfirmPass={(evidence) => {
+              handleUpdateExecutionStatus(
+                passEvidenceModalConfig.cycleId,
+                passEvidenceModalConfig.itemKey,
+                'PASSED',
+                undefined,
+                undefined,
+                undefined,
+                evidence
+              );
+              setPassEvidenceModalConfig(null);
+            }}
+            onClose={() => setPassEvidenceModalConfig(null)}
+          />
+        )}
+
+        {/* Reflect-Style Remote Browser Studio Modal */}
+        <ReflectRecordingStudioModal
+          isOpen={isReflectStudioOpen}
+          onClose={() => setIsReflectStudioOpen(false)}
+          onSaveSteps={handleSaveRecordedSteps}
+          testCaseTitle={recordingTargetCase ? recordingTargetCase.name : 'Verify Search functionality in Work Location'}
+          startingUrl="https://qa.hrmgenie.outstrive.co/login"
         />
-      )}
-
-
-
-      {/* AI Story to Test Case Modal */}
-      {isStoryModalOpen && activeModule && (
-        <StoryToTestCaseModal
-          moduleName={activeModule.name}
-          onAddTestCases={(newCases) => {
-            setCustomModuleCases(prev => ({
-              ...prev,
-              [selectedModuleId]: [...(prev[selectedModuleId] || []), ...newCases]
-            }));
-            showToast(`Added ${newCases.length} AI generated test cases to ${activeModule.name}!`, 'success');
-          }}
-          onClose={() => setIsStoryModalOpen(false)}
-        />
-      )}
-
-      {/* Mandatory Pass Evidence Upload Modal */}
-      {passEvidenceModalConfig?.isOpen && (
-        <PassEvidenceUploadModal
-          testCaseKey={passEvidenceModalConfig.itemKey}
-          testCaseName={passEvidenceModalConfig.itemTitle}
-          onConfirmPass={(evidence) => {
-            handleUpdateExecutionStatus(
-              passEvidenceModalConfig.cycleId,
-              passEvidenceModalConfig.itemKey,
-              'PASSED',
-              undefined,
-              undefined,
-              undefined,
-              evidence
-            );
-            setPassEvidenceModalConfig(null);
-          }}
-          onClose={() => setPassEvidenceModalConfig(null)}
-        />
-      )}
-
-      {/* Reflect-Style Remote Browser Studio Modal */}
-      <ReflectRecordingStudioModal
-        isOpen={isReflectStudioOpen}
-        onClose={() => setIsReflectStudioOpen(false)}
-        onSaveSteps={handleSaveRecordedSteps}
-        testCaseTitle={recordingTargetCase ? recordingTargetCase.name : 'Verify Search functionality in Work Location'}
-        startingUrl="https://qa.hrmgenie.outstrive.co/login"
-      />
 
       </div>
 

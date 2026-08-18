@@ -203,6 +203,23 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
     document.body.removeChild(link);
   };
 
+  const handleDownloadJson = () => {
+    const exportData = {
+      exportVersion: "1.0",
+      exportedAt: new Date().toISOString(),
+      exportedBy: currentUser.name,
+      platform: "TestGenie QA Hub Enterprise",
+      cycle
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${cycle.name.replace(/[^a-zA-Z0-9]/g, '_')}_Snapshot_${cycle.version}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   return (
     <div className="space-y-6">
 
@@ -274,6 +291,13 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
             >
               <Download className="w-3.5 h-3.5 mr-1.5" />
               Download Markdown Audit
+            </button>
+            <button
+              onClick={handleDownloadJson}
+              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5" />
+              Export Snapshot (.json)
             </button>
           </div>
         </div>

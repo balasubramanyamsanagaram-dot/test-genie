@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TestCycle, TestCase, UserProfile, TestCycleItem, ProjectModule } from '../types';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
 import { ConfirmModal } from './ConfirmModal';
-import { RotateCw, Plus, PlaySquare, Calendar, Layers, ShieldCheck, CheckCircle2, User, FileSpreadsheet, Lock, AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { RotateCw, Plus, PlaySquare, Calendar, Layers, ShieldCheck, CheckCircle2, User, FileSpreadsheet, Lock, AlertCircle, RefreshCw, Trash2, Download, Upload, BarChart3, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 
 interface TestCycleManagerProps {
@@ -18,6 +18,7 @@ interface TestCycleManagerProps {
   onDeleteCycle?: (cycleId: string) => void;
   onSyncEditedCasesToCycle?: (cycleId: string) => void;
   onToggleIgnoreSync?: (cycleId: string) => void;
+  onImportCycleSnapshot?: (importedCycle: TestCycle) => void;
 }
 
 export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
@@ -32,11 +33,15 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
   onSelectCycleToExecute,
   onDeleteCycle,
   onSyncEditedCasesToCycle,
-  onToggleIgnoreSync
+  onToggleIgnoreSync,
+  onImportCycleSnapshot
 }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [targetCycleForAddModal, setTargetCycleForAddModal] = useState<TestCycle | null>(null);
   const [deletingCycle, setDeletingCycle] = useState<TestCycle | null>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [cycleName, setCycleName] = useState(`Sprint 24 — ${moduleName} Execution`);
@@ -200,8 +205,106 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
     setIsCreating(false);
   };
 
+  // Export Cycle Execution Snapshot (.json)
+  const handleExportSnapshotJson = (cycle: TestCycle) => {
+    const exportData = {
+      exportVersion: "1.0",
+      exportedAt: new Date().toISOString(),
+      exportedBy: currentUser.name,
+      platform: "TestGenie QA Hub Enterprise",
+      cycle
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${cycle.name.replace(/[^a-zA-Z0-9]/g, '_')}_Snapshot_${cycle.version}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Import Cycle Execution Snapshot (.json)
+  const handleImportJsonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        const cycleToImport = json.cycle || json;
+        if (cycleToImport && cycleToImport.name && Array.isArray(cycleToImport.items)) {
+          if (onImportCycleSnapshot) {
+            onImportCycleSnapshot(cycleToImport);
+          }
+        } else {
+          alert('Invalid Cycle Snapshot JSON format. File must contain a valid execution cycle with items array.');
+        }
+      } catch (err) {
+        alert('Error parsing JSON file. Please make sure the file is valid JSON.');
+      }
+    };
+    reader.readAsText(file);
+    if (e.target) e.target.value = '';
+  };
+
+  // Calculate Historical Release Trends Analytics
+  const releaseTrends = React.useMemo(() => {
+    const versionMap = new Map<string, {
+      version: string;
+      cyclesCount: number;
+      totalItems: number;
+      passedItems: number;
+      failedItems: number;
+      blockedItems: number;
+      unexecutedItems: number;
+      passRate: number;
+    }>();
+
+    testCycles.forEach(c => {
+      const ver = c.version || 'v2.4.0';
+      const current = versionMap.get(ver) || {
+        version: ver,
+        cyclesCount: 0,
+        totalItems: 0,
+        passedItems: 0,
+        failedItems: 0,
+        blockedItems: 0,
+        unexecutedItems: 0,
+        passRate: 0
+      };
+
+      const total = c.items.length;
+      const passed = c.items.filter(i => i.executionStatus === 'PASSED').length;
+      const failed = c.items.filter(i => i.executionStatus === 'FAILED').length;
+      const blocked = c.items.filter(i => i.executionStatus === 'BLOCKED').length;
+      const unexec = total - (passed + failed + blocked);
+
+      current.cyclesCount += 1;
+      current.totalItems += total;
+      current.passedItems += passed;
+      current.failedItems += failed;
+      current.blockedItems += blocked;
+      current.unexecutedItems += unexec;
+
+      versionMap.set(ver, current);
+    });
+
+    return Array.from(versionMap.values()).map(v => {
+      const passRate = v.totalItems > 0 ? Math.round((v.passedItems / v.totalItems) * 100) : 0;
+      return { ...v, passRate };
+    });
+  }, [testCycles]);
+
   return (
     <div className="space-y-6">
+      <input
+        type="file"
+        ref={jsonFileInputRef}
+        accept=".json"
+        onChange={handleImportJsonChange}
+        className="hidden"
+      />
       
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -211,20 +314,104 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
             Test Execution Cycles — {moduleName}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Group test cases into release runs, assign QA testers, and sync newly uploaded test cases live.
+            Group test cases into release runs, assign QA testers, sync newly uploaded test cases live, and track release quality trends.
           </p>
         </div>
 
-        {canCreateCycle && (
-          <button
-            onClick={handleOpenCreateDrawer}
-            className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            + Create New Test Cycle
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {releaseTrends.length > 0 && (
+            <button
+              onClick={() => setShowAnalytics(prev => !prev)}
+              className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all"
+            >
+              <BarChart3 className="w-4 h-4 mr-1.5 text-indigo-600" />
+              {showAnalytics ? 'Hide Trends' : '📊 Release Trends'}
+              {showAnalytics ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
+            </button>
+          )}
+
+          {canCreateCycle && onImportCycleSnapshot && (
+            <button
+              onClick={() => jsonFileInputRef.current?.click()}
+              className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-all active:scale-95"
+            >
+              <Upload className="w-4 h-4 mr-1.5 text-indigo-600" />
+              Import Snapshot (.json)
+            </button>
+          )}
+
+          {canCreateCycle && (
+            <button
+              onClick={handleOpenCreateDrawer}
+              className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              + Create New Test Cycle
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Historical Release Trends Analytics Dashboard Widget */}
+      {showAnalytics && releaseTrends.length > 0 && (
+        <div className="bg-white rounded-3xl p-6 border border-indigo-200 shadow-lg space-y-4 animate-in fade-in zoom-in-95">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 flex items-center">
+                <TrendingUp className="w-5 h-5 text-indigo-600 mr-2" />
+                Software Release Quality & Execution Trends
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Historical quality metrics tracked across release versions.</p>
+            </div>
+            <span className="bg-indigo-50 text-indigo-700 text-xs font-extrabold px-3 py-1 rounded-full border border-indigo-200">
+              {releaseTrends.length} Active Releases
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {releaseTrends.map(trend => {
+              const isReady = trend.passRate >= 80;
+              return (
+                <div key={trend.version} className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-extrabold bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg shadow-sm">
+                      {trend.version}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      isReady ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}>
+                      {isReady ? '🟢 Production Ready' : '🔴 Action Needed'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-extrabold mb-1">
+                      <span className="text-slate-700">Pass Rate</span>
+                      <span className="text-indigo-700 font-mono">{trend.passRate}% ({trend.passedItems}/{trend.totalItems})</span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex">
+                      <div style={{ width: `${trend.passRate}%` }} className="bg-emerald-500 h-full transition-all" />
+                      <div style={{ width: `${100 - trend.passRate}%` }} className="bg-rose-400 h-full transition-all" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-mono font-bold">
+                    <div className="bg-emerald-50 p-1.5 rounded-lg text-emerald-800 border border-emerald-200">
+                      <span>Passed</span>: {trend.passedItems}
+                    </div>
+                    <div className="bg-rose-50 p-1.5 rounded-lg text-rose-800 border border-rose-200">
+                      <span>Failed</span>: {trend.failedItems}
+                    </div>
+                    <div className="bg-slate-100 p-1.5 rounded-lg text-slate-700 border border-slate-200">
+                      <span>Cycles</span>: {trend.cyclesCount}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Inline Create Form Drawer */}
       {isCreating && canCreateCycle && (
@@ -658,6 +845,13 @@ export const TestCycleManager: React.FC<TestCycleManagerProps> = ({
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
+                    <button
+                      onClick={() => handleExportSnapshotJson(cycle)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                      title="Export Execution Snapshot (.json)"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
                   </div>
 
                   <button
