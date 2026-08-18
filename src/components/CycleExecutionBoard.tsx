@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TestCycle, TestExecutionStatus, JiraBug, UserProfile, TestCase, AgentExecutionRun } from '../types';
-import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers, Search, ChevronDown, FileSpreadsheet, FileText, Package } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Clock, MessageSquare, Bug, Download, ArrowLeft, User, Calendar, ExternalLink, ShieldCheck, RefreshCw, Camera, Video, X, Lock, Eye, Monitor, Server, Plus, Edit3, Trash2, Code2, Play, Bot, Sparkles, Terminal, Layers, Search, ChevronDown, FileSpreadsheet, FileText, Package, Image as ImageIcon } from 'lucide-react';
 import { calculateCycleReport, generateCycleCSVReport, generateCycleMarkdownReport } from '../engine/cycle-report-exporter';
 import { JiraBugModal } from './JiraBugModal';
 import { AddCasesToCycleModal } from './AddCasesToCycleModal';
@@ -728,134 +728,172 @@ export const CycleExecutionBoard: React.FC<CycleExecutionBoardProps> = ({
                 </div>
               </div>
 
-              {/* BrowserAutomationAgent Execution Run Audit History (With Date, Time, Screenshots & Logs) */}
-              {((activeItem.executionHistory && activeItem.executionHistory.length > 0) || activeItem.evidenceScreenshotUrl || activeItem.evidenceVideoUrl || (activeItem.attachments && activeItem.attachments.length > 0)) && (
-                <div className="space-y-4 pt-4 border-t border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-extrabold text-slate-900 flex items-center text-xs">
-                      <Bot className="w-4 h-4 text-indigo-600 mr-1.5" />
-                      BrowserAutomationAgent Execution Audit & Evidence History ({activeItem.executionHistory?.length || (activeItem.attachments || []).length || 1} Runs)
-                    </h4>
-                    <span className="font-mono text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                      BrowserAutomationAgent@{activeItem.testCase.key}
-                    </span>
-                  </div>
+              {/* Execution Run Audit History & Evidence (Automated Playwright vs Manual QA) */}
+              {((activeItem.executionHistory && activeItem.executionHistory.length > 0) || activeItem.evidenceScreenshotUrl || activeItem.evidenceVideoUrl || (activeItem.attachments && activeItem.attachments.length > 0)) && (() => {
+                const isAutomatedAudit = activeItem.executionHistory?.some(r => r.executionType === 'Automated') || activeItem.executionType === 'Automated';
+                return (
+                  <div className="space-y-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-slate-900 flex items-center text-xs">
+                        {isAutomatedAudit ? (
+                          <>
+                            <Bot className="w-4 h-4 text-indigo-600 mr-1.5" />
+                            BrowserAutomationAgent Execution Audit & Evidence History ({activeItem.executionHistory?.length || (activeItem.attachments || []).length || 1} Runs)
+                          </>
+                        ) : (
+                          <>
+                            <User className="w-4 h-4 text-slate-700 mr-1.5" />
+                            Manual Execution Audit & Evidence History ({activeItem.executionHistory?.length || (activeItem.attachments || []).length || 1} Runs)
+                          </>
+                        )}
+                      </h4>
+                      <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${isAutomatedAudit ? 'text-indigo-600 bg-indigo-50 border-indigo-200' : 'text-slate-600 bg-slate-100 border-slate-300'}`}>
+                        {isAutomatedAudit ? `BrowserAutomationAgent@${activeItem.testCase.key}` : `Manual Execution`}
+                      </span>
+                    </div>
 
-                  <div className="space-y-3">
-                    {(activeItem.executionHistory && activeItem.executionHistory.length > 0) ? (
-                      activeItem.executionHistory.map((run, rIdx) => (
-                        <div
-                          key={run.id}
-                          className={`p-4 rounded-2xl border transition-all space-y-3 ${run.executionStatus === 'PASSED'
-                              ? 'bg-emerald-50/50 border-emerald-200/80 hover:bg-emerald-50'
-                              : run.executionStatus === 'FAILED'
-                                ? 'bg-rose-50/50 border-rose-200/80 hover:bg-rose-50'
-                                : 'bg-amber-50/50 border-amber-200/80 hover:bg-amber-50'
-                            }`}
-                        >
-                          {/* Top Run Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-mono font-extrabold text-xs text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
-                                {run.agentName || `BrowserAutomationAgent@${activeItem.testCase.key}`}
-                              </span>
-
-                              <span className={`text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border ${run.executionStatus === 'PASSED'
-                                  ? 'bg-emerald-600 text-white border-emerald-700'
+                    <div className="space-y-3">
+                      {(activeItem.executionHistory && activeItem.executionHistory.length > 0) ? (
+                        activeItem.executionHistory.map((run, rIdx) => {
+                          const isRunAutomated = run.executionType === 'Automated';
+                          return (
+                            <div
+                              key={run.id}
+                              className={`p-4 rounded-2xl border transition-all space-y-3 ${run.executionStatus === 'PASSED'
+                                  ? 'bg-emerald-50/50 border-emerald-200/80 hover:bg-emerald-50'
                                   : run.executionStatus === 'FAILED'
-                                    ? 'bg-rose-600 text-white border-rose-700'
-                                    : 'bg-amber-600 text-white border-amber-700'
-                                }`}>
-                                {run.executionStatus === 'PASSED' ? 'PASSED ✅' : run.executionStatus === 'FAILED' ? 'FAILED 🛑' : 'BLOCKED ⚠️'}
-                              </span>
-
-                              <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                                {run.executionType === 'Automated' ? '⚡ Playwright Engine' : '👤 Manual Run'}
-                              </span>
-                            </div>
-
-                            <div className="text-[11px] font-mono text-slate-500">
-                              <span>📅 {run.executedAt || new Date().toLocaleString()}</span>
-                            </div>
-                          </div>
-
-                          {/* Summary Log & Attributions */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                            <div className="space-y-1">
-                              <p className="text-slate-700 font-medium leading-relaxed">
-                                {run.summaryLog}
-                              </p>
-                              <div className="flex items-center space-x-3 text-[10px] text-slate-500">
-                                <span>Executed By: <strong className="text-slate-800">{run.executedBy}</strong></span>
-                                {run.jiraBugKey && (
-                                  <span className="font-mono font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200">
-                                    Linked Defect: {run.jiraBugKey}
+                                    ? 'bg-rose-50/50 border-rose-200/80 hover:bg-rose-50'
+                                    : 'bg-amber-50/50 border-amber-200/80 hover:bg-amber-50'
+                                }`}
+                            >
+                              {/* Top Run Header */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-mono font-extrabold text-xs text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                                    {isRunAutomated ? (run.agentName || `BrowserAutomationAgent@${activeItem.testCase.key}`) : (run.executedBy || 'Manual QA Execution')}
                                   </span>
-                                )}
+
+                                  <span className={`text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full border ${run.executionStatus === 'PASSED'
+                                      ? 'bg-emerald-600 text-white border-emerald-700'
+                                      : run.executionStatus === 'FAILED'
+                                        ? 'bg-rose-600 text-white border-rose-700'
+                                        : 'bg-amber-600 text-white border-amber-700'
+                                    }`}>
+                                    {run.executionStatus === 'PASSED' ? 'PASSED ✅' : run.executionStatus === 'FAILED' ? 'FAILED 🛑' : 'BLOCKED ⚠️'}
+                                  </span>
+
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${isRunAutomated ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                                    {isRunAutomated ? '⚡ Playwright Engine' : '👤 Manual Execution'}
+                                  </span>
+                                </div>
+
+                                <div className="text-[11px] font-mono text-slate-500">
+                                  <span>📅 {run.executedAt || new Date().toLocaleString()}</span>
+                                </div>
+                              </div>
+
+                              {/* Summary Log & Attributions */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div className="space-y-1">
+                                  <p className="text-slate-700 font-medium leading-relaxed">
+                                    {run.summaryLog}
+                                  </p>
+                                  <div className="flex items-center space-x-3 text-[10px] text-slate-500">
+                                    <span>Executed By: <strong className="text-slate-800">{run.executedBy}</strong></span>
+                                    {run.jiraBugKey && (
+                                      <span className="font-mono font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded border border-rose-200">
+                                        Linked Defect: {run.jiraBugKey}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Evidence & Trace Console Action Buttons */}
+                                <div className="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
+                                  {isRunAutomated && (
+                                    <button
+                                      onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, run.executionStatus, run.screenshotUrl, run.stepRuns || activeItem.stepRuns)}
+                                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                                    >
+                                      <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
+                                      Inspect Agent Console Trace
+                                    </button>
+                                  )}
+
+                                  {run.screenshotUrl && (
+                                    <button
+                                      onClick={() => setActiveMediaUrl({ url: run.screenshotUrl!, type: 'image' })}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                                    >
+                                      <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
+                                      View Screenshot
+                                    </button>
+                                  )}
+
+                                  {run.videoUrl && (
+                                    <button
+                                      onClick={() => setActiveMediaUrl({ url: run.videoUrl!, type: 'video' })}
+                                      className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                                    >
+                                      <Video className="w-3.5 h-3.5 mr-1.5" />
+                                      Recording
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
-
-                            {/* Evidence & Trace Console Action Buttons */}
-                            <div className="flex items-center space-x-2 flex-shrink-0 pt-1 sm:pt-0">
-                              <button
-                                onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, run.executionStatus, run.screenshotUrl, run.stepRuns || activeItem.stepRuns)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
-                              >
-                                <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
-                                Inspect Agent Console Trace
-                              </button>
-
-                              {run.videoUrl && (
+                          );
+                        })
+                      ) : (
+                        /* Fallback view if item has legacy attachments but no executionHistory array */
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span className="font-mono font-extrabold text-xs text-slate-800">
+                              {isAutomatedAudit ? `BrowserAutomationAgent@${activeItem.testCase.key}` : 'Manual QA Execution'}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-500">
+                              Executed At: {activeItem.executedAt || new Date().toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-700 font-medium">
+                              {activeItem.executionStatus} execution record saved for audit reference.
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              {isAutomatedAudit && (
                                 <button
-                                  onClick={() => setActiveMediaUrl({ url: run.videoUrl!, type: 'video' })}
-                                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs shadow-xs transition-all active:scale-95 flex items-center"
+                                  onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, activeItem.executionStatus, activeItem.evidenceScreenshotUrl, activeItem.stepRuns)}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-extrabold text-xs shadow-xs flex items-center"
                                 >
-                                  <Video className="w-3.5 h-3.5 mr-1.5" />
-                                  Recording
+                                  <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
+                                  Inspect Agent Console Trace
+                                </button>
+                              )}
+                              {activeItem.evidenceScreenshotUrl && (
+                                <button
+                                  onClick={() => setActiveMediaUrl({ url: activeItem.evidenceScreenshotUrl!, type: 'image' })}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs shadow-xs flex items-center"
+                                >
+                                  <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
+                                  View Screenshot
+                                </button>
+                              )}
+                              {activeItem.evidenceVideoUrl && (
+                                <button
+                                  onClick={() => setActiveMediaUrl({ url: activeItem.evidenceVideoUrl!, type: 'video' })}
+                                  className="px-3 py-1.5 rounded-xl bg-purple-600 text-white font-extrabold text-xs shadow-xs"
+                                >
+                                  Play Video
                                 </button>
                               )}
                             </div>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      /* Fallback view if item has legacy attachments but no executionHistory array */
-                      <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-3">
-                        <div className="flex items-center justify-between border-b border-indigo-200/60 pb-2">
-                          <span className="font-mono font-extrabold text-xs text-indigo-800">
-                            BrowserAutomationAgent@{activeItem.testCase.key}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-500">
-                            Executed At: {activeItem.executedAt || new Date().toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-700 font-medium">
-                            {activeItem.executionStatus} execution trace saved for future audit reference.
-                          </span>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => onOpenAgentConsoleTrace?.(activeItem.testCase, activeItem.executionStatus, activeItem.evidenceScreenshotUrl, activeItem.stepRuns)}
-                              className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-extrabold text-xs shadow-xs flex items-center"
-                            >
-                              <Terminal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
-                              Inspect Agent Console Trace
-                            </button>
-                            {activeItem.evidenceVideoUrl && (
-                              <button
-                                onClick={() => setActiveMediaUrl({ url: activeItem.evidenceVideoUrl!, type: 'video' })}
-                                className="px-3 py-1.5 rounded-xl bg-purple-600 text-white font-extrabold text-xs shadow-xs"
-                              >
-                                Play Video
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Multi-Defect History List & Visual Proof Media Buttons (Fully Accessible to Developers & QA) */}
               {allItemBugs.length > 0 && (

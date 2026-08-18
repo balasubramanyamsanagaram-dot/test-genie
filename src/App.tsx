@@ -1512,7 +1512,7 @@ export const App: React.FC = () => {
     jiraBug?: JiraBug,
     bugNotes?: string,
     defectId?: string,
-    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string },
+    evidence?: { screenshotUrl?: string; videoUrl?: string; evidenceName?: string; isAutomated?: boolean },
     stepRuns?: any[]
   ) => {
     setTestCycles(prev => prev.map(cycle => {
@@ -1561,21 +1561,28 @@ export const App: React.FC = () => {
             });
           }
 
+          const isAutomated = evidence?.isAutomated === true;
           const existingHistory = item.executionHistory || [];
           const newExecutionRun: AgentExecutionRun = {
             id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            agentName: `BrowserAutomationAgent@${itemKey}`,
+            agentName: isAutomated
+              ? `BrowserAutomationAgent@${itemKey}`
+              : (currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Manual QA Tester'),
             testCaseKey: itemKey,
             executionStatus: status,
-            executionType: evidence ? 'Automated' : 'Manual',
-            executedBy: currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Playwright Engine',
+            executionType: isAutomated ? 'Automated' : 'Manual',
+            executedBy: isAutomated ? 'Playwright Engine' : (currentUser?.name ? `${currentUser.name} (${currentUser.role})` : 'Manual QA Tester'),
             executedAt: `${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`,
             screenshotUrl: evidence?.screenshotUrl || item.evidenceScreenshotUrl,
             videoUrl: evidence?.videoUrl || item.evidenceVideoUrl,
             evidenceName: evidence?.evidenceName || item.evidenceName || `${itemKey}_Execution_Proof`,
-            summaryLog: status === 'PASSED'
-              ? `Automated Playwright browser assertion check passed. UI state verified with zero console errors.`
-              : (bugNotes || `Step assertion check failed during DOM element evaluation. ${primaryBug ? `Linked Defect: ${primaryBug.issueKey}` : ''}`),
+            summaryLog: isAutomated
+              ? (status === 'PASSED'
+                  ? `Automated Playwright browser assertion check passed. UI state verified with zero console errors.`
+                  : (bugNotes || `Step assertion check failed during DOM element evaluation. ${primaryBug ? `Linked Defect: ${primaryBug.issueKey}` : ''}`))
+              : (status === 'PASSED'
+                  ? `Manual test case execution verified and marked as PASSED by ${currentUser?.name || 'QA Tester'}.${evidence?.screenshotUrl ? ' Execution proof attached.' : ''}`
+                  : (bugNotes || `Manual step execution failed.${primaryBug ? ` Linked Defect: ${primaryBug.issueKey}` : ''}`)),
             jiraBugKey: primaryBug?.issueKey,
             stepRuns: stepRuns ? JSON.parse(JSON.stringify(stepRuns)) : item.stepRuns
           };
