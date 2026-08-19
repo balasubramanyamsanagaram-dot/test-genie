@@ -8,7 +8,7 @@ interface PlaywrightCodeModalProps {
   testCaseTitle: string;
   startingUrl?: string;
   steps: string[];
-  onRunAutomation?: () => void;
+  onRunAutomation?: (scriptCode?: string) => void;
 }
 
 export const PlaywrightCodeModal: React.FC<PlaywrightCodeModalProps> = ({
@@ -184,7 +184,7 @@ export const PlaywrightCodeModal: React.FC<PlaywrightCodeModalProps> = ({
             <button
               onClick={() => {
                 onClose();
-                onRunAutomation();
+                onRunAutomation(code);
               }}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all cursor-pointer"
             >

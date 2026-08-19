@@ -19,6 +19,7 @@ interface AutomationSimulatorProps {
   browser: string;
   isHeaded: boolean;
   readOnlyMode?: boolean;
+  customScript?: string;
   initialStatus?: 'PASSED' | 'FAILED';
   initialScreenshotUrl?: string;
   initialStepRuns?: AutomationStepRun[];
@@ -35,6 +36,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   browser,
   isHeaded,
   readOnlyMode = false,
+  customScript,
   initialStatus,
   initialScreenshotUrl,
   initialStepRuns,
@@ -82,9 +84,36 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
     if (!isOpen || !testCase) return;
     hasSavedRef.current = false;
 
-    const testSteps = testCase.testSteps
-      ? testCase.testSteps.split(/\n+/).filter(line => line.trim().length > 0)
-      : [];
+    // Check if custom Playwright script code was passed or saved in localStorage for this test case
+    let rawScriptCode = customScript;
+    if (!rawScriptCode) {
+      try {
+        const storageKey = `playwright_code_${testCase.key}`;
+        const savedCode = localStorage.getItem(storageKey);
+        if (savedCode && savedCode.trim().length > 0) {
+          rawScriptCode = savedCode;
+        }
+      } catch (e) {}
+    }
+
+    let testSteps: string[] = [];
+    if (rawScriptCode && rawScriptCode.trim().length > 0) {
+      testSteps = rawScriptCode
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.startsWith('//') && !line.startsWith('#') && !line.startsWith('import') && !line.startsWith('from') && !line.startsWith('def') && !line.startsWith('with'));
+    } else if (testCase.testSteps) {
+      testSteps = testCase.testSteps.split(/\n+/).filter(line => line.trim().length > 0);
+    }
+
+    if (testSteps.length === 0 && !readOnlyMode) {
+      const emptyError = "No Playwright script code found. Please click 'View Code' and paste your custom Playwright script code before running automation.";
+      setErrorMsg(emptyError);
+      setStatus('FAILED');
+      setIsRunning(false);
+      setLogs([`[ERROR] ${emptyError}`]);
+      return;
+    }
 
     // Initialize steps
     const initialSteps = testSteps.map((inst, idx) => ({

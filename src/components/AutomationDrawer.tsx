@@ -12,7 +12,8 @@ interface AutomationDrawerProps {
     startingUrl: string,
     deviceProfile: string,
     browser: string,
-    isHeaded: boolean
+    isHeaded: boolean,
+    customScript?: string
   ) => void;
 }
 
@@ -178,7 +179,7 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({
         testCaseTitle={`${testCase.key}: ${testCase.name}`}
         startingUrl={startingUrl}
         steps={stepsList}
-        onRunAutomation={() => onStartAutomation(startingUrl, deviceProfile, browser, isHeaded)}
+        onRunAutomation={(customScript) => onStartAutomation(startingUrl, deviceProfile, browser, isHeaded, customScript)}
       />
     </>
   );

@@ -98,6 +98,7 @@ export const App: React.FC = () => {
     isHeaded: boolean;
     cycleId?: string;
     readOnlyMode?: boolean;
+    customScript?: string;
     initialStatus?: 'PASSED' | 'FAILED';
     initialScreenshotUrl?: string;
     initialStepRuns?: any[];
@@ -895,7 +896,7 @@ export const App: React.FC = () => {
     setIsAutomationDrawerOpen(true);
   };
 
-  const handleStartAutomationRun = (startingUrl: string, deviceProfile: string, browser: string, isHeaded: boolean) => {
+  const handleStartAutomationRun = (startingUrl: string, deviceProfile: string, browser: string, isHeaded: boolean, customScript?: string) => {
     setIsAutomationDrawerOpen(false);
     setAutomationParams({
       isOpen: true,
@@ -904,7 +905,8 @@ export const App: React.FC = () => {
       browser,
       isHeaded,
       cycleId: automateCycleId,
-      readOnlyMode: false
+      readOnlyMode: false,
+      customScript
     });
   };
 
@@ -2876,6 +2878,7 @@ export const App: React.FC = () => {
             browser={automationParams.browser}
             isHeaded={automationParams.isHeaded}
             readOnlyMode={automationParams.readOnlyMode}
+            customScript={automationParams.customScript}
             initialStatus={automationParams.initialStatus}
             initialScreenshotUrl={automationParams.initialScreenshotUrl}
             initialStepRuns={automationParams.initialStepRuns}
