@@ -174,6 +174,7 @@ export const AutomationDrawer: React.FC<AutomationDrawerProps> = ({
       <PlaywrightCodeModal
         isOpen={isCodeModalOpen}
         onClose={() => setIsCodeModalOpen(false)}
+        testCaseKey={testCase.key}
         testCaseTitle={`${testCase.key}: ${testCase.name}`}
         startingUrl={startingUrl}
         steps={stepsList}
