@@ -22,7 +22,6 @@ import { AutomationSimulator } from './components/AutomationSimulator';
 import { ReflectRecordingStudioModal } from './components/ReflectRecordingStudioModal';
 
 import { getFeatureFlags, FeatureFlags, isFeatureActive } from './engine/feature-flags';
-import { LabsControlModal } from './components/LabsControlModal';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
 import { getIDBItem, setIDBItem } from './utils/idbStorage';
@@ -60,31 +59,18 @@ export const App: React.FC = () => {
     document.documentElement.classList.remove('dark');
   }, []);
 
-  // Feature Flags Engine State & Stealth Modals
+  // Feature Flags Engine State
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(getFeatureFlags());
-  const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [selectedCodeCase, setSelectedCodeCase] = useState<TestCase | null>(null);
 
-  // Keyboard Shortcuts for Stealth Labs (Cmd+Shift+L)
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      const isCmdShiftL = (e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L' || e.code === 'KeyL');
-
-      if (isCmdShiftL) {
-        e.preventDefault();
-        setIsLabsModalOpen(prev => !prev);
-      }
-    };
-
     const handleFlagsUpdated = (e: any) => {
       if (e.detail) setFeatureFlags(e.detail);
     };
 
-    window.addEventListener('keydown', handleGlobalKeyDown);
     window.addEventListener('genie_feature_flags_updated', handleFlagsUpdated);
     return () => {
-      window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('genie_feature_flags_updated', handleFlagsUpdated);
     };
   }, []);
@@ -3106,22 +3092,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Stealth Labs Controls Modal (Cmd + Shift + L) */}
-        {isLabsModalOpen && (
-          <LabsControlModal
-            flags={featureFlags}
-            onFlagsUpdated={setFeatureFlags}
-            onClose={() => setIsLabsModalOpen(false)}
-            onLaunchCodeSpec={() => {
-              setIsLabsModalOpen(false);
-              if (testCases.length > 0) setSelectedCodeCase(testCases[0]);
-            }}
-            onLaunchAutomate={() => {
-              setIsLabsModalOpen(false);
-              if (testCases.length > 0) handleAutomateTestCase(testCases[0]);
-            }}
-          />
-        )}
+
 
 
 
