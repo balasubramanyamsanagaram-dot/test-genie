@@ -13,7 +13,7 @@ import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { JiraBugModal } from './components/JiraBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES, normalizeTestCase, cleanTestCaseTitle } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight, Sun, Moon, X } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight, Sun, Moon, X, Video } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -2750,6 +2750,40 @@ export const App: React.FC = () => {
                     >
                       Manage Users &amp; Roles
                     </button>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-extrabold text-slate-900 font-sans flex items-center">
+                        <Video className="w-4 h-4 mr-2 text-indigo-600" />
+                        Remote Recording Configuration
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                        Control whether manual QA test cases can be recorded using the Reflect Remote Recording Studio mode.
+                      </p>
+                    </div>
+                    <div className="pt-2 flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-slate-800 block">Reflect Remote Record Mode</span>
+                        <span className="text-[10px] text-slate-400 block font-medium">Shows the purple 📹 RECORD button in test repositories</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={featureFlags.reflect_remote_recorder}
+                          onChange={() => {
+                            const updated = {
+                              ...featureFlags,
+                              reflect_remote_recorder: !featureFlags.reflect_remote_recorder
+                            };
+                            setFeatureFlags(updated);
+                            localStorage.setItem('test_genie_feature_flags_v1', JSON.stringify(updated));
+                            window.dispatchEvent(new CustomEvent('genie_feature_flags_updated', { detail: updated }));
+                          }}
+                          className="w-5 h-5 text-indigo-600 rounded border-slate-350 cursor-pointer focus:ring-indigo-500"
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>

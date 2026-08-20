@@ -55,7 +55,14 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
 
   const handleRunVisualDiff = async () => {
     const activeFrameShot = currentActiveStep?.screenshot || initialScreenshotUrl;
-    if (!activeFrameShot || !testCase) return;
+    if (!activeFrameShot) {
+      alert('Validation Error: No execution screenshot captured yet for this step.');
+      return;
+    }
+    if (!testCase) {
+      alert('Validation Error: Test Case key not found.');
+      return;
+    }
 
     setIsComparingVisual(true);
     try {
@@ -69,6 +76,7 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
       setVisualCompareData(res);
     } catch (err) {
       console.error('Visual compare failed:', err);
+      alert('Backend Connection Error: Could not reach the Visual Regression API. Please make sure the NestJS backend server is running on port 3000! (Run: pnpm dev inside test-genie-api folder)');
     } finally {
       setIsComparingVisual(false);
     }

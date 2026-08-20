@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FeatureFlags, toggleFeatureFlag, promoteToPermanent, rollbackAllLabs, toggleLabsGlobal } from '../engine/feature-flags';
-import { X, Sparkles, CheckCircle2, RotateCcw, Zap, Video, Check, Layers } from 'lucide-react';
+import { X, Sparkles, CheckCircle2, RotateCcw, Zap, Video, Check, Layers, Lock } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 
 interface LabsControlModalProps {
@@ -81,7 +81,7 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
                 ⚡ Stealth Recording Control Center
               </h3>
               <p className="text-xs text-purple-800 leading-relaxed mt-1">
-                Toggle the purple <strong>📹 RECORD</strong> mode button on your top navigation bar on or off below:
+                Genie Labs Experimental settings configuration portal.
               </p>
             </div>
           </div>
@@ -94,26 +94,13 @@ export const LabsControlModal: React.FC<LabsControlModalProps> = ({
           </div>
 
           <div className="space-y-3">
-            {/* Record Mode Toggle (Matching User Request) */}
-            <div className="p-4 rounded-2xl border-2 border-purple-200 bg-purple-50/40 hover:bg-purple-50 flex items-center justify-between transition-all">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <Video className="w-4 h-4 text-purple-600" />
-                  <span className="font-extrabold text-xs text-slate-900">Reflect Remote Record Mode</span>
-                  <span className="bg-purple-200 text-purple-800 font-mono text-[9px] font-black px-2 py-0.5 rounded-full">
-                    📹 RECORD BUTTON
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-snug">
-                  Toggle purple <strong>📹 RECORD</strong> button visibility on top header toolbar.
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={flags.reflect_remote_recorder}
-                onChange={() => handleToggle('reflect_remote_recorder')}
-                className="w-5 h-5 text-purple-600 rounded cursor-pointer transition-all"
-              />
+            {/* Migration placeholder card */}
+            <div className="p-5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 text-xs text-center space-y-2">
+              <Lock className="w-5 h-5 mx-auto text-slate-400" />
+              <p className="font-bold">Preferences Migrated to Workspace Settings</p>
+              <p className="text-[11px] text-slate-400">
+                Reflect Remote Recording control has been moved to the primary Settings workspace for security & administrative compliance.
+              </p>
             </div>
           </div>
         </div>
