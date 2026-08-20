@@ -224,6 +224,7 @@ export const App: React.FC = () => {
   });
 
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<EnterpriseProject | null>(null);
 
   // Reflect Remote Browser Studio State
   const [isReflectStudioOpen, setIsReflectStudioOpen] = useState(false);
@@ -822,6 +823,35 @@ export const App: React.FC = () => {
     setProjects(prev => [newProject, ...prev]);
     setSelectedProjectId(newProject.id);
     showToast(`Project "${newProject.name}" [${newProject.key}] created successfully!`, 'success');
+  };
+
+  // Handle updating existing Project
+  const handleUpdateProject = (updatedProject: EnterpriseProject) => {
+    setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+    showToast(`Project "[${updatedProject.key}] ${updatedProject.name}" updated successfully!`, 'success');
+  };
+
+  // Handle deleting active Project
+  const handleDeleteProject = () => {
+    if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'QA Lead' && currentUser.role !== 'QA Engineer')) {
+      showToast(`Role Restriction: User role '${currentUser?.role}' cannot delete workspace projects.`, 'error');
+      return;
+    }
+    if (projects.length <= 1) {
+      showToast('Cannot delete the only remaining workspace project.', 'error');
+      return;
+    }
+    const currentProj = projects.find(p => p.id === selectedProjectId);
+    if (!currentProj) return;
+
+    if (window.confirm(`Are you sure you want to delete Project "[${currentProj.key}] ${currentProj.name}"?\n\nThis will remove all associated modules, test cases, and execution data for this workspace.`)) {
+      const updatedProjects = projects.filter(p => p.id !== selectedProjectId);
+      setProjects(updatedProjects);
+      if (updatedProjects.length > 0) {
+        setSelectedProjectId(updatedProjects[0].id);
+      }
+      showToast(`Project "[${currentProj.key}] ${currentProj.name}" deleted successfully!`, 'success');
+    }
   };
 
   const handleTabChange = (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings') => {
@@ -1873,7 +1903,9 @@ export const App: React.FC = () => {
           projects={projects}
           selectedProjectId={selectedProjectId}
           onSelectProject={setSelectedProjectId}
-          onOpenNewProjectModal={() => setIsNewProjectModalOpen(true)}
+          onOpenNewProjectModal={() => { setProjectToEdit(null); setIsNewProjectModalOpen(true); }}
+          onOpenEditProjectModal={() => { setProjectToEdit(activeProject); setIsNewProjectModalOpen(true); }}
+          onDeleteProject={handleDeleteProject}
           onOpenUserManagementModal={() => setIsUserManagementOpen(true)}
           onLogout={handleLogout}
         />
@@ -2720,12 +2752,14 @@ export const App: React.FC = () => {
           </>
         </main>
 
-        {/* Create New Project Modal */}
+        {/* Create / Edit Project Modal */}
         {isNewProjectModalOpen && (
           <NewProjectModal
             currentUser={currentUser}
+            projectToEdit={projectToEdit}
             onAddProject={handleAddProject}
-            onClose={() => setIsNewProjectModalOpen(false)}
+            onUpdateProject={handleUpdateProject}
+            onClose={() => { setIsNewProjectModalOpen(false); setProjectToEdit(null); }}
           />
         )}
 

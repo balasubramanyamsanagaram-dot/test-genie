@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile, EnterpriseProject } from '../types';
-import { Download, Plus, FolderKanban } from 'lucide-react';
+import { Download, Plus, FolderKanban, Pencil, Trash2 } from 'lucide-react';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -16,6 +16,8 @@ interface HeaderProps {
   selectedProjectId: string;
   onSelectProject: (id: string) => void;
   onOpenNewProjectModal: () => void;
+  onOpenEditProjectModal?: () => void;
+  onDeleteProject?: () => void;
   onOpenUserManagementModal: () => void;
   onRestoreDefaultModules?: () => void;
   onOpenCommandPalette?: () => void;
@@ -29,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   selectedProjectId,
   onSelectProject,
   onOpenNewProjectModal,
+  onOpenEditProjectModal,
+  onDeleteProject,
   onOpenUserManagementModal,
   onLogout
 }) => {
@@ -53,13 +57,33 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {canManageProjects && (
-                <button
-                  onClick={onOpenNewProjectModal}
-                  className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-white transition-all ml-1"
-                  title="Create New Project"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-0.5 ml-1">
+                  <button
+                    onClick={onOpenNewProjectModal}
+                    className="p-1.5 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-white transition-all"
+                    title="Create New Project (+)"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  {onOpenEditProjectModal && (
+                    <button
+                      onClick={onOpenEditProjectModal}
+                      className="p-1.5 rounded-xl text-slate-500 hover:text-amber-600 hover:bg-white transition-all"
+                      title="Edit Current Project"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {onDeleteProject && (
+                    <button
+                      onClick={onDeleteProject}
+                      className="p-1.5 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-white transition-all"
+                      title="Delete Current Project"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

@@ -1,28 +1,32 @@
 import React, { useState } from 'react';
 import { EnterpriseProject, UserProfile } from '../types';
-import { FolderPlus, X, ShieldCheck, Key, FileText, Plus } from 'lucide-react';
+import { FolderPlus, X, Pencil, Plus } from 'lucide-react';
 
 interface NewProjectModalProps {
   currentUser: UserProfile;
+  projectToEdit?: EnterpriseProject | null;
   onAddProject: (newProject: EnterpriseProject) => void;
+  onUpdateProject?: (updatedProject: EnterpriseProject) => void;
   onClose: () => void;
 }
 
 export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   currentUser,
+  projectToEdit,
   onAddProject,
+  onUpdateProject,
   onClose
 }) => {
-  const [name, setName] = useState('');
-  const [key, setKey] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState(projectToEdit ? projectToEdit.name : '');
+  const [key, setKey] = useState(projectToEdit ? projectToEdit.key : '');
+  const [description, setDescription] = useState(projectToEdit ? projectToEdit.description || '' : '');
 
-  const canCreate = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
+  const canManage = currentUser.role === 'Admin' || currentUser.role === 'QA Lead' || currentUser.role === 'QA Engineer';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canCreate) {
-      alert(`Role Restriction: User role '${currentUser.role}' cannot create new projects.`);
+    if (!canManage) {
+      alert(`Role Restriction: User role '${currentUser.role}' cannot create or edit projects.`);
       return;
     }
     if (!name.trim() || !key.trim()) {
@@ -30,33 +34,48 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
     }
 
     const cleanKey = key.trim().toUpperCase().slice(0, 5);
-    const newProject: EnterpriseProject = {
-      id: `proj-${Date.now().toString().slice(-4)}`,
-      name: name.trim(),
-      key: cleanKey,
-      description: description.trim() || `${name.trim()} Enterprise Quality Suite`,
-      createdAt: new Date().toLocaleDateString(),
-      createdBy: currentUser.name,
-      modules: []
-    };
 
-    onAddProject(newProject);
+    if (projectToEdit && onUpdateProject) {
+      const updated: EnterpriseProject = {
+        ...projectToEdit,
+        name: name.trim(),
+        key: cleanKey,
+        description: description.trim() || `${name.trim()} Enterprise Quality Suite`
+      };
+      onUpdateProject(updated);
+    } else {
+      const newProject: EnterpriseProject = {
+        id: `proj-${Date.now().toString().slice(-4)}`,
+        name: name.trim(),
+        key: cleanKey,
+        description: description.trim() || `${name.trim()} Enterprise Quality Suite`,
+        createdAt: new Date().toLocaleDateString(),
+        createdBy: currentUser.name,
+        modules: []
+      };
+      onAddProject(newProject);
+    }
+
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
       <div className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
-              <FolderPlus className="w-4 h-4" />
+              {projectToEdit ? <Pencil className="w-4 h-4" /> : <FolderPlus className="w-4 h-4" />}
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-slate-900">Create New Project</h3>
-              <p className="text-xs text-slate-500">Add an enterprise project repository container.</p>
+              <h3 className="text-base font-extrabold text-slate-900">
+                {projectToEdit ? `Edit Project — [${projectToEdit.key}] ${projectToEdit.name}` : 'Create New Project'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {projectToEdit ? 'Modify project workspace details & Jira key.' : 'Add an enterprise project repository container.'}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 text-slate-400 font-bold">
@@ -74,7 +93,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               value={name}
               onChange={e => {
                 setName(e.target.value);
-                if (!key) {
+                if (!projectToEdit && !key) {
                   const autoKey = e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase();
                   setKey(autoKey);
                 }
@@ -122,8 +141,17 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               type="submit"
               className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold shadow-md active:scale-95 transition-all inline-flex items-center"
             >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Create Project
+              {projectToEdit ? (
+                <>
+                  <Pencil className="w-4 h-4 mr-1.5" />
+                  Save Project Changes
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Create Project
+                </>
+              )}
             </button>
           </div>
 
