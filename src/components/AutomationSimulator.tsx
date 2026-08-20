@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, AlertCircle, CheckCircle2, Shield, Eye, HelpCircle, Terminal, FileCode, Check } from 'lucide-react';
+import { X, Play, AlertCircle, CheckCircle2, Shield, Eye, HelpCircle, Terminal, FileCode, Check, Sparkles, Sliders } from 'lucide-react';
 import { TestCase } from '../types';
+import { VisualRegressionModal, VisualCompareData } from './VisualRegressionModal';
+import { fetchApi } from '../api/client';
 
 export interface AutomationStepRun {
   stepNumber: number;
@@ -46,6 +48,31 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   const [isRunning, setIsRunning] = useState(!readOnlyMode);
   const [status, setStatus] = useState<'PASSED' | 'FAILED' | 'RUNNING'>(readOnlyMode ? (initialStatus || 'PASSED') : 'RUNNING');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Visual Regression State
+  const [visualCompareData, setVisualCompareData] = useState<VisualCompareData | null>(null);
+  const [isComparingVisual, setIsComparingVisual] = useState(false);
+
+  const handleRunVisualDiff = async () => {
+    const activeFrameShot = currentActiveStep?.screenshot || initialScreenshotUrl;
+    if (!activeFrameShot || !testCase) return;
+
+    setIsComparingVisual(true);
+    try {
+      const res = await fetchApi<VisualCompareData>('/automation/visual-compare', {
+        method: 'POST',
+        body: JSON.stringify({
+          testCaseKey: testCase.key,
+          candidateImageBase64: activeFrameShot
+        })
+      });
+      setVisualCompareData(res);
+    } catch (err) {
+      console.error('Visual compare failed:', err);
+    } finally {
+      setIsComparingVisual(false);
+    }
+  };
   
   // Single-execution save & execution guards
   const hasSavedRef = useRef<boolean>(false);
@@ -466,6 +493,18 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
               Close Console
             </button>
 
+            {(currentActiveStep?.screenshot || initialScreenshotUrl) && (
+              <button
+                type="button"
+                onClick={handleRunVisualDiff}
+                disabled={isComparingVisual}
+                className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95 transition-all inline-flex items-center"
+              >
+                <Sliders className="w-3.5 h-3.5 mr-1.5" />
+                {isComparingVisual ? 'Comparing Pixels...' : 'Visual Diff (Pixel Compare)'}
+              </button>
+            )}
+
             {status === 'PASSED' && onSaveToCycle && (
               <button
                 onClick={() => {
@@ -507,6 +546,19 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
             )}
           </div>
         </div>
+
+        {/* Visual Regression Diff Viewer Modal */}
+        {visualCompareData && (
+          <VisualRegressionModal
+            data={visualCompareData}
+            onLogJiraBug={() => {
+              const failedStep = currentActiveStep?.instruction || 'Visual UI Regression Mismatch';
+              if (onRaiseBug) onRaiseBug(failedStep);
+              setVisualCompareData(null);
+            }}
+            onClose={() => setVisualCompareData(null)}
+          />
+        )}
 
       </div>
     </div>
