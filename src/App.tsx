@@ -106,6 +106,7 @@ export const App: React.FC = () => {
   } | null>(null);
 
   const [deletingBugKey, setDeletingBugKey] = useState<string | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [globalAlert, setGlobalAlert] = useState<{ isOpen: boolean; message: string } | null>(null);
   const [promptConfig, setPromptConfig] = useState<{
     isOpen: boolean;
@@ -831,7 +832,7 @@ export const App: React.FC = () => {
     showToast(`Project "[${updatedProject.key}] ${updatedProject.name}" updated successfully!`, 'success');
   };
 
-  // Handle deleting active Project
+  // Handle deleting active Project via custom ConfirmModal
   const handleDeleteProject = () => {
     if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'QA Lead' && currentUser.role !== 'QA Engineer')) {
       showToast(`Role Restriction: User role '${currentUser?.role}' cannot delete workspace projects.`, 'error');
@@ -841,17 +842,21 @@ export const App: React.FC = () => {
       showToast('Cannot delete the only remaining workspace project.', 'error');
       return;
     }
-    const currentProj = projects.find(p => p.id === selectedProjectId);
-    if (!currentProj) return;
+    setDeletingProjectId(selectedProjectId);
+  };
 
-    if (window.confirm(`Are you sure you want to delete Project "[${currentProj.key}] ${currentProj.name}"?\n\nThis will remove all associated modules, test cases, and execution data for this workspace.`)) {
-      const updatedProjects = projects.filter(p => p.id !== selectedProjectId);
-      setProjects(updatedProjects);
-      if (updatedProjects.length > 0) {
-        setSelectedProjectId(updatedProjects[0].id);
-      }
+  const handleConfirmDeleteProject = () => {
+    if (!deletingProjectId) return;
+    const currentProj = projects.find(p => p.id === deletingProjectId);
+    const updatedProjects = projects.filter(p => p.id !== deletingProjectId);
+    setProjects(updatedProjects);
+    if (updatedProjects.length > 0) {
+      setSelectedProjectId(updatedProjects[0].id);
+    }
+    if (currentProj) {
       showToast(`Project "[${currentProj.key}] ${currentProj.name}" deleted successfully!`, 'success');
     }
+    setDeletingProjectId(null);
   };
 
   const handleTabChange = (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings') => {
@@ -2901,6 +2906,23 @@ export const App: React.FC = () => {
             onCancel={() => setDeletingBugKey(null)}
           />
         )}
+
+        {/* Delete Project Workspace Confirmation Modal */}
+        {deletingProjectId && (() => {
+          const targetProj = projects.find(p => p.id === deletingProjectId);
+          return (
+            <ConfirmModal
+              isOpen={true}
+              type="danger"
+              title={`Delete Project Workspace "${targetProj ? `[${targetProj.key}] ${targetProj.name}` : ''}"`}
+              message={`Are you sure you want to delete Project "${targetProj?.name || ''}"? This will permanently remove all associated module repositories, test cases, and execution data for this workspace.`}
+              confirmText="Delete Workspace"
+              cancelText="Cancel"
+              onConfirm={handleConfirmDeleteProject}
+              onCancel={() => setDeletingProjectId(null)}
+            />
+          );
+        })()}
 
         {/* Global Custom Alert Modal Interceptor */}
         {globalAlert?.isOpen && (
