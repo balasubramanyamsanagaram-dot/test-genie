@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { JiraBug, TestCycle, TestCase, UserProfile } from '../types';
-import { X, Bug, Info, AlertTriangle } from 'lucide-react';
+import { X, Bug, Info, AlertTriangle, Camera, Video, Eye, Trash2, Play } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 import { fetchApi, createDirectJiraIssue } from '../api/client';
 
@@ -39,6 +39,11 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
   const [status, setStatus] = useState<'Open' | 'Re-opened' | 'Resolved'>('Open');
   const [description, setDescription] = useState('');
 
+  // Evidence Attachment State
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [videoUrl, setVideoUrl] = useState<string>('');
+  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video'; title: string } | null>(null);
+
   // Retrieve test cases from the selected cycle
   const currentCycle = testCycles.find(c => c.id === selectedCycleId);
   const cycleCases = currentCycle ? currentCycle.items.map(i => i.testCase) : [];
@@ -54,6 +59,8 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
       setDescription(bugToEdit.description || '');
       setSelectedCycleId(bugToEdit.cycleId || '');
       setSelectedCaseKey(bugToEdit.itemKey || '');
+      setScreenshotUrl(bugToEdit.screenshotUrl || '');
+      setVideoUrl(bugToEdit.videoUrl || '');
     } else {
       setProjectKey('HRM');
       setSummary('');
@@ -61,6 +68,8 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
       setAssignedDeveloper('');
       setStatus('Open');
       setDescription('');
+      setScreenshotUrl('');
+      setVideoUrl('');
       if (testCycles.length > 0) {
         setSelectedCycleId(testCycles[0].id);
       } else {
@@ -69,6 +78,28 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
       setSelectedCaseKey('');
     }
   }, [bugToEdit, testCycles, isOpen]);
+
+  // Handle Screenshot File Upload
+  const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setScreenshotUrl(evt.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle Video File Upload
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setVideoUrl(evt.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Set default case once cycle changes
   useEffect(() => {
@@ -176,9 +207,9 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
       raisedBy: bugToEdit?.raisedBy || currentUser.name,
       raisedAt: bugToEdit?.raisedAt || new Date().toLocaleString(),
       status,
-      screenshotUrl: bugToEdit?.screenshotUrl,
-      videoUrl: bugToEdit?.videoUrl,
-      evidenceName: bugToEdit?.evidenceName
+      screenshotUrl: screenshotUrl || bugToEdit?.screenshotUrl,
+      videoUrl: videoUrl || bugToEdit?.videoUrl,
+      evidenceName: screenshotUrl ? 'defect_screenshot.png' : (videoUrl ? 'defect_recording.webm' : bugToEdit?.evidenceName)
     };
 
     onSaveBug(savedBug, {
@@ -347,13 +378,91 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
             />
           </div>
 
+          {/* Visual Defect Evidence Section */}
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center">
+              <Camera className="w-3.5 h-3.5 text-rose-600 mr-1.5" />
+              Attach Defect Proof (Screenshot / Screen Recording)
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* 1. Screenshot Capture / Upload Box */}
+              <div className="border border-slate-200 bg-slate-50 rounded-2xl p-3 space-y-2 text-center">
+                <span className="font-extrabold text-slate-800 block text-[11px]">📷 Failed Screenshot</span>
+                {screenshotUrl ? (
+                  <div className="relative group">
+                    <img src={screenshotUrl} alt="Failed Screenshot" className="w-full h-24 object-cover rounded-xl border border-slate-300 shadow-xs" />
+                    <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-all rounded-xl flex items-center justify-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMedia({ url: screenshotUrl, type: 'image', title: 'Defect Screenshot Evidence' })}
+                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[10px] flex items-center shadow-xs"
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> View Image
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScreenshotUrl('')}
+                        className="p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg"
+                        title="Remove Screenshot"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    <label className="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-[11px] cursor-pointer transition-all">
+                      <Camera className="w-3.5 h-3.5 mr-1.5" /> Upload Screenshot
+                      <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Video Recording / Upload Box */}
+              <div className="border border-slate-200 bg-slate-50 rounded-2xl p-3 space-y-2 text-center">
+                <span className="font-extrabold text-slate-800 block text-[11px]">📹 Screen Recording</span>
+                {videoUrl ? (
+                  <div className="relative group">
+                    <video src={videoUrl} className="w-full h-24 object-cover rounded-xl border border-slate-300 shadow-xs" />
+                    <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-all rounded-xl flex items-center justify-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMedia({ url: videoUrl, type: 'video', title: 'Defect Screen Recording Evidence' })}
+                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[10px] flex items-center shadow-xs"
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> View / Play Video
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVideoUrl('')}
+                        className="p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg"
+                        title="Remove Recording"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    <label className="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-[11px] cursor-pointer transition-all">
+                      <Video className="w-3.5 h-3.5 mr-1.5" /> Upload Recording
+                      <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Description Textarea */}
           <div>
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Jira Description Details *
             </label>
             <textarea
-              rows={5}
+              rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-950 font-medium focus:outline-none focus:border-indigo-500 font-mono text-[11px] leading-relaxed"
@@ -383,6 +492,50 @@ export const CreateEditBugModal: React.FC<CreateEditBugModalProps> = ({
           </div>
 
         </form>
+
+        {/* Full-Screen Media Lightbox Modal */}
+        {previewMedia && createPortal(
+          <div
+            className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 font-sans animate-in fade-in duration-200"
+            onClick={() => setPreviewMedia(null)}
+          >
+            <div
+              className="bg-slate-900 rounded-3xl max-w-4xl w-full border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-6 py-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-white">
+                  <Eye className="w-5 h-5 text-indigo-400" />
+                  <h3 className="text-sm font-extrabold">{previewMedia.title}</h3>
+                </div>
+                <button
+                  onClick={() => setPreviewMedia(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 flex items-center justify-center bg-black/40 overflow-hidden flex-1 min-h-[300px]">
+                {previewMedia.type === 'image' ? (
+                  <img
+                    src={previewMedia.url}
+                    alt="Defect Evidence Screenshot"
+                    className="max-w-full max-h-[70vh] object-contain rounded-2xl border border-slate-800 shadow-2xl"
+                  />
+                ) : (
+                  <video
+                    src={previewMedia.url}
+                    controls
+                    autoPlay
+                    className="max-w-full max-h-[70vh] rounded-2xl border border-slate-800 shadow-2xl"
+                  />
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     </div>,
     document.body

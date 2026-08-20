@@ -13,7 +13,7 @@ import { CreateEditBugModal } from './components/CreateEditBugModal';
 import { JiraBugModal } from './components/JiraBugModal';
 import { DEFAULT_HOLIDAYS_TEST_CASES, DEFAULT_PRELOADED_TEST_CYCLES, normalizeTestCase, cleanTestCaseTitle } from './engine/default-data';
 import { AuditCertificate, TestCase, TestCycle, TestCycleItem, TestExecutionStatus, ProjectModule, JiraBug, UserProfile, REGISTERED_ENTERPRISE_USERS, EnterpriseProject, DEFAULT_ENTERPRISE_PROJECTS, AgentExecutionRun } from './types';
-import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight, Sun, Moon } from 'lucide-react';
+import { ShieldCheck, FileCheck2, Upload, RotateCw, PlaySquare, Plus, FolderPlus, Layers, Building2, Bug, Settings, Trash2, CheckCircle2, ShieldAlert, RefreshCw, Lock, Sparkles, Terminal, Zap, Code2, Eye, XCircle, ArrowRight, Sun, Moon, X } from 'lucide-react';
 
 import { UserManagementModal } from './components/UserManagementModal';
 import { ConfirmModal } from './components/ConfirmModal';
@@ -26,6 +26,7 @@ import { LabsControlModal } from './components/LabsControlModal';
 import { StoryToTestCaseModal } from './components/StoryToTestCaseModal';
 import { PassEvidenceUploadModal } from './components/PassEvidenceUploadModal';
 import { getIDBItem, setIDBItem } from './utils/idbStorage';
+import { fetchApi } from './api/client';
 
 const STORAGE_KEY_PROJECTS = 'test_genie_projects_v2';
 const STORAGE_KEY_SEL_PROJECT = 'test_genie_selected_project_v2';
@@ -157,6 +158,7 @@ export const App: React.FC = () => {
 
   const handleAddUser = (newUser: UserProfile) => {
     setRegisteredUsers(prev => [...prev, newUser]);
+    showToast(`User "${newUser.name}" (${newUser.role}) created successfully!`, 'success');
   };
 
   const handleUpdateUser = (updatedUser: UserProfile) => {
@@ -165,10 +167,13 @@ export const App: React.FC = () => {
       setCurrentUser(updatedUser);
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
     }
+    showToast(`User profile "${updatedUser.name}" updated successfully!`, 'success');
   };
 
   const handleDeleteUser = (userId: string) => {
+    const user = registeredUsers.find(u => u.id === userId);
     setRegisteredUsers(prev => prev.filter(u => u.id !== userId));
+    showToast(`User account "${user?.name || userId}" deleted successfully.`, 'info');
   };
 
   // Authenticated Session State
@@ -185,11 +190,15 @@ export const App: React.FC = () => {
     try {
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
     } catch (e) { }
+    showToast(`Welcome back, ${user.name}! Authenticated as ${user.role}.`, 'success');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem(STORAGE_KEY_USER);
+    try {
+      localStorage.removeItem(STORAGE_KEY_USER);
+    } catch (e) { }
+    showToast(`Logged out successfully.`, 'info');
   };
 
   // Load Persisted Projects from localStorage
@@ -490,10 +499,10 @@ export const App: React.FC = () => {
   const [isImporterOpen, setIsImporterOpen] = useState<boolean>(false);
   const [importSuccessCount, setImportSuccessCount] = useState<number | null>(null);
 
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean } | null>(null);
+  const [toast, setToast] = useState<{ title?: string; message: string; type: 'success' | 'error' | 'info'; visible: boolean } | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ message, type, visible: true });
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success', title?: string) => {
+    setToast({ message, type, title, visible: true });
   };
 
   useEffect(() => {
@@ -616,7 +625,12 @@ export const App: React.FC = () => {
       ? Math.round(modules.reduce((acc, m) => acc + (m.coveragePercentage || 100), 0) / totalModules)
       : 100;
 
-    const projCycles = testCycles.filter(c => !c.projectId || c.projectId === activeProject.id);
+    const isProjCycle = (c: TestCycle) => {
+      if (c.projectId) return c.projectId === activeProject.id;
+      return activeProject.id === 'proj-hrm' || activeProject.key.toUpperCase() === 'HRM';
+    };
+
+    const projCycles = testCycles.filter(isProjCycle);
     const totalCycles = projCycles.length;
 
     // Compute dynamic failed items across active cycles
@@ -639,11 +653,17 @@ export const App: React.FC = () => {
     const passRate = totalExecuted > 0 ? Math.round((passedCount / totalExecuted) * 100) : 0;
     const executionsToday = totalExecuted;
 
-    // Defect priority distribution (Mock bugs + dynamic cycle bugs)
+    // Defect priority distribution (Strictly segregated per active project)
+    const projDefects = defectRegistry.filter(b => {
+      const bKey = b.projectKey || (b.issueKey && b.issueKey.includes('-') ? b.issueKey.split('-')[0] : 'HRM');
+      const kUpper = bKey.toUpperCase();
+      const pUpper = activeProject.key.toUpperCase();
+      return kUpper === pUpper || (pUpper === 'HRM' && (kUpper === 'HGA' || kUpper === 'BUG'));
+    });
     const dynamicBugs = executedItems.flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []));
-    const regKeys = new Set(defectRegistry.map(b => b.issueKey));
+    const regKeys = new Set(projDefects.map(b => b.issueKey));
     const filteredDynamics = dynamicBugs.filter(b => !regKeys.has(b.issueKey));
-    const allBugs = [...defectRegistry, ...filteredDynamics];
+    const allBugs = [...projDefects, ...filteredDynamics];
     const totalDefects = allBugs.length;
 
     const critical = allBugs.filter(b => b.severity === 'Blocker' || b.severity === 'Critical').length;
@@ -801,6 +821,7 @@ export const App: React.FC = () => {
   const handleAddProject = (newProject: EnterpriseProject) => {
     setProjects(prev => [newProject, ...prev]);
     setSelectedProjectId(newProject.id);
+    showToast(`Project "${newProject.name}" [${newProject.key}] created successfully!`, 'success');
   };
 
   const handleTabChange = (tab: 'dashboard' | 'matrix' | 'repository' | 'cycles' | 'execution' | 'bugs' | 'settings') => {
@@ -818,7 +839,7 @@ export const App: React.FC = () => {
   // Add custom new module repository to active project
   const handleAddNewModule = (moduleName: string) => {
     if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'QA Lead' && currentUser.role !== 'QA Engineer')) {
-      alert(`Role Restriction: User role '${currentUser?.role}' cannot create module repositories.`);
+      showToast(`Role Restriction: User role '${currentUser?.role}' cannot create module repositories.`, 'error');
       return;
     }
     const newId = `mod-${Date.now().toString().slice(-4)}`;
@@ -847,6 +868,7 @@ export const App: React.FC = () => {
     setSelectedModuleId(newId);
     handleTabChange('matrix');
     setIsImporterOpen(true);
+    showToast(`Module repository "${moduleName}" created successfully in ${activeProject.name}!`, 'success');
   };
 
   // Custom Text Input Prompts to replace browser default prompt dialogs
@@ -1037,8 +1059,8 @@ export const App: React.FC = () => {
       name: "[DEMO] AI Playwright Login Verification",
       objective: "Verify successful user login using automated no-code Playwright browser trace compiler.",
       precondition: "Valid user credentials exist in the HRM Genie portal.",
-      testSteps: "1. Navigate to https://qa.hrmgenie.outstrive.co/login\n2. Type 'hr@out-strive.com' in email field\n3. Type 'HR@dmin06' in password field\n4. Click Login\n5. Verify Organization is displayed",
-      testData: "Email: hr@out-strive.com | Password: HR@dmin06",
+      testSteps: "1. Navigate to https://qa.hrmgenie.outstrive.co/login\n2. Type '\${USER_EMAIL}' in email field\n3. Type '\${USER_PASSWORD}' in password field\n4. Click Login\n5. Verify Organization is displayed",
+      testData: "Email: \${USER_EMAIL} | Password: \${USER_PASSWORD}",
       expectedResult: "Browser automatically enters credentials, logs in, and loads dashboard page.",
       status: "Approved",
       priority: "Critical",
@@ -1067,10 +1089,12 @@ export const App: React.FC = () => {
         modules: p.modules.map(m => m.id === moduleId ? { ...m, name: newName } : m)
       };
     }));
+    showToast(`Module repository renamed to "${newName}" successfully!`, 'success');
   };
 
   // Delete Module Repository
   const handleDeleteModule = (moduleId: string) => {
+    const modName = activeProject.modules.find(m => m.id === moduleId)?.name || 'Module';
     setProjects(prev => prev.map(p => {
       if (p.id !== activeProject.id) return p;
       const updatedMods = p.modules.filter(m => m.id !== moduleId);
@@ -1092,6 +1116,8 @@ export const App: React.FC = () => {
       const remaining = activeProject.modules.filter(m => m.id !== moduleId);
       setSelectedModuleId(remaining.length > 0 ? remaining[0].id : '');
     }
+
+    showToast(`Module repository "${modName}" deleted successfully!`, 'info');
   };
 
   // Active Test Cases array for selected module repository
@@ -1551,17 +1577,26 @@ export const App: React.FC = () => {
 
   // Filter cycles for active project
   const activeProjectCycles = useMemo(() => {
-    return testCycles.filter(c => !c.projectId || c.projectId === activeProject.id);
-  }, [testCycles, activeProject.id]);
+    return testCycles.filter(c => {
+      if (c.projectId) return c.projectId === activeProject.id;
+      return activeProject.id === 'proj-hrm' || activeProject.key.toUpperCase() === 'HRM';
+    });
+  }, [testCycles, activeProject.id, activeProject.key]);
 
   const allBugsCombined = useMemo(() => {
+    const projDefects = defectRegistry.filter(b => {
+      const bKey = b.projectKey || (b.issueKey && b.issueKey.includes('-') ? b.issueKey.split('-')[0] : 'HRM');
+      const kUpper = bKey.toUpperCase();
+      const pUpper = activeProject.key.toUpperCase();
+      return kUpper === pUpper || (pUpper === 'HRM' && (kUpper === 'HGA' || kUpper === 'BUG'));
+    });
     const dynamicBugs = activeProjectCycles.flatMap(c =>
       (c.items || []).flatMap(item => item.jiraBugs || (item.jiraBug ? [item.jiraBug] : []))
     );
-    const regKeys = new Set(defectRegistry.map(b => b.issueKey));
+    const regKeys = new Set(projDefects.map(b => b.issueKey));
     const filteredDynamics = dynamicBugs.filter(b => !regKeys.has(b.issueKey));
-    return [...defectRegistry, ...filteredDynamics];
-  }, [defectRegistry, activeProjectCycles]);
+    return [...projDefects, ...filteredDynamics];
+  }, [defectRegistry, activeProjectCycles, activeProject.key]);
 
   // Handle Live Status Update
   const handleUpdateExecutionStatus = (
@@ -1674,7 +1709,7 @@ export const App: React.FC = () => {
   };
 
   // Handle Re-opening an Existing Bug on FAILED Re-test
-  const handleReopenJiraBug = (
+  const handleReopenJiraBug = async (
     cycleId: string,
     itemKey: string,
     bugKey: string,
@@ -1683,6 +1718,22 @@ export const App: React.FC = () => {
     videoUrl?: string
   ) => {
     const nowTimestamp = new Date().toLocaleString();
+
+    try {
+      await fetchApi('/jira/reopen-issue', {
+        method: 'POST',
+        body: JSON.stringify({
+          issueKey: bugKey,
+          reopenedBy: currentUser?.name || 'QA Tester',
+          notes,
+          screenshotUrl,
+          videoUrl
+        })
+      });
+    } catch (e) {
+      console.warn('Backend reopen-issue API call failed, maintaining local state update:', e);
+    }
+
     setTestCycles(prev => prev.map(cycle => {
       if (cycle.id !== cycleId) return cycle;
       return {
@@ -1700,7 +1751,10 @@ export const App: React.FC = () => {
                 reopenedAt: nowTimestamp,
                 reopenNotes: notes,
                 screenshotUrl: screenshotUrl || b.screenshotUrl,
-                videoUrl: videoUrl || b.videoUrl
+                videoUrl: videoUrl || b.videoUrl,
+                lastUpdatedBy: currentUser?.name || 'QA Tester',
+                lastUpdatedAt: nowTimestamp,
+                lastActionDescription: `Defect re-opened: ${notes}`
               };
             }
             return b;
@@ -1740,6 +1794,7 @@ export const App: React.FC = () => {
       };
     }));
     setSelectedModuleId(DEFAULT_ENTERPRISE_PROJECTS[0].modules[0].id);
+    showToast(`Restored default modules for ${activeProject.name}!`, 'success');
   };
 
   // REQUIREMENT: Render Full-Screen Login Gateway if User is Not Authenticated!
@@ -2290,7 +2345,7 @@ export const App: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
-                          {isFeatureActive(featureFlags, 'ai_story_generator') && (
+                          {canManageCases && isFeatureActive(featureFlags, 'ai_story_generator') && (
                             <button
                               onClick={() => setIsStoryModalOpen(true)}
                               className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center shrink-0"
@@ -2300,15 +2355,7 @@ export const App: React.FC = () => {
                             </button>
                           )}
 
-                          {canManageCases && (
-                            <button
-                              onClick={handleAddAIDemoCase}
-                              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all shrink-0"
-                            >
-                              <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
-                              Add AI Automation Demo
-                            </button>
-                          )}
+
 
                           {canImportExport && (
                             <button
@@ -2393,7 +2440,7 @@ export const App: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
-                          {isFeatureActive(featureFlags, 'ai_story_generator') && (
+                          {canManageCases && isFeatureActive(featureFlags, 'ai_story_generator') && (
                             <button
                               onClick={() => setIsStoryModalOpen(true)}
                               className="px-4 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md transition-all active:scale-95 flex items-center shrink-0"
@@ -2403,15 +2450,7 @@ export const App: React.FC = () => {
                             </button>
                           )}
 
-                          {canManageCases && (
-                            <button
-                              onClick={handleAddAIDemoCase}
-                              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/20 transition-all shrink-0"
-                            >
-                              <PlaySquare className="w-3.5 h-3.5 mr-1.5 inline" />
-                              Add AI Automation Demo
-                            </button>
-                          )}
+
 
                           {canImportExport && (
                             <button
@@ -2936,23 +2975,44 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Premium Toast Notification System */}
+        {/* Premium Top-Right Card Toast Notification System matching reference design */}
         {toast && (
           <div
-            className={`fixed bottom-6 right-6 z-50 flex items-center space-x-3 px-4 py-3.5 rounded-2xl border shadow-xl transition-all duration-300 transform ${toast.visible
+            className={`fixed top-6 right-6 z-[9999] bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 min-w-[280px] max-w-sm w-full transition-all duration-300 transform font-sans ${toast.visible
                 ? 'translate-y-0 opacity-100 scale-100'
-                : 'translate-y-4 opacity-0 scale-95 pointer-events-none'
-              } ${toast.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : toast.type === 'error'
-                  ? 'bg-rose-50 border-rose-200 text-rose-800'
-                  : 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                : '-translate-y-4 opacity-0 scale-95 pointer-events-none'
               }`}
           >
-            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />}
-            {toast.type === 'error' && <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />}
-            {toast.type === 'info' && <RefreshCw className="w-5 h-5 text-indigo-600 flex-shrink-0 animate-spin-slow" />}
-            <span className="text-xs font-bold font-sans">{toast.message}</span>
+            <div className="flex items-start justify-between space-x-3">
+              <div className="flex items-start space-x-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${toast.type === 'success'
+                    ? 'bg-emerald-100 text-emerald-600'
+                    : toast.type === 'error'
+                      ? 'bg-rose-100 text-rose-600'
+                      : 'bg-indigo-100 text-indigo-600'
+                  }`}>
+                  {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+                  {toast.type === 'error' && <ShieldAlert className="w-5 h-5" />}
+                  {toast.type === 'info' && <RefreshCw className="w-5 h-5 animate-spin-slow" />}
+                </div>
+
+                <div className="space-y-0.5 pr-2">
+                  <h4 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                    {toast.title || (toast.type === 'success' ? 'Success' : toast.type === 'error' ? 'Failure' : 'Information')}
+                  </h4>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    {toast.message}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setToast(prev => prev ? { ...prev, visible: false } : null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-all flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 

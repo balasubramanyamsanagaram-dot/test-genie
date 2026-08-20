@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TestCase, UserProfile } from '../types';
-import { Upload, Plus, FileText, CheckCircle, AlertCircle, X, User, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Upload, Plus, FileText, CheckCircle, AlertCircle, X, User, AlertTriangle, ShieldAlert, Download } from 'lucide-react';
 import Papa from 'papaparse';
 import { SearchableSelect } from './SearchableSelect';
 import { cleanTestCaseTitle } from '../engine/default-data';
@@ -96,11 +96,12 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
   const [activeMode, setActiveMode] = useState<'upload' | 'manual'>('upload');
   
   // User Attribution & Assignment Fields (Pre-filled with logged-in user name)
-  const [createdBy, setCreatedBy] = useState(currentUser.name);
-  const [assignedTo, setAssignedTo] = useState('');
+  const [createdBy, setCreatedBy] = useState(currentUser.name || 'QA Lead');
+  const [assignedTo, setAssignedTo] = useState(currentUser.name || 'QA Engineer');
 
-  // Diagnostic Error State
+  // Diagnostic Error State & Inline Validation State
   const [diagnosticError, setDiagnosticError] = useState<FileValidationError | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Manual Form Fields with Dynamic Next TC - ID
   const [key, setKey] = useState(() => generateNextTcId(moduleName, existingCases));
@@ -116,23 +117,26 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
   // Handle Manual Case Submit
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!canManageCases) {
-      alert(`Role Restriction: User role '${currentUser.role}' cannot add manual test cases. Only Admin or QA Lead roles can save test cases.`);
+      setValidationError(`Role Restriction: User role '${currentUser.role}' cannot add manual test cases. Only Admin, QA Lead, or QA Engineer roles can save test cases.`);
       return;
     }
     if (!createdBy.trim() || !assignedTo.trim()) {
-      return alert('Validation Error: "Author / Added By" and "Assign Default Tester" are required fields.');
+      setValidationError('Validation Error: "Author / Added By" and "Assign Default Tester" are required fields.');
+      return;
     }
     if (!name.trim() || !expectedResult.trim()) {
-      return alert('Validation Error: Please fill in Scenario Name and Expected Result.');
+      setValidationError('Validation Error: Please fill in Scenario Name and Expected Result.');
+      return;
     }
 
     const newCase: TestCase = {
       key: key.trim().toUpperCase(),
       folder: `/${moduleName}`,
-      name: name.trim(),
-      objective: objective.trim() || `Verify ${name.trim()} behavior in ${moduleName}`,
-      precondition: precondition.trim() || 'User is logged into application portal.',
+      name: cleanTestCaseTitle(name),
+      objective: cleanTestCaseTitle(objective) || cleanTestCaseTitle(name),
+      precondition: precondition.trim() || 'User logged in to portal.',
       testSteps: testSteps.trim(),
       testData: 'Standard QA Payload',
       expectedResult: expectedResult.trim(),
@@ -150,18 +154,63 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
     onClose();
   };
 
+  // Generate & Download Clean Sample CSV Template with Priority column
+  const handleDownloadTemplate = () => {
+    const modKey = moduleName.substring(0, 3).toUpperCase();
+    const headers = [
+      'TC - ID',
+      'Manual Test Cases',
+      'Type',
+      'Priority',
+      'Test Steps',
+      'Expected Result'
+    ];
+
+    const sampleRow1 = [
+      `${modKey}-T01`,
+      `Verify Create New ${moduleName} entry successfully`,
+      `Positive`,
+      `Critical`,
+      `1. Log in to portal.\n2. Navigate to ${moduleName}.\n3. Fill in required fields.\n4. Click Save.`,
+      `Entry created successfully and displayed in grid table.`
+    ];
+
+    const sampleRow2 = [
+      `${modKey}-T02`,
+      `Verify mandatory field omission validation for ${moduleName}`,
+      `Negative`,
+      `High`,
+      `1. Log in to portal.\n2. Navigate to ${moduleName}.\n3. Leave required fields empty.\n4. Click Save.`,
+      `System blocks submission and displays inline red text 'This field is required'.`
+    ];
+
+    const formatRow = (row: string[]) => row.map(field => `"${field.replace(/"/g, '""')}"`).join(',');
+    const csvContent = [headers.join(','), formatRow(sampleRow1), formatRow(sampleRow2)].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `TestGenie_${moduleName.replace(/\s+/g, '_')}_Import_Template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Handle File Upload Inspection
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDiagnosticError(null);
+    setValidationError(null);
     if (!canManageCases) {
-      alert(`Role Restriction: User role '${currentUser.role}' cannot upload test case reference files. Only Admin or QA Lead roles can upload test suites.`);
+      setValidationError(`Role Restriction: User role '${currentUser.role}' cannot upload test case reference files. Only Admin, QA Lead, or QA Engineer roles can upload test suites.`);
       return;
     }
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!createdBy.trim() || !assignedTo.trim()) {
-      alert('Validation Error: Please specify "Author / Added By" and "Assign Default Tester" before selecting a file.');
+      setValidationError('Validation Error: Please specify "Author / Added By" and "Assign Default Tester" before selecting a file.');
       e.target.value = '';
       return;
     }
@@ -228,11 +277,11 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
 
           const accumulatedInBatch: TestCase[] = [];
           const importedCases: TestCase[] = parsedRows.map((row, idx) => {
-            const rawTitle = row['Test Case Name'] || row['Test Case'] || row['Scenario Title'] || row['Scenario'] || row['Title'] || row['Name'] || `Test Scenario ${idx + 1}`;
+            const rawTitle = row['Manual Test Cases'] || row['MANUAL TEST CASES'] || row['Test Case Name'] || row['Test Case'] || row['Scenario Title'] || row['Scenario'] || row['Title'] || row['Name'] || `Test Scenario ${idx + 1}`;
             const cleanName = cleanTestCaseTitle(rawTitle);
 
-            // Extract Key from title [HOL-T01] or Key columns
-            let rawKey = row['Key'] || row['Issue Key'] || row['Test Case Key'] || row['Scenario ID'] || row['ID'];
+            // Extract Key from title [HOL-T01] or Key columns (TC - ID, TC ID, Key, ID)
+            let rawKey = row['TC - ID'] || row['TC-ID'] || row['TC ID'] || row['Key'] || row['Issue Key'] || row['Test Case Key'] || row['Scenario ID'] || row['ID'];
             const matchInTitle = String(rawTitle).match(/^\[([A-Z0-9]+-[A-Z0-9]+)\]/i);
             if (matchInTitle && matchInTitle[1]) {
               rawKey = matchInTitle[1].toUpperCase();
@@ -256,13 +305,13 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
               name: cleanName,
               objective: cleanTestCaseTitle(row['Objective'] || row['Scenario Description'] || row['Description'] || row['Preconditions']) || cleanName,
               precondition: String(row['Precondition'] || row['Preconditions'] || row['Prerequisite'] || 'User logged into HR portal.').trim(),
-              testSteps: String(row['Step Description'] || row['Step description'] || row['Step'] || row['Test Steps (High Level)'] || row['Test Steps'] || row['Test step'] || row['Test Step'] || row['Steps'] || row['Instructions'] || row['Action'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.').trim(),
+              testSteps: String(row['Test Steps'] || row['TEST STEPS'] || row['Step Description'] || row['Step description'] || row['Step'] || row['Test Steps (High Level)'] || row['Test step'] || row['Test Step'] || row['Steps'] || row['Instructions'] || row['Action'] || 'Step 1: Perform action.\nStep 2: Inspect outcome.').trim(),
               testData: String(row['Test Data'] || row['Data'] || 'Standard QA Payload').trim(),
-              expectedResult: String(row['Expected Result'] || row['Expected result'] || row['Expected'] || row['Expected Outcome'] || 'Verified successfully.').trim(),
+              expectedResult: String(row['Expected Result'] || row['EXPECTED RESULT'] || row['Expected result'] || row['Expected'] || row['Expected Outcome'] || 'Verified successfully.').trim(),
               status: row['Status'] || 'Approved',
               priority: row['Priority'] || 'High',
               category: moduleName,
-              type: (row['Type'] || (cleanName.toLowerCase().includes('negative') || cleanName.toLowerCase().includes('reject') || cleanName.toLowerCase().includes('invalid') ? 'Negative' : 'Positive')) as 'Positive' | 'Negative',
+              type: (row['Type'] || row['TYPE'] || (cleanName.toLowerCase().includes('negative') || cleanName.toLowerCase().includes('reject') || cleanName.toLowerCase().includes('invalid') ? 'Negative' : 'Positive')) as 'Positive' | 'Negative',
               sourceFile: fileName,
               createdBy: createdBy.trim(),
               createdAt: new Date().toLocaleString(),
@@ -304,6 +353,19 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Upfront Validation Error Banner */}
+        {validationError && (
+          <div className="p-3 px-6 bg-rose-100 border-b border-rose-200 flex items-center justify-between text-xs text-rose-900 font-bold animate-in fade-in duration-150">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <span>{validationError}</span>
+            </div>
+            <button onClick={() => setValidationError(null)} className="p-1 text-rose-600 hover:text-rose-900">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Diagnostic Error Banner */}
         {diagnosticError && (
@@ -373,17 +435,30 @@ export const TestCaseImporter: React.FC<TestCaseImporterProps> = ({
         {/* Content Body */}
         {activeMode === 'upload' ? (
           <div className="p-8 text-center space-y-4 flex-1 flex flex-col justify-center">
-            <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-3xl p-8 hover:border-indigo-400 transition-all cursor-pointer">
+            <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-3xl p-8 hover:border-indigo-400 transition-all">
               <Upload className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
               <h4 className="text-base font-extrabold text-slate-900">Choose Reference File to Import</h4>
-              <p className="text-xs text-slate-500 mt-1 mb-4">
+              <p className="text-xs text-slate-500 mt-1 mb-5">
                 Supports .csv, .xlsx, or .json test suite files (Max 5MB payload limit).
               </p>
               
-              <label className="inline-flex items-center px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer transition-all active:scale-95">
-                Browse CSV/XLSX File
-                <input type="file" accept=".csv,.xlsx,.json" onChange={handleFileUpload} className="hidden" />
-              </label>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <label className="inline-flex items-center px-5 py-2.5 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md cursor-pointer transition-all active:scale-95">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Browse CSV/XLSX File
+                  <input type="file" accept=".csv,.xlsx,.json" onChange={handleFileUpload} className="hidden" />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="inline-flex items-center px-4 py-2.5 rounded-xl text-xs font-extrabold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-sm transition-all active:scale-95"
+                  title="Download pre-formatted sample CSV template"
+                >
+                  <Download className="w-4 h-4 mr-2 text-indigo-600" />
+                  Download Sample Template (.csv)
+                </button>
+              </div>
             </div>
           </div>
         ) : (

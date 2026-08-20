@@ -49,6 +49,7 @@ export const PlaywrightCodeModal: React.FC<PlaywrightCodeModalProps> = ({
     setCode(newCode);
     try {
       localStorage.setItem(storageKey, newCode);
+      localStorage.setItem('global_pasted_playwright_code', newCode);
     } catch (e) {}
   };
 
@@ -146,7 +147,7 @@ export const PlaywrightCodeModal: React.FC<PlaywrightCodeModalProps> = ({
             <textarea
               value={code}
               onChange={e => handleCodeChange(e.target.value)}
-              placeholder={`// Paste your custom Playwright TypeScript code here...\n// Example:\n\nimport { test, expect } from '@playwright/test';\n\ntest('${testCaseTitle.replace(/'/g, "\\'")}', async ({ page }) => {\n  await page.goto('https://qa.hrmgenie.outstrive.co/login');\n  await page.getByPlaceholder('Enter email').fill('hr@out-strive.com');\n  await page.getByPlaceholder('Enter password').fill('HR@dmin06');\n  await page.getByRole('button', { name: 'Login' }).click();\n});`}
+              placeholder={`// Paste your custom Playwright TypeScript code here...\n// Example:\n\nimport { test, expect } from '@playwright/test';\n\ntest('${testCaseTitle.replace(/'/g, "\\'")}', async ({ page }) => {\n  await page.goto('https://qa.hrmgenie.outstrive.co/login');\n  await page.getByPlaceholder('Enter email').fill(process.env.USER_EMAIL || '\${USER_EMAIL}');\n  await page.getByPlaceholder('Enter password').fill(process.env.USER_PASSWORD || '\${USER_PASSWORD}');\n  await page.getByRole('button', { name: 'Login' }).click();\n});`}
               className="w-full h-full p-4 bg-transparent text-emerald-400 placeholder-slate-600 focus:outline-none resize-none font-mono text-xs leading-relaxed"
               spellCheck={false}
             />

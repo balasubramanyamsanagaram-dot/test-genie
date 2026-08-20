@@ -47,8 +47,9 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   const [status, setStatus] = useState<'PASSED' | 'FAILED' | 'RUNNING'>(readOnlyMode ? (initialStatus || 'PASSED') : 'RUNNING');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // Single-execution save guard
+  // Single-execution save & execution guards
   const hasSavedRef = useRef<boolean>(false);
+  const hasExecutedRef = useRef<boolean>(false);
 
   // State for parsed instructions
   const [steps, setSteps] = useState<AutomationStepRun[]>([]);
@@ -81,17 +82,29 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
   };
 
   useEffect(() => {
-    if (!isOpen || !testCase) return;
+    if (!isOpen || !testCase) {
+      hasExecutedRef.current = false;
+      return;
+    }
+    if (!readOnlyMode && hasExecutedRef.current) return;
+    if (!readOnlyMode) {
+      hasExecutedRef.current = true;
+    }
     hasSavedRef.current = false;
 
-    // Check if custom Playwright script code was passed or saved in localStorage for this test case
+    // Check if custom Playwright script code was passed or saved in localStorage for this test case or globally
     let rawScriptCode = customScript;
-    if (!rawScriptCode) {
+    if (!rawScriptCode || rawScriptCode.trim().length === 0) {
       try {
         const storageKey = `playwright_code_${testCase.key}`;
         const savedCode = localStorage.getItem(storageKey);
         if (savedCode && savedCode.trim().length > 0) {
           rawScriptCode = savedCode;
+        } else {
+          const globalCode = localStorage.getItem('global_pasted_playwright_code');
+          if (globalCode && globalCode.trim().length > 0) {
+            rawScriptCode = globalCode;
+          }
         }
       } catch (e) {}
     }
@@ -102,12 +115,10 @@ export const AutomationSimulator: React.FC<AutomationSimulatorProps> = ({
         .split(/\n+/)
         .map(line => line.trim())
         .filter(line => line.length > 0 && !line.startsWith('//') && !line.startsWith('#') && !line.startsWith('import') && !line.startsWith('from') && !line.startsWith('def') && !line.startsWith('with'));
-    } else if (testCase.testSteps) {
-      testSteps = testCase.testSteps.split(/\n+/).filter(line => line.trim().length > 0);
     }
 
     if (testSteps.length === 0 && !readOnlyMode) {
-      const emptyError = "No Playwright script code found. Please click 'View Code' and paste your custom Playwright script code before running automation.";
+      const emptyError = "No Playwright script code found. Please click 'View Code', paste your custom Playwright script code (Python or TypeScript format), and click 'Run Automation Code'.";
       setErrorMsg(emptyError);
       setStatus('FAILED');
       setIsRunning(false);
@@ -516,239 +527,36 @@ export const StepVisualFrame: React.FC<StepVisualFrameProps> = ({
   totalSteps
 }) => {
   const stepNum = step.stepNumber;
-  const inst = (step.instruction || '').toLowerCase();
 
-  // Step 1: Initial Login Page
-  if (stepNum === 1 || inst.includes('navigate') || inst.includes('open')) {
+  // Real Playwright Execution Screenshot (Captured Live by Google Chrome for Testing)
+  if (step.screenshot) {
     return (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center p-4 text-white font-sans rounded-2xl border border-slate-800 shadow-2xl animate-fadeIn">
-        <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-slate-900 shadow-2xl space-y-4 border border-slate-100">
-          <div className="flex items-center space-x-3 mb-1">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-base shadow-md">
-              Q
-            </div>
-            <div>
-              <h3 className="font-extrabold text-xs text-slate-900">Sign in to your account</h3>
-              <p className="text-[9px] text-slate-500 font-mono">qa.hrmgenie.outstrive.co/login</p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div>
-              <label className="text-[10px] font-bold text-slate-500 block mb-1">Official Email</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 font-mono">
-                Enter email
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-500 block mb-1">Password</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 font-mono">
-                Enter password
-              </div>
-            </div>
-            <button className="w-full py-2 rounded-xl bg-emerald-500 font-extrabold text-white text-xs shadow-md">
-              Login
-            </button>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono text-emerald-600">
-            <span>● Browser Loaded Target URL</span>
-            <span className="bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Step 1 Captured</span>
-          </div>
+      <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-2 rounded-2xl border border-slate-800 relative overflow-hidden group">
+        <img
+          src={step.screenshot}
+          alt={`Real execution screenshot for step ${stepNum}`}
+          className="w-full h-full object-contain rounded-xl border border-slate-800/80 shadow-2xl"
+        />
+        <div className="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 text-[10px] font-mono text-emerald-400 flex items-center space-x-2 shadow-lg">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          <span>Actual Execution Capture • Step {stepNum} of {totalSteps}</span>
         </div>
       </div>
     );
   }
 
-  // Step 2: Typing Email
-  if (stepNum === 2 || inst.includes('email') || inst.includes('user')) {
-    return (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center p-4 text-white font-sans rounded-2xl border border-slate-800 shadow-2xl animate-fadeIn">
-        <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-slate-900 shadow-2xl space-y-4 border border-slate-100 ring-4 ring-indigo-500/20">
-          <div className="flex items-center space-x-3 mb-1">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-base shadow-md">
-              Q
-            </div>
-            <div>
-              <h3 className="font-extrabold text-xs text-slate-900">Sign in to your account</h3>
-              <p className="text-[9px] text-slate-500 font-mono">qa.hrmgenie.outstrive.co/login</p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Official Email</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-indigo-50/60 border-2 border-indigo-500 text-indigo-950 font-mono font-bold flex items-center justify-between shadow-xs">
-                <span>hr@out-strive.com</span>
-                <span className="w-1.5 h-3.5 bg-indigo-600 animate-pulse block rounded-xs"></span>
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-500 block mb-1">Password</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 font-mono">
-                Enter password
-              </div>
-            </div>
-            <button className="w-full py-2 rounded-xl bg-emerald-500 font-extrabold text-white text-xs shadow-md">
-              Login
-            </button>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono text-indigo-600">
-            <span>● fill('input[type=email]', 'hr@out-strive.com')</span>
-            <span className="bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 font-bold">Step 2 Captured</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 3: Typing Password
-  if (stepNum === 3 || inst.includes('password')) {
-    return (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center p-4 text-white font-sans rounded-2xl border border-slate-800 shadow-2xl animate-fadeIn">
-        <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-slate-900 shadow-2xl space-y-4 border border-slate-100 ring-4 ring-indigo-500/20">
-          <div className="flex items-center space-x-3 mb-1">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-base shadow-md">
-              Q
-            </div>
-            <div>
-              <h3 className="font-extrabold text-xs text-slate-900">Sign in to your account</h3>
-              <p className="text-[9px] text-slate-500 font-mono">qa.hrmgenie.outstrive.co/login</p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Official Email</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-mono font-medium">
-                hr@out-strive.com
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Password</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-indigo-50/60 border-2 border-indigo-500 text-indigo-950 font-mono font-bold flex items-center justify-between shadow-xs">
-                <span>••••••••••••••••</span>
-                <span className="w-1.5 h-3.5 bg-indigo-600 animate-pulse block rounded-xs"></span>
-              </div>
-            </div>
-            <button className="w-full py-2 rounded-xl bg-emerald-500 font-extrabold text-white text-xs shadow-md">
-              Login
-            </button>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono text-indigo-600">
-            <span>● fill('input[type=password]', '••••••••')</span>
-            <span className="bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 font-bold">Step 3 Captured</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 4: Click Login
-  if (stepNum === 4 || inst.includes('click login') || inst.includes('submit')) {
-    return (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center p-4 text-white font-sans rounded-2xl border border-slate-800 shadow-2xl animate-fadeIn">
-        <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-slate-900 shadow-2xl space-y-4 border border-slate-100 ring-4 ring-emerald-500/20">
-          <div className="flex items-center space-x-3 mb-1">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-base shadow-md">
-              Q
-            </div>
-            <div>
-              <h3 className="font-extrabold text-xs text-slate-900">Sign in to your account</h3>
-              <p className="text-[9px] text-slate-500 font-mono">qa.hrmgenie.outstrive.co/login</p>
-            </div>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Official Email</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-mono">
-                hr@out-strive.com
-              </div>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-700 block mb-1">Password</label>
-              <div className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 font-mono">
-                ••••••••••••••••
-              </div>
-            </div>
-            <button className="w-full py-2 rounded-xl bg-emerald-600 font-extrabold text-white text-xs shadow-lg flex items-center justify-center space-x-2 animate-pulse">
-              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <span>Authenticating Session...</span>
-            </button>
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono text-emerald-600">
-            <span>● click('button[type=submit]')</span>
-            <span className="bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Step 4 Captured</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 5: Wait / Transition
-  if (stepNum === 5 || inst.includes('wait') || inst.includes('load')) {
-    return (
-      <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-6 text-white font-sans rounded-2xl border border-slate-800 shadow-2xl space-y-3 animate-fadeIn">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-center space-y-1">
-          <h4 className="text-xs font-extrabold text-slate-100">Waiting Page Network Idle (5000ms)</h4>
-          <p className="text-[10px] font-mono text-slate-400 max-w-xs">
-            Playwright waiting for DOM hydration & REST API response...
-          </p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-[9px] text-indigo-400">
-          ● NetworkIdle2 Event Fired • Response 200 OK
-        </div>
-      </div>
-    );
-  }
-
-  // Step 6 or Higher / Final Step: Dashboard View with Holidays Module & Stat Cards!
+  // Fallback while browser action is running live
   return (
-    <div className="w-full h-full bg-slate-900 p-4 font-sans rounded-2xl border border-slate-800 shadow-2xl flex flex-col space-y-3 animate-fadeIn overflow-hidden">
-      {/* Header bar */}
-      <div className="bg-slate-800 rounded-xl px-3 py-2 flex items-center justify-between border border-slate-700">
-        <div className="flex items-center space-x-2">
-          <div className="w-5 h-5 rounded-lg bg-indigo-600 text-white font-extrabold text-[10px] flex items-center justify-center">Q</div>
-          <span className="font-extrabold text-xs text-white">HRM Genie V2 — Dashboard</span>
-        </div>
-        <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-900 font-bold">
-          ● Session Active (Suresh Kumar)
-        </span>
+    <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center p-6 text-white font-sans rounded-2xl border border-slate-800 shadow-2xl space-y-3 animate-fadeIn">
+      <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="text-center space-y-1">
+        <h4 className="text-xs font-extrabold text-slate-100">Executing Step {stepNum}</h4>
+        <p className="text-[10px] font-mono text-slate-400 max-w-xs truncate px-4">
+          {step.instruction}
+        </p>
       </div>
-
-      {/* Main portal layout simulation */}
-      <div className="flex-1 grid grid-cols-3 gap-2">
-        <div className="bg-slate-800/80 rounded-xl p-2.5 border border-slate-700/80 space-y-1">
-          <span className="text-[9px] font-mono text-slate-400 uppercase font-bold">Total Holidays</span>
-          <div className="text-xl font-extrabold text-white font-mono">108</div>
-          <span className="text-[8px] text-emerald-400 font-mono">100% AST Scenarios</span>
-        </div>
-
-        <div className="bg-slate-800/80 rounded-xl p-2.5 border border-slate-700/80 space-y-1">
-          <span className="text-[9px] font-mono text-slate-400 uppercase font-bold">Next Holiday</span>
-          <div className="text-xs font-extrabold text-indigo-300">Independence Day</div>
-          <span className="text-[8px] text-slate-400 font-mono">Aug 15, 2026</span>
-        </div>
-
-        <div className="bg-slate-800/80 rounded-xl p-2.5 border border-slate-700/80 space-y-1">
-          <span className="text-[9px] font-mono text-slate-400 uppercase font-bold">Automation Status</span>
-          <div className="text-xs font-extrabold text-emerald-400 flex items-center">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Test Passed
-          </div>
-          <span className="text-[8px] text-slate-400 font-mono">Step {stepNum} Verified</span>
-        </div>
-      </div>
-
-      <div className="bg-slate-800/60 rounded-xl p-2.5 border border-slate-700/60 flex items-center justify-between text-[9px] font-mono text-slate-300">
-        <span>Step {stepNum}: {step.instruction}</span>
-        <span className="bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-900 font-bold">
-          Visual Capture Step {stepNum} of {totalSteps}
-        </span>
+      <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-[9px] text-indigo-400">
+        ● Google Chrome Engine Active • Capturing Live Frame
       </div>
     </div>
   );
